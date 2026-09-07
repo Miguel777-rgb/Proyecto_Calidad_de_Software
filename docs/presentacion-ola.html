@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLA — Observatorio Litoral de Anomalías</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root{
+  --abyss: #0A2530;
+  --abyss-2: #0F3849;
+  --abyss-3: #133F52;
+  --foam: #F3F7F5;
+  --foam-dim: #A9C1C4;
+  --warm: #E8794A;
+  --warm-dim: rgba(232,121,74,0.16);
+  --cold: #4FB1C4;
+  --cold-dim: rgba(79,177,196,0.16);
+  --neutral: #D9C9A0;
+  --neutral-dim: rgba(217,201,160,0.16);
+  --gold: #E8B84B;
+  --line: rgba(243,247,245,0.14);
+  --line-soft: rgba(243,247,245,0.07);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--abyss);color:var(--foam);font-family:'Literata', serif;overflow:hidden;}
+
+.eyebrow{
+  font-family:'JetBrains Mono', monospace;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--gold);display:flex;align-items:center;gap:0.6em;
+}
+.eyebrow::before{content:'';width:22px;height:1px;background:var(--gold);display:inline-block;}
+
+h1,h2,h3{font-family:'Space Grotesk', sans-serif;font-weight:600;letter-spacing:-0.01em;color:var(--foam);}
+
+.deck{position:relative;width:100vw;height:100vh;background:
+  radial-gradient(ellipse 90% 60% at 15% 0%, var(--abyss-3), transparent 60%),
+  radial-gradient(ellipse 70% 50% at 100% 100%, rgba(79,177,196,0.10), transparent 60%),
+  var(--abyss);}
+
+.slides{height:100%;width:100%;display:flex;transition: transform .55s cubic-bezier(.65,0,.35,1);}
+.slide{min-width:100vw;height:100vh;padding: 6vh 7vw 9vh 7vw;display:flex;flex-direction:column;position:relative;}
+
+.wave-motif{position:absolute;top:0; left:0; width:100%;height:64px;opacity:0.55;pointer-events:none;}
+.wave-motif svg{width:100%;height:100%;display:block;}
+
+.slide-num{position:absolute;top: 3.2vh; right: 7vw;font-family:'JetBrains Mono', monospace;font-size:0.72rem;color:var(--foam-dim);letter-spacing:0.08em;}
+
+.content{flex:1; display:flex; flex-direction:column; justify-content:center; gap:1.2rem; max-width:1180px;}
+
+p, li{color:var(--foam-dim); font-size:1.08rem; line-height:1.6;}
+.lead{font-size:1.35rem; color:var(--foam); max-width:820px; line-height:1.5;}
+
+ul.plain{list-style:none;}
+ul.check li{padding-left:1.6rem;position:relative;margin-bottom:0.7rem;}
+ul.check li::before{content:'▸';color:var(--cold);position:absolute; left:0; top:0.1rem;}
+
+/* PORTADA */
+.portada{justify-content:center; align-items:flex-start;}
+.portada .brand{
+  font-family:'Space Grotesk', sans-serif;font-size:5.6rem;font-weight:700;line-height:0.95;letter-spacing:-0.02em;
+  background:linear-gradient(120deg, var(--foam) 30%, var(--cold) 75%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.portada .full-name{font-family:'Literata', serif;font-style:italic;font-size:1.3rem;color:var(--foam-dim);margin-top:0.4rem;}
+.portada .tagline{margin-top:1.5rem;font-size:1.2rem;max-width:660px;color:var(--foam);}
+.label-mono{font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.6rem;}
+.tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:0.74rem;padding:0.3rem 0.8rem;border-radius:20px;letter-spacing:0.02em;
+  background:var(--cold-dim); color:var(--cold); border:1px solid rgba(79,177,196,0.4);}
+.meta-grid{margin-top:1.8rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem;width:100%;border-top:1px solid var(--line);padding-top:1.2rem;}
+.meta-grid .val{font-size:0.95rem; color:var(--foam);}
+
+/* comparison cards (El Niño / La Niña, Hoy / Falta) */
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:0.4rem;}
+.ccard{background:var(--abyss-2); border:1px solid var(--line); border-radius:6px; padding:1.5rem 1.6rem;}
+.ccard.warm{border-top:3px solid var(--warm);}
+.ccard.cold{border-top:3px solid var(--cold);}
+.ccard.gold{border-top:3px solid var(--gold);}
+.ccard h3{font-size:1.15rem; margin-bottom:0.7rem; display:flex; align-items:center; gap:0.5rem;}
+.ccard h3 .dot{width:10px;height:10px;border-radius:50%;}
+.ccard p{font-size:0.95rem;}
+
+.context-box{
+  background:var(--abyss-2); border:1px solid var(--line); border-radius:6px; padding:1.1rem 1.4rem; margin-bottom:0.4rem;
+  border-left:3px solid var(--gold);
+}
+.context-box p{color:var(--foam); font-size:0.98rem;}
+
+/* pillars (la idea) */
+.pillars{display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; margin-top:0.6rem;}
+.pillar{background:var(--abyss-2); border:1px solid var(--line); border-radius:6px; padding:1.4rem 1.4rem;}
+.pillar .pnum{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.8rem; color:var(--cold); margin-bottom:0.4rem;}
+.pillar h3{font-size:1.05rem; margin-bottom:0.5rem;}
+.pillar p{font-size:0.9rem;}
+
+/* stat row for "qué vamos a construir" */
+.stat-row{display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:0.6rem;}
+.stat{flex:1; min-width:200px;background:var(--abyss-2);border:1px solid var(--line);border-left:3px solid var(--cold);border-radius:3px;padding:1.1rem 1.2rem;}
+.stat .lbl-mono{font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); margin-bottom:0.4rem;}
+.stat .val-big{font-family:'Space Grotesk',sans-serif; font-size:1.15rem; font-weight:600; color:var(--foam);}
+
+.controls{position:fixed; bottom:2.4vh; left:50%; transform:translateX(-50%);display:flex; align-items:center; gap:1.1rem;
+  background:rgba(15,56,73,0.8);border:1px solid var(--line);backdrop-filter:blur(6px);padding:0.55rem 1rem; border-radius:30px;z-index:50;}
+.controls button{background:none; border:none; color:var(--foam); cursor:pointer;width:30px;height:30px; border-radius:50%; font-size:1.1rem;
+  display:flex; align-items:center; justify-content:center;transition:background .2s;}
+.controls button:hover{background:rgba(243,247,245,0.1);}
+#counter{font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--foam-dim); min-width:56px; text-align:center;}
+.progress{position:fixed; top:0; left:0; height:2px; background:linear-gradient(90deg,var(--cold),var(--gold),var(--warm)); z-index:60; transition:width .5s;}
+
+::selection{background:var(--cold); color:var(--abyss);}
+
+@media (max-width:900px){
+  .portada .brand{font-size:3rem;}
+  .compare, .pillars{grid-template-columns:1fr;}
+  .meta-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progressBar"></div>
+<div class="deck">
+  <div class="slides" id="slides">
+
+    <!-- 1 · PORTADA -->
+    <section class="slide portada">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#4FB1C4" stroke-width="1.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">Calidad de Software · Docente: Maribel</div>
+        <div class="brand">OLA</div>
+        <div class="full-name">Observatorio Litoral de Anomalías térmicas</div>
+        <p class="tagline">Una idea para dar visibilidad, en tiempo casi real, a algo que hoy nadie está mostrando con claridad: cómo está cambiando la temperatura del mar peruano — y a quién le urge saberlo.</p>
+        <div class="meta-grid">
+          <div><div class="label-mono">Equipo</div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+              <span class="tag">Frederick Mares Graos</span>
+              <span class="tag">Jhordan Huamani Huamani</span>
+              <span class="tag">Jorge Ortiz Castañeda</span>
+              <span class="tag">Miguel Angel Flores Leon</span>
+              <span class="tag">Piero Adrian Delgado Chipana</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-num">01 / 07</div>
+    </section>
+
+    <!-- 2 · EL FENÓMENO -->
+    <section class="slide">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">El punto de partida</div>
+        <h1 style="font-size:2rem; max-width:820px;">¿Por qué cambia la temperatura del mar peruano?</h1>
+        <div class="context-box">
+          <p>En condiciones normales, los vientos alisios empujan el agua cálida hacia el oeste del Pacífico. Eso permite que frente a la costa peruana aflore agua fría y rica en nutrientes — por eso nuestro mar es uno de los más productivos del mundo.</p>
+        </div>
+        <div class="compare">
+          <div class="ccard warm">
+            <h3><span class="dot" style="background:var(--warm);"></span>El Niño</h3>
+            <p>Los vientos alisios se debilitan. El agua cálida que normalmente está en el Pacífico occidental se desplaza hacia la costa peruana y frena el afloramiento frío. El mar se calienta: <strong style="color:var(--foam)">anomalía positiva</strong>.</p>
+          </div>
+          <div class="ccard cold">
+            <h3><span class="dot" style="background:var(--cold);"></span>La Niña</h3>
+            <p>Los vientos alisios se intensifican. El afloramiento de agua fría se refuerza y el mar se enfría más de lo habitual: <strong style="color:var(--foam)">anomalía negativa</strong>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="slide-num">02 / 07</div>
+    </section>
+
+    <!-- 3 · CONSECUENCIAS -->
+    <section class="slide">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#E8794A" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">Lo que está en juego</div>
+        <h1 style="font-size:2rem;">Cuando el mar cambia, la costa entera lo siente</h1>
+        <ul class="check lead" style="font-size:1.08rem;">
+          <li>Las especies como la anchoveta migran o se alejan de las zonas habituales de pesca.</li>
+          <li>Miles de familias de pesca artesanal ven caer sus ingresos de un mes a otro, sin aviso previo.</li>
+          <li>Un evento fuerte de El Niño puede traer además lluvias e inundaciones severas en el norte del país; La Niña, sequías en otras zonas.</li>
+        </ul>
+      </div>
+      <div class="slide-num">03 / 07</div>
+    </section>
+
+    <!-- 4 · EL PROBLEMA: POCA VISIBILIDAD -->
+    <section class="slide">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#4FB1C4" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">El problema real</div>
+        <h1 style="font-size:2rem; max-width:800px;">El dato existe. Lo que no existe es una forma simple de verlo.</h1>
+        <div class="compare" style="margin-top:0.8rem;">
+          <div class="ccard gold">
+            <h3><span class="dot" style="background:var(--gold);"></span>Hoy</h3>
+            <p>IMARPE mide la anomalía térmica todos los días en 10 puntos de la costa. Pero esa información vive en boletines técnicos y archivos CSV, pensados para especialistas — no para quien más la necesita.</p>
+          </div>
+          <div class="ccard cold">
+            <h3><span class="dot" style="background:var(--cold);"></span>Lo que falta</h3>
+            <p>No existe hoy una aplicación pública, simple y visual, que traduzca ese dato en una alerta clara para el pescador artesanal. Es un vacío de visibilidad real, no de datos.</p>
+          </div>
+        </div>
+      </div>
+      <div class="slide-num">04 / 07</div>
+    </section>
+
+    <!-- 5 · LA IDEA -->
+    <section class="slide">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">La idea</div>
+        <h1 style="font-size:2.1rem; max-width:820px;">OLA: una app web que traduce el dato técnico del IMARPE en una alerta que cualquier pescador puede entender.</h1>
+        <div class="pillars">
+          <div class="pillar"><div class="pnum">01</div><h3>Clasifica</h3><p>Convierte la anomalía diaria de cada zona costera en un estado simple: cálido, neutro o frío.</p></div>
+          <div class="pillar"><div class="pnum">02</div><h3>Visualiza</h3><p>Muestra ese estado en un mapa de las 10 zonas costeras que mide el IMARPE, de Paita a Ilo.</p></div>
+          <div class="pillar"><div class="pnum">03</div><h3>Alerta</h3><p>Avisa cuando una zona entra en un estado sostenido de riesgo, antes de que el cambio ya sea evidente.</p></div>
+        </div>
+      </div>
+      <div class="slide-num">05 / 07</div>
+    </section>
+
+    <!-- 6 · QUÉ VAMOS A CONSTRUIR -->
+    <section class="slide">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#E8794A" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">Lo que vamos a construir</div>
+        <h2 style="font-size:1.7rem;">Una aplicación web real, con datos reales, en un plazo real</h2>
+        <div class="stat-row">
+          <div class="stat"><div class="lbl-mono">Fuente de datos</div><div class="val-big">ATSM · IMARPE / PRODUCE</div></div>
+          <div class="stat"><div class="lbl-mono">Producto</div><div class="val-big">Aplicación web, en la nube</div></div>
+          <div class="stat"><div class="lbl-mono">Metodología</div><div class="val-big">Scrum · equipo de 5</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="lbl-mono">Hito 1</div><div class="val-big">Semana del 12 al 17 de octubre</div></div>
+          <div class="stat"><div class="lbl-mono">Hito 2</div><div class="val-big">Primera semana de diciembre</div></div>
+        </div>
+      </div>
+      <div class="slide-num">06 / 07</div>
+    </section>
+
+    <!-- 7 · CIERRE -->
+    <section class="slide portada">
+      <div class="wave-motif"><svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C100,10 200,54 300,32 C400,10 500,54 600,32 C700,10 800,54 900,32 C1000,10 1100,54 1200,32" fill="none" stroke="#4FB1C4" stroke-width="1.5" opacity="0.5"/></svg></div>
+      <div class="content">
+        <div class="eyebrow">Gracias</div>
+        <div class="brand" style="font-size:3.4rem;">OLA</div>
+        <p class="tagline" style="margin-top:1rem;">Observatorio Litoral de Anomalías térmicas — dando visibilidad a un dato que ya existe, para quien más lo necesita.</p>
+        <div class="meta-grid">
+          <div><div class="label-mono">Equipo</div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+              <span class="tag">Frederick Mares Graos</span>
+              <span class="tag">Jhordan Huamani Huamani</span>
+              <span class="tag">Jorge Ortiz Castañeda</span>
+              <span class="tag">Miguel Angel Flores Leon</span>
+              <span class="tag">Piero Adrian Delgado Chipana</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-num">07 / 07</div>
+    </section>
+
+  </div>
+</div>
+
+<div class="controls">
+  <button id="prevBtn" aria-label="Anterior">‹</button>
+  <span id="counter">01 / 07</span>
+  <button id="nextBtn" aria-label="Siguiente">›</button>
+</div>
+
+<script>
+const slidesEl = document.getElementById('slides');
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let idx = 0;
+function render(){
+  slidesEl.style.transform = `translateX(-${idx*100}vw)`;
+  document.getElementById('counter').textContent = String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+  document.getElementById('progressBar').style.width = ((idx+1)/total*100) + '%';
+}
+function go(delta){ idx = Math.min(total-1, Math.max(0, idx+delta)); render(); }
+document.getElementById('nextBtn').addEventListener('click', ()=>go(1));
+document.getElementById('prevBtn').addEventListener('click', ()=>go(-1));
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='ArrowRight' || e.key===' ') go(1);
+  if(e.key==='ArrowLeft') go(-1);
+});
+let touchX=null;
+window.addEventListener('touchstart', e=>touchX=e.touches[0].clientX);
+window.addEventListener('touchend', e=>{
+  if(touchX===null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if(dx>50) go(-1); else if(dx<-50) go(1);
+  touchX=null;
+});
+render();
+</script>
+</body>
+</html>

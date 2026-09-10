@@ -90,6 +90,8 @@ services:
       # probar el acceso por rol sin sembrar datos a mano.
       E2E_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
       E2E_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
+      # Las E2E comprueban el correo entregado contra Mailpit.
+      E2E_MAILPIT_URL: http://mailpit:8025
       CI: "1"
     volumes:
       - ./frontend:/app
@@ -97,6 +99,7 @@ services:
     depends_on:
       - web
       - api
+      - mailpit
     command: >
       sh -c "corepack enable &&
              corepack prepare pnpm@9.15.2 --activate &&

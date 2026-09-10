@@ -2,7 +2,14 @@ import { render, type RenderOptions } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
-import type { EstadoSistema, EstadoZona, Sesion, Usuario } from './api/client'
+import type {
+  EstadoSistema,
+  EstadoZona,
+  Laboratorio,
+  RespuestaSeries,
+  Sesion,
+  Usuario,
+} from './api/client'
 
 export const USUARIO: Usuario = {
   id: 2,
@@ -94,4 +101,49 @@ export function renderConProveedores(
     </MemoryRouter>
   )
   return render(ui, { wrapper: Wrapper, ...options })
+}
+
+const CODIGOS: [string, string][] = [
+  ['TUMBES', 'Tumbes'],
+  ['PAITA', 'Paita'],
+  ['SAN JOSE', 'San José'],
+  ['CHICAMA', 'Chicama'],
+  ['CHIMBOTE', 'Chimbote'],
+  ['HUACHO', 'Huacho'],
+  ['CALLAO', 'Callao'],
+  ['PISCO', 'Pisco'],
+  ['MATARANI', 'Matarani'],
+  ['ILO', 'Ilo'],
+]
+
+/** Las 10 zonas del catalogo, como las devuelve GET /laboratories. */
+export const LABORATORIOS: Laboratorio[] = CODIGOS.map(([code, name], i) => ({
+  id: i + 1,
+  code,
+  name,
+  latitude: String(-3 - i * 1.5),
+  longitude: '-77.0',
+  is_active: true,
+}))
+
+/** Respuesta de series para una o varias zonas, con el mismo eje temporal. */
+export function seriesDe(
+  codigos: string | string[],
+  valores: (string | null)[],
+  resolution: RespuestaSeries['resolution'] = 'daily',
+): RespuestaSeries {
+  const lista = Array.isArray(codigos) ? codigos : [codigos]
+  return {
+    since: '2026-05-03',
+    until: '2026-07-31',
+    resolution,
+    series: lista.map((code) => ({
+      laboratory: LABORATORIOS.find((l) => l.code === code)!,
+      points: valores.map((v, i) => ({
+        period: `2026-07-${String(i + 1).padStart(2, '0')}`,
+        anomaly_c: v,
+        samples: v === null ? 0 : 1,
+      })),
+    })),
+  }
 }

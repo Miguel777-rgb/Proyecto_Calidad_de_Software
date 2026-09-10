@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,8 +11,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from ola.api.deps import get_session
 from ola.config import Settings, get_settings
-from ola.db.models import Base
+from ola.db.models import Base, Laboratory, User, UserRole
 from ola.main import create_app
+from ola.security import create_access_token, hash_password
+from ola.seeds.laboratories import LABORATORIES
 
 
 @pytest.fixture
@@ -57,13 +61,28 @@ def engine():
 
 @pytest.fixture
 def db_session(engine) -> Iterator[Session]:
-    """Sesion sobre una base vacia: cada prueba parte del mismo estado."""
+    """Sesion sobre una base limpia: cada prueba parte del mismo estado.
+
+    El catalogo de laboratorios se vuelve a sembrar despues de vaciar, porque
+    en produccion lo carga una migracion y el resto del sistema lo da por
+    existente: las mediciones no pueden importarse sin el.
+    """
     tablas = ", ".join(f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables))
     with engine.begin() as conn:
         conn.execute(text(f"TRUNCATE {tablas} RESTART IDENTITY CASCADE"))
 
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     session = factory()
+    session.add_all(
+        Laboratory(
+            code=lab.code,
+            name=lab.name,
+            latitude=Decimal(lab.latitude),
+            longitude=Decimal(lab.longitude),
+        )
+        for lab in LABORATORIES
+    )
+    session.commit()
     try:
         yield session
     finally:
@@ -82,3 +101,66 @@ def client(db_session: Session) -> Iterator[TestClient]:
     app.dependency_overrides[get_session] = lambda: db_session
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def sample_csv_path() -> Path:
+    """Dataset reducido con casos de racha construidos a proposito.
+
+    Ver tests/fixtures/generar_muestra.py para la tabla de casos.
+    """
+    return FIXTURES / "sample_atsm.csv"
+
+
+@pytest.fixture
+def sample_csv_bytes(sample_csv_path: Path) -> bytes:
+    return sample_csv_path.read_bytes()
+
+
+@pytest.fixture
+def admin_user(db_session: Session) -> User:
+    user = User(
+        email="admin@ola.pe",
+        password_hash=hash_password("miclave123"),
+        full_name="Administrador",
+        role=UserRole.ADMIN,
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def normal_user(db_session: Session) -> User:
+    user = User(
+        email="pescador@ejemplo.pe",
+        password_hash=hash_password("miclave123"),
+        role=UserRole.USER,
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+def auth_headers(user: User) -> dict[str, str]:
+    s = get_settings()
+    token = create_access_token(
+        str(user.id),
+        secret=s.jwt_secret,
+        algorithm=s.jwt_algorithm,
+        expires_minutes=s.access_token_minutes,
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def admin_headers(admin_user: User) -> dict[str, str]:
+    return auth_headers(admin_user)
+
+
+@pytest.fixture
+def user_headers(normal_user: User) -> dict[str, str]:
+    return auth_headers(normal_user)

@@ -296,3 +296,40 @@ export const compararSeries = (codes: string[], desde?: string, hasta?: string) 
   if (hasta) query.set('to', hasta)
   return apiFetch<RespuestaSeries>(`/readings/compare?${query.toString()}`)
 }
+
+export type MetodoProyeccion = 'linear_regression' | 'weighted_moving_average'
+export type Confianza = 'high' | 'medium' | 'low'
+
+export interface PuntoProyectado {
+  projected_on: string
+  anomaly_c: string
+}
+
+export interface ProyeccionMetodo {
+  method: MetodoProyeccion
+  points: PuntoProyectado[]
+  final_value: string
+  final_state: EstadoTermico
+}
+
+export interface Proyeccion {
+  laboratory: Laboratorio
+  reference_date: string | null
+  last_measured_on: string | null
+  days_behind: number | null
+  horizon_days: number
+  window: number
+  confidence: Confianza
+  history: { measured_on: string; anomaly_c: string }[]
+  linear: ProyeccionMetodo | null
+  weighted: ProyeccionMetodo | null
+  /** Cuanto difieren las dos estimaciones. Una diferencia grande es en si
+   *  una senal de incertidumbre. */
+  agreement_c: string | null
+  unavailable_reason: string | null
+}
+
+export const obtenerProyeccion = (code: string, horizonte: number) =>
+  apiFetch<Proyeccion>(
+    `/laboratories/${encodeURIComponent(code)}/projection?horizon=${horizonte}`,
+  )

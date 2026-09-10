@@ -22,6 +22,7 @@ export const textos = {
     administracion: 'Administración',
     historico: 'Histórico',
     comparacion: 'Comparar',
+    proyeccion: 'Proyección',
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -133,6 +134,39 @@ export const textos = {
     limiteZonas: (max: number) => `Solo se pueden comparar ${max} zonas a la vez.`,
     ningunaZona: 'Elige al menos una zona para comparar.',
     rangoInvertido: 'La fecha inicial no puede ser posterior a la final.',
+  },
+  proyeccion: {
+    titulo: 'Proyección de tendencia',
+    horizonte: 'Días a proyectar',
+    dias: (n: number) => `${n} días`,
+    // La SRS exige marcar la proyección explícitamente como estimación.
+    advertencia:
+      'Esto es una estimación calculada a partir de las mediciones recientes, no un pronóstico. No predice eventos El Niño o La Niña, que dependen de más variables y son competencia del ENFEN.',
+    tramoProyectado: 'Tramo estimado',
+    medido: 'Medido',
+    metodos: {
+      linear_regression: 'Según la tendencia',
+      weighted_moving_average: 'Según el nivel reciente',
+    },
+    explicacionMetodos:
+      'Se calculan dos estimaciones con métodos distintos. La primera sigue la dirección en que vienen moviéndose las mediciones; la segunda promedia el nivel de los últimos días dando más peso a lo reciente.',
+    coinciden: 'Ambos métodos coinciden, lo que refuerza la estimación.',
+    difieren: (diferencia: string) =>
+      `Los métodos difieren en ${diferencia} °C. Cuando eso ocurre, conviene tomar la estimación con más cautela.`,
+    confianza: 'Confianza',
+    confianzas: {
+      high: 'Alta',
+      medium: 'Media',
+      low: 'Baja',
+    },
+    explicacionConfianza: {
+      high: 'La zona tiene mediciones frecuentes y al día.',
+      medium: 'La zona tiene huecos en sus mediciones recientes.',
+      low: 'La zona tiene pocas mediciones o su último dato es antiguo. Tómala como referencia muy aproximada.',
+    },
+    datoAtrasado: (dias: number) =>
+      `El último dato de esta zona es de hace ${dias.toLocaleString('es-PE')} días, así que la estimación parte de esa fecha.`,
+    sinProyeccion: 'No hay mediciones suficientes para estimar una tendencia en esta zona.',
   },
   mapa: {
     titulo: 'Mapa de zonas costeras',

@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.2 |
+| Versión | 1.3 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -105,7 +105,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 |---|---|
 | Descripción | El sistema **deberá** analizar la serie temporal de anomalías por laboratorio costero y detectar cuando el valor se mantenga fuera del rango neutro (±0.5 °C) durante un número configurable de días consecutivos (por defecto 5), generando un evento de "tendencia sostenida". |
 | Entradas | Serie histórica de `ANOMALIA_TEMPERATURA` por `LABORATORIO_COSTERO` y `FECHA_MEDICION`. |
-| Proceso | Conteo de días consecutivos fuera de umbral / media móvil. |
+| Proceso | Conteo de **registros consecutivos** fuera de umbral. Entre dos mediciones seguidas se toleran hasta 2 días faltantes (configurable); a partir del tercero la racha se reinicia. El umbral (±0.5 °C) es exclusivo: exactamente ±0.5 se considera neutro. |
 | Salidas | Evento de tendencia sostenida (zona, fecha de inicio, clasificación). |
 | Complejidad | Alta |
 
@@ -131,7 +131,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 | Campo | Detalle |
 |---|---|
 | Descripción | El sistema **deberá** mostrar un mapa con los 10 laboratorios costeros, coloreando cada uno según su clasificación vigente (cálido/neutro/frío). |
-| Entradas | Última clasificación registrada por laboratorio. |
+| Entradas | Promedio de la anomalía de los últimos 5 días por laboratorio (ventana configurable), medido contra la fecha del dato más reciente del sistema y no contra el reloj del servidor. Una zona sin mediciones en los últimos 7 días se muestra como «sin datos recientes» y no se clasifica. |
 | Salidas | Vista de mapa interactivo. |
 | Complejidad | Media |
 
@@ -233,6 +233,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 | 1.0 | 2026-09-10 | — | Versión inicial del catálogo de requisitos, presentada para el Hito 1. | Línea base del documento. | Miguel Angel Flores Leon (PO) |
 | 1.1 | 2026-09-10 | — | Se incorpora esta sección de control de versiones. | El cierre de la v1.0 la exigía explícitamente y era necesaria antes de registrar cualquier cambio de alcance. | Miguel Angel Flores Leon (PO) |
 | 1.2 | 2026-09-10 | RF-08 | Se elimina la importación programada. El requisito queda limitado a la carga manual por el administrador. | El sistema depende de un dataset que IMARPE publica sin una frecuencia garantizada, por lo que una tarea automática añadiría un planificador y su infraestructura sin aportar valor demostrable dentro del alcance del curso. Se precisa además el comportamiento ante filas inválidas y reimportaciones, que la versión anterior no definía. | Miguel Angel Flores Leon (PO) |
+| 1.3 | 2026-09-10 | RF-01, RF-04 | Se precisa el conteo de la racha (registros consecutivos con tolerancia de 2 días faltantes) y el origen del color del mapa (promedio de 5 días medido contra la fecha del dato, con marca de «sin datos recientes» a los 7 días). | La redacción original decía «días consecutivos» sin definir qué ocurre con los huecos, y el dataset de IMARPE los tiene con frecuencia. Sin precisarlo, dos implementaciones válidas darían resultados distintos. Además, usar el reloj del servidor dejaría todas las zonas sin clasificar, porque el dato se publica con retraso. | Miguel Angel Flores Leon (PO) |
 
 ---
 

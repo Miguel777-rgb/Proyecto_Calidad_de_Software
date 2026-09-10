@@ -98,3 +98,28 @@ del límite de 2 minutos que fija la SRS.
 construidos a propósito (rachas al límite, huecos que rompen o no la racha, zonas sin datos
 recientes). Se regenera con `python tests/fixtures/generar_muestra.py`, cuyo encabezado
 documenta cada caso.
+
+## Clasificación y rachas (RF-01)
+
+- **Clasificación:** anomalía mayor que `+0.5 °C` es cálida, menor que `-0.5 °C` es fría, y el
+  resto neutra. El umbral es **exclusivo**: exactamente `±0.5` cuenta como neutro, siguiendo el
+  criterio de ENFEN.
+- **Racha:** se cuentan **registros consecutivos**, no días de calendario. Entre dos mediciones
+  se toleran hasta 2 días faltantes; a partir del tercero la racha se reinicia. Se exigen 5
+  registros. Los tres valores son configurables.
+- **Fecha de referencia:** `MAX(measured_on)` sobre toda la tabla, **nunca** el reloj del
+  servidor. IMARPE publica con retraso, y usar la hora real dejaría las 10 zonas marcadas como
+  obsoletas. Los endpoints de lectura aceptan `?as_of=` para fijarla.
+- **Color del mapa:** promedio de los últimos 5 días, no la última medición, para que un solo
+  día atípico no haga parpadear la zona.
+- **Vigencia:** una zona sin mediciones en los últimos 7 días se marca «sin datos recientes»,
+  no se clasifica y no alerta. Así MATARANI, cuya serie termina en 2016, queda marcada sin
+  nombrarla en el código.
+- **Evaluación:** recorre todo el histórico y es **idempotente**. Usa upsert sobre
+  `(laboratorio, estado, fecha de inicio)`, de modo que el identificador del episodio se
+  mantiene entre evaluaciones; de eso dependerá RF-03 para no reenviar la misma alerta.
+- Cada episodio guarda los parámetros con los que se detectó. Cambiar los umbrales **no**
+  recalcula nada: el administrador decide cuándo reevaluar.
+
+Medición real sobre el dataset completo: **4,164 episodios desde 1970 en unos 3 segundos**, de
+los cuales 8 siguen vigentes.

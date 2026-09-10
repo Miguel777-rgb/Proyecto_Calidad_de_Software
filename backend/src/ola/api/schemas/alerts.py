@@ -60,3 +60,4 @@ class EvaluationSummaryOut(BaseModel):
     events_total: int
     events_open: int
     events_removed: int
+    notifications_created: int = 0

@@ -19,6 +19,7 @@ from ola.api.routers import (
     projection,
     series,
     status,
+    subscriptions,
 )
 from ola.api.routers import settings as settings_router
 from ola.config import Settings, get_settings
@@ -84,6 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(alerts.router)
     app.include_router(series.router)
     app.include_router(projection.router)
+    app.include_router(subscriptions.router)
     app.include_router(settings_router.router)
     return app
 

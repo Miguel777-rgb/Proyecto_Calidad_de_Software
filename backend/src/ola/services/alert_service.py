@@ -30,6 +30,11 @@ class EvaluationSummary:
     events_total: int
     events_open: int
     events_removed: int
+    # Episodios que pasaron a estar vigentes o dejaron de estarlo en esta
+    # evaluacion. Son los unicos que generan avisos (RF-03): sin este
+    # seguimiento, reevaluar mandaria de nuevo correos ya enviados.
+    opened_event_ids: tuple[int, ...] = ()
+    closed_event_ids: tuple[int, ...] = ()
 
 
 def _to_alert_state(state: ThermalState) -> AlertState:
@@ -102,6 +107,8 @@ def _sync_lab_events(
 
 def evaluate(session: Session, config: EffectiveSettings) -> EvaluationSummary:
     """Recalcula los episodios de todas las zonas."""
+    abiertos_antes_eventos = dict(alerts_repo.open_events(session))
+
     referencia = readings_repo.reference_date(session)
     if referencia is None:
         # Sin mediciones no hay nada que evaluar; se limpia lo que hubiera.
@@ -138,6 +145,28 @@ def evaluate(session: Session, config: EffectiveSettings) -> EvaluationSummary:
         total += len(rachas)
         abiertos += 1 if vigente is not None else 0
 
+    # Se comparan los episodios vigentes antes y despues para saber cuales
+    # acaban de abrirse y cuales acaban de cerrarse. Se hace ANTES de
+    # confirmar la transaccion, sobre el mismo estado que se va a guardar.
+    session.flush()
+    vigentes = alerts_repo.open_events(session)
+    abiertos_despues = {evento.laboratory_id: evento.id for evento in vigentes.values()}
+
+    ids_antes = {lab_id: evento.id for lab_id, evento in abiertos_antes_eventos.items()}
+    nuevos = tuple(
+        identificador
+        for lab_id, identificador in abiertos_despues.items()
+        if ids_antes.get(lab_id) != identificador
+    )
+    # Un episodio eliminado por un cambio de parametros no se considera
+    # cerrado: nunca dejo de ser cierto, simplemente dejo de calcularse asi.
+    existentes = set(session.scalars(select(AlertEvent.id)))
+    cerrados = tuple(
+        identificador
+        for lab_id, identificador in ids_antes.items()
+        if abiertos_despues.get(lab_id) != identificador and identificador in existentes
+    )
+
     session.commit()
     return EvaluationSummary(
         reference_date=referencia,
@@ -145,4 +174,6 @@ def evaluate(session: Session, config: EffectiveSettings) -> EvaluationSummary:
         events_total=total,
         events_open=abiertos,
         events_removed=eliminados,
+        opened_event_ids=nuevos,
+        closed_event_ids=cerrados,
     )

@@ -6,11 +6,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from ola.api.deps import AdminUser, EffectiveSettingsDep, SessionDep
+from ola.api.deps import AdminUser, EffectiveSettingsDep, MailerDep, SessionDep
 from ola.api.schemas.alerts import AlertEventOut, EvaluationSummaryOut, StreakOut
+from ola.api.schemas.notifications import SendSummaryOut
 from ola.domain.streaks import detect_streaks
-from ola.repositories import alerts_repo, labs_repo, readings_repo
-from ola.services import alert_service
+from ola.repositories import alerts_repo, labs_repo, notifications_repo, readings_repo
+from ola.services import alert_service, notification_service
 
 router = APIRouter(tags=["alertas"])
 
@@ -47,12 +48,22 @@ def evaluate_alerts(
     session: SessionDep, config: EffectiveSettingsDep, admin: AdminUser
 ) -> EvaluationSummaryOut:
     resumen = alert_service.evaluate(session, config)
+
+    # Los avisos se REGISTRAN aqui pero no se envian: un servidor de correo
+    # lento o caido no debe bloquear ni hacer fallar la evaluacion.
+    avisos = notification_service.create_for_events(
+        session,
+        opened_ids=resumen.opened_event_ids,
+        closed_ids=resumen.closed_event_ids,
+    )
+
     return EvaluationSummaryOut(
         reference_date=resumen.reference_date,
         laboratories_evaluated=resumen.laboratories_evaluated,
         events_total=resumen.events_total,
         events_open=resumen.events_open,
         events_removed=resumen.events_removed,
+        notifications_created=avisos,
     )
 
 
@@ -82,3 +93,21 @@ def laboratory_streaks(
         )
         for r in detect_streaks(serie, config.streak_config)
     ]
+
+
+@router.post(
+    "/api/notifications/send",
+    response_model=SendSummaryOut,
+    summary="Envia los avisos pendientes por correo",
+)
+def send_notifications(
+    session: SessionDep, mailer: MailerDep, admin: AdminUser, limit: int = 200
+) -> SendSummaryOut:
+    """Segundo paso del envio. Reintenta tambien los que fallaron antes."""
+    resumen = notification_service.send_pending(session, mailer, limit=limit)
+    return SendSummaryOut(
+        attempted=resumen.attempted,
+        sent=resumen.sent,
+        failed=resumen.failed,
+        by_status=notifications_repo.count_by_status(session),
+    )

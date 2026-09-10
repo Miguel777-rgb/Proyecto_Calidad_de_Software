@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ola.config import Settings, get_settings
 from ola.db.models import User
 from ola.db.session import get_session
+from ola.mail import Mailer, SmtpMailer
 from ola.repositories import users_repo
 from ola.security import decode_access_token
 from ola.services import settings_service
@@ -73,3 +74,10 @@ def get_effective_settings(session: SessionDep, settings: SettingsDep) -> Effect
 
 
 EffectiveSettingsDep = Annotated[EffectiveSettings, Depends(get_effective_settings)]
+
+
+def get_mailer(settings: SettingsDep) -> Mailer:
+    return SmtpMailer(settings)
+
+
+MailerDep = Annotated[Mailer, Depends(get_mailer)]

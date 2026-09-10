@@ -87,3 +87,30 @@ docker compose stop web && docker compose rm -f web
 docker volume rm ola_node_modules
 docker compose up -d --build web
 ```
+
+## Gráficos (RF-05, RF-06)
+
+Se usa **Recharts**. Las decisiones de diseño no son estéticas: cada una responde a un
+requisito o a un rasgo real del dataset.
+
+- **Agrupado automático.** El usuario elige el rango, no la resolución: pedir dato diario de
+  56 años son más de 20,000 puntos. El backend agrupa en PostgreSQL (diario hasta un año,
+  semanal hasta cinco, mensual más allá) y nunca envía más de unos cientos de puntos.
+- **La línea se corta en los huecos.** El backend rellena los periodos sin medición con `null`
+  y el gráfico usa `connectNulls={false}`. Unir dos puntos separados por meses dibujaría una
+  tendencia que nadie midió: HUACHO tiene un hueco de 1,127 días que quedaría como una recta.
+- **Eje vertical anclado en cero**, sin forzar la simetría. La anomalía es una desviación y el
+  signo distingue cálido de frío, pero reservar espacio negativo cuando todos los valores son
+  positivos aplastaría la señal en media gráfica.
+- **Tres canales redundantes por serie**: color, forma de marcador y patrón de trazo. Así se
+  distinguen sin depender del color. Los marcadores se dibujan cada N puntos, no en todos,
+  para no saturar el gráfico.
+- **La paleta está validada**, no elegida a ojo. Con las cuatro series simultáneas supera la
+  separación para daltonismo (peor par ΔE 9.0 en deuteranopía), el mínimo de distinción para
+  visión normal (ΔE 16.8) y el contraste de 3:1 contra el fondo.
+- **Tabla alternativa** bajo cada gráfico: un SVG con líneas no es utilizable con lector de
+  pantalla.
+
+Como con Leaflet, Recharts no puede dibujarse en jsdom porque mide un contenedor de tamaño
+cero. Las pruebas unitarias usan el doble de `src/test-mocks/GraficoSerie.tsx`, la lógica pura
+se prueba directamente en `datos.test.ts` y **el gráfico real se valida en las E2E**.

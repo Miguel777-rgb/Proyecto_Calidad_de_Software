@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.3 |
+| Versión | 1.4 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -138,13 +138,13 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 #### RF-05 — Gráficos históricos por laboratorio
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** generar gráficos de línea de la anomalía térmica por laboratorio, con filtro de rango de fechas seleccionable por el usuario. |
+| Descripción | El sistema **deberá** generar gráficos de línea de la anomalía térmica por laboratorio, con filtro de rango de fechas seleccionable por el usuario. El rango inicial es de 90 días. Al ampliarlo, los valores se agrupan automáticamente (diario hasta un año, promedio semanal hasta cinco, mensual más allá) para no superar el límite de rendimiento. La línea se interrumpe en los periodos sin medición en lugar de interpolarlos. |
 | Complejidad | Media |
 
 #### RF-06 — Comparación entre laboratorios costeros
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** permitir seleccionar dos o más laboratorios costeros y mostrar sus series de anomalía superpuestas para un mismo periodo. |
+| Descripción | El sistema **deberá** permitir seleccionar entre dos y cuatro laboratorios costeros y mostrar sus series de anomalía superpuestas para un mismo periodo. Cada serie se distingue por color, forma de marcador y patrón de trazo, de modo que la identidad no dependa únicamente del color. |
 | Complejidad | Media |
 
 #### RF-07 — Registro y autenticación de usuarios
@@ -234,6 +234,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 | 1.1 | 2026-09-10 | — | Se incorpora esta sección de control de versiones. | El cierre de la v1.0 la exigía explícitamente y era necesaria antes de registrar cualquier cambio de alcance. | Miguel Angel Flores Leon (PO) |
 | 1.2 | 2026-09-10 | RF-08 | Se elimina la importación programada. El requisito queda limitado a la carga manual por el administrador. | El sistema depende de un dataset que IMARPE publica sin una frecuencia garantizada, por lo que una tarea automática añadiría un planificador y su infraestructura sin aportar valor demostrable dentro del alcance del curso. Se precisa además el comportamiento ante filas inválidas y reimportaciones, que la versión anterior no definía. | Miguel Angel Flores Leon (PO) |
 | 1.3 | 2026-09-10 | RF-01, RF-04 | Se precisa el conteo de la racha (registros consecutivos con tolerancia de 2 días faltantes) y el origen del color del mapa (promedio de 5 días medido contra la fecha del dato, con marca de «sin datos recientes» a los 7 días). | La redacción original decía «días consecutivos» sin definir qué ocurre con los huecos, y el dataset de IMARPE los tiene con frecuencia. Sin precisarlo, dos implementaciones válidas darían resultados distintos. Además, usar el reloj del servidor dejaría todas las zonas sin clasificar, porque el dato se publica con retraso. | Miguel Angel Flores Leon (PO) |
+| 1.4 | 2026-09-10 | RF-05, RF-06 | Se precisa el agrupado automático de las series según el rango, el tratamiento de los periodos sin medición y el máximo de cuatro laboratorios comparables, cada uno distinguido además por forma y trazo. | Una serie de 56 años tiene hasta 16,678 puntos y el navegador no puede dibujarlos sin incumplir el límite de 3 segundos de la sección 3.3. La redacción original decía «dos o más» sin fijar un techo, y con más de cuatro líneas superpuestas el gráfico deja de leerse. Distinguir las series solo por color excluiría a las personas que no lo perciben, en contra del atributo de Usabilidad de la sección 3.5. | Miguel Angel Flores Leon (PO) |
 
 ---
 

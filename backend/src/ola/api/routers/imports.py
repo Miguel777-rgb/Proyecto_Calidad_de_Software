@@ -41,7 +41,8 @@ def import_csv(
         )
     if file.size is not None and file.size > MAX_UPLOAD_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            # Codigo literal: la constante de Starlette quedo obsoleta.
+            status_code=413,
             detail=f"El archivo supera el limite de {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
 

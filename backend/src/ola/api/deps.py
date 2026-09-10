@@ -14,6 +14,8 @@ from ola.db.models import User
 from ola.db.session import get_session
 from ola.repositories import users_repo
 from ola.security import decode_access_token
+from ola.services import settings_service
+from ola.services.settings_service import EffectiveSettings
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -63,3 +65,11 @@ def require_admin(user: CurrentUser) -> User:
 
 
 AdminUser = Annotated[User, Depends(require_admin)]
+
+
+def get_effective_settings(session: SessionDep, settings: SettingsDep) -> EffectiveSettings:
+    """Parametros vigentes: los de .env, sobrescritos por los del administrador."""
+    return settings_service.get_effective(session, settings)
+
+
+EffectiveSettingsDep = Annotated[EffectiveSettings, Depends(get_effective_settings)]

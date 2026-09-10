@@ -10,7 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
-from ola.api.routers import auth, health, imports, labs
+from ola.api.routers import alerts, auth, health, imports, labs, status
+from ola.api.routers import settings as settings_router
 from ola.config import Settings, get_settings
 from ola.db.session import SessionLocal
 from ola.services import auth_service
@@ -70,6 +71,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(labs.router)
     app.include_router(imports.router)
+    app.include_router(status.router)
+    app.include_router(alerts.router)
+    app.include_router(settings_router.router)
     return app
 
 

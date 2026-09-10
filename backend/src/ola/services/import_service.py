@@ -12,6 +12,7 @@ import hashlib
 import io
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import BinaryIO
@@ -98,11 +99,20 @@ def _flush(session: Session, batch: list[dict[str, object]], counters: ImportCou
     batch.clear()
 
 
-def _iter_lines(stream: BinaryIO) -> Iterator[str]:
-    # utf-8-sig descarta la marca de orden de bytes con la que IMARPE publica
-    # el archivo. Con utf-8 a secas, la primera columna se leeria mal.
+@contextmanager
+def _text_lines(stream: BinaryIO) -> Iterator[Iterator[str]]:
+    """Entrega el archivo como lineas de texto sin apropiarse del stream.
+
+    utf-8-sig descarta la marca de orden de bytes con la que IMARPE publica el
+    archivo. Al terminar se llama a detach() y no a close(): el stream lo
+    gestiona quien lo abrio (en la API, Starlette), y cerrarlo aqui romperia
+    esa gestion.
+    """
     envoltorio = io.TextIOWrapper(stream, encoding="utf-8-sig", newline="")
-    yield from envoltorio
+    try:
+        yield envoltorio
+    finally:
+        envoltorio.detach()
 
 
 def run_import(
@@ -125,24 +135,25 @@ def run_import(
     batch: list[dict[str, object]] = []
 
     try:
-        for resultado in parse_atsm(_iter_lines(stream), known_codes=codigos.keys()):
-            counters.total += 1
-            if isinstance(resultado, RowError):
-                counters.add_error(resultado)
-                continue
+        with _text_lines(stream) as lineas:
+            for resultado in parse_atsm(lineas, known_codes=codigos.keys()):
+                counters.total += 1
+                if isinstance(resultado, RowError):
+                    counters.add_error(resultado)
+                    continue
 
-            assert isinstance(resultado, ParsedRow)
-            batch.append(
-                {
-                    "laboratory_id": codigos[resultado.laboratory_code],
-                    "measured_on": resultado.measured_on,
-                    "anomaly_c": resultado.anomaly_c,
-                    "import_run_id": run.id,
-                }
-            )
-            if len(batch) >= BATCH_SIZE:
-                _flush(session, batch, counters)
-        _flush(session, batch, counters)
+                assert isinstance(resultado, ParsedRow)
+                batch.append(
+                    {
+                        "laboratory_id": codigos[resultado.laboratory_code],
+                        "measured_on": resultado.measured_on,
+                        "anomaly_c": resultado.anomaly_c,
+                        "import_run_id": run.id,
+                    }
+                )
+                if len(batch) >= BATCH_SIZE:
+                    _flush(session, batch, counters)
+            _flush(session, batch, counters)
 
     except InvalidHeaderError as exc:
         # La cabecera invalida invalida el archivo completo: no se guarda nada,

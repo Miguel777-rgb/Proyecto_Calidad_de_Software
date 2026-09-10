@@ -237,3 +237,109 @@ class AppSetting(Base):
 
     def __repr__(self) -> str:
         return f"<AppSetting {self.key}>"
+
+
+class NotificationChannel(enum.StrEnum):
+    EMAIL = "email"
+    IN_APP = "in_app"
+
+
+class NotificationKind(enum.StrEnum):
+    """Momento del episodio que motiva el aviso."""
+
+    OPENED = "opened"
+    CLOSED = "closed"
+
+
+class NotificationStatus(enum.StrEnum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+class Subscription(Base):
+    """Zona de interes de un usuario (RF-07)."""
+
+    __tablename__ = "subscriptions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "laboratory_id", name="uq_subscription_user_lab"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    laboratory_id: Mapped[int] = mapped_column(
+        ForeignKey("laboratories.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    laboratory: Mapped[Laboratory] = relationship()
+    user: Mapped[User] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<Subscription u{self.user_id} lab{self.laboratory_id}>"
+
+
+class Notification(Base):
+    """Aviso a un usuario por un episodio de alerta (RF-03).
+
+    La restriccion de unicidad es la que impide repetir el mismo aviso: por
+    mucho que se reevalue, un episodio genera un unico correo por usuario y
+    momento. De ella depende que reevaluar mil veces no mande mil correos.
+    """
+
+    __tablename__ = "notifications"
+    __table_args__ = (
+        UniqueConstraint(
+            "alert_event_id", "user_id", "channel", "kind", name="uq_notification_unica"
+        ),
+        Index("ix_notification_pendientes", "status", "channel"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    alert_event_id: Mapped[int] = mapped_column(
+        ForeignKey("alert_events.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    channel: Mapped[NotificationChannel] = mapped_column(
+        Enum(
+            NotificationChannel,
+            name="notification_channel",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
+    kind: Mapped[NotificationKind] = mapped_column(
+        Enum(
+            NotificationKind,
+            name="notification_kind",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
+    status: Mapped[NotificationStatus] = mapped_column(
+        Enum(
+            NotificationStatus,
+            name="notification_status",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        default=NotificationStatus.PENDING,
+        nullable=False,
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    alert_event: Mapped[AlertEvent] = relationship()
+    user: Mapped[User] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<Notification {self.id} {self.channel} {self.kind} {self.status}>"

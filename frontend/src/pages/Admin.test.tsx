@@ -30,11 +30,22 @@ const archivoCsv = () =>
     type: 'text/csv',
   })
 
-/** Simula GET /imports (historial) y POST /imports (carga). */
+const CONFIG = {
+  threshold_c: '0.5',
+  min_streak_records: 5,
+  max_gap_days: 2,
+  freshness_days: 7,
+  map_window_days: 5,
+}
+
+/** Simula los endpoints que consulta la pantalla: configuracion, historial
+ *  de importaciones y la carga en si. */
 function simularApi(alImportar: () => Response, historial: Importacion[] = []) {
-  return vi.fn(async (_url: string, init?: RequestInit) =>
-    init?.method === 'POST' ? alImportar() : respuesta(historial),
-  )
+  return vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).includes('/settings')) return respuesta(CONFIG)
+    if (String(url).includes('/imports') && init?.method === 'POST') return alImportar()
+    return respuesta(historial)
+  })
 }
 
 async function subirArchivo() {

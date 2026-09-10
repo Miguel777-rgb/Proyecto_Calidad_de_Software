@@ -22,6 +22,10 @@ function Navegacion() {
           {usuario.role === 'admin' && (
             <Link to="/admin">{textos.navegacion.administracion}</Link>
           )}
+          <span className="tenue" data-testid="sesion-actual">
+            {textos.inicio.sesionComo} <strong>{usuario.email}</strong> (
+            {usuario.role === 'admin' ? textos.inicio.administrador : textos.inicio.usuario})
+          </span>
           <button type="button" className="enlace" onClick={salir}>
             {textos.navegacion.salir}
           </button>
@@ -44,14 +48,10 @@ export default function App() {
 
       <main>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <RutaProtegida>
-                <Inicio />
-              </RutaProtegida>
-            }
-          />
+          {/* El estado de las zonas es publico: la SRS busca dar visibilidad
+              a un dato abierto, dirigido a pescadores artesanales. La cuenta
+              solo hace falta para suscribirse a alertas (RF-07). */}
+          <Route path="/" element={<Inicio />} />
           <Route
             path="/admin"
             element={

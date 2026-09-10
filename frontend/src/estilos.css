@@ -230,3 +230,84 @@ input[type='file'] {
   padding: 0.5rem;
   background: #fff;
 }
+
+.banner-actualizacion {
+  display: inline-block;
+  padding: 0.4rem 0.75rem;
+  background: #eef2f5;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.aviso {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.75rem;
+  background: #eaf4ee;
+  border: 1px solid var(--ok);
+  border-radius: 0.375rem;
+  color: #14532d;
+  font-size: 0.9375rem;
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+
+.leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.punto {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+/* Colores del estado termico. Se acompanan siempre del texto, para no
+   depender solo del color (accesibilidad). */
+.punto--warm {
+  background: #d1495b;
+}
+.punto--neutral {
+  background: #e0c368;
+}
+.punto--cold {
+  background: #2a6f97;
+}
+.punto--no_data {
+  background: #b9c2c9;
+}
+
+.campo {
+  display: contents;
+}
+
+button.secundario {
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #1a5e8a;
+  background: #fff;
+  border: 1px solid #1a5e8a;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+button.secundario:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

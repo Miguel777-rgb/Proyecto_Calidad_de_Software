@@ -180,3 +180,78 @@ export async function importarCsv(archivo: File): Promise<Importacion> {
   }
   return datos as Importacion
 }
+
+export type EstadoTermico = 'warm' | 'neutral' | 'cold' | 'no_data'
+
+export interface AlertaVigente {
+  id: number
+  state: 'warm' | 'cold'
+  started_on: string
+  streak_length: number
+  peak_anomaly_c: string
+}
+
+export interface EstadoZona {
+  laboratory: Laboratorio
+  state: EstadoTermico
+  average_c: string | null
+  last_anomaly_c: string | null
+  last_measured_on: string | null
+  days_since_last: number | null
+  is_stale: boolean
+  open_alert: AlertaVigente | null
+}
+
+export interface EstadoSistema {
+  /** Fecha del dato mas reciente. La interfaz debe mostrarla siempre: la SRS
+   *  exige avisar cuando el dato no corresponde al dia actual. */
+  reference_date: string | null
+  zones: EstadoZona[]
+}
+
+export interface Configuracion {
+  threshold_c: string
+  min_streak_records: number
+  max_gap_days: number
+  freshness_days: number
+  map_window_days: number
+}
+
+export interface ResumenEvaluacion {
+  reference_date: string | null
+  laboratories_evaluated: number
+  events_total: number
+  events_open: number
+  events_removed: number
+}
+
+export interface Episodio {
+  id: number
+  laboratory_code: string
+  laboratory_name: string
+  state: 'warm' | 'cold'
+  started_on: string
+  ended_on: string
+  streak_length: number
+  peak_anomaly_c: string
+  is_open: boolean
+}
+
+export const obtenerEstado = (asOf?: string) =>
+  apiFetch<EstadoSistema>(`/status${asOf ? `?as_of=${asOf}` : ''}`)
+
+export const obtenerConfiguracion = () => apiFetch<Configuracion>('/settings')
+
+export const guardarConfiguracion = (cambios: Partial<Record<string, string | number>>) =>
+  apiFetch<Configuracion>('/settings', { method: 'PUT', body: JSON.stringify(cambios) })
+
+export const evaluarAlertas = () =>
+  apiFetch<ResumenEvaluacion>('/alerts/evaluate', { method: 'POST' })
+
+export const listarAlertas = (params: { lab?: string; soloVigentes?: boolean } = {}) => {
+  const query = new URLSearchParams()
+  if (params.lab) query.set('lab', params.lab)
+  if (params.soloVigentes) query.set('only_open', 'true')
+  const cadena = query.toString()
+  return apiFetch<Episodio[]>(`/alerts${cadena ? `?${cadena}` : ''}`)
+}

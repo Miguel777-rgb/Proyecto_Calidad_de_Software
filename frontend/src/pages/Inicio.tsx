@@ -1,44 +1,53 @@
 import { useEffect, useState } from 'react'
-import { getHealth } from '../api/client'
-import { useAuth } from '../auth/useAuth'
+import { obtenerConfiguracion, obtenerEstado, type EstadoSistema } from '../api/client'
+import { BannerActualizacion } from '../components/BannerActualizacion'
+import { LeyendaEstados } from '../components/LeyendaEstados'
+import { TablaEstado } from '../components/TablaEstado'
 import { textos } from '../i18n/textos'
 
-type EstadoConexion = 'verificando' | 'ok' | 'error'
-
 export default function Inicio() {
-  const { usuario } = useAuth()
-  const [conexion, setConexion] = useState<EstadoConexion>('verificando')
+  const [estado, setEstado] = useState<EstadoSistema | null>(null)
+  const [ventana, setVentana] = useState<number | null>(null)
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     let vigente = true
-    getHealth()
-      .then(() => vigente && setConexion('ok'))
-      .catch(() => vigente && setConexion('error'))
+    Promise.all([obtenerEstado(), obtenerConfiguracion().catch(() => null)])
+      .then(([datos, config]) => {
+        if (!vigente) return
+        setEstado(datos)
+        setVentana(config?.map_window_days ?? null)
+      })
+      .catch(() => vigente && setEstado(null))
+      .finally(() => vigente && setCargando(false))
     return () => {
       vigente = false
     }
   }, [])
 
+  if (cargando) return <p role="status">{textos.comun.cargando}</p>
+  if (estado === null) return <p role="alert">{textos.conexion.error}</p>
+
+  const sinDatos = estado.reference_date === null
+
   return (
     <section>
-      <h2>{textos.inicio.bienvenida}</h2>
+      <h2>{textos.estado.titulo}</h2>
+      <BannerActualizacion fecha={estado.reference_date} />
 
-      {usuario !== null && (
-        <p data-testid="sesion-actual">
-          {textos.inicio.sesionComo} <strong>{usuario.email}</strong> (
-          {usuario.role === 'admin' ? textos.inicio.administrador : textos.inicio.usuario})
+      {sinDatos ? (
+        <p className="aviso" data-testid="sin-datos">
+          {textos.estado.sinDatosCargados}
         </p>
+      ) : (
+        <>
+          <LeyendaEstados />
+          <TablaEstado zonas={estado.zones} />
+          {ventana !== null && (
+            <p className="tenue">{textos.estado.explicacionPromedio(ventana)}</p>
+          )}
+        </>
       )}
-
-      <p
-        className={`conexion conexion--${conexion}`}
-        data-testid="estado-conexion"
-        role="status"
-      >
-        {textos.conexion[conexion]}
-      </p>
-
-      <p className="tenue">{textos.inicio.proximamente}</p>
     </section>
   )
 }

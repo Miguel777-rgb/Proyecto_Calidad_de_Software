@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   listarLaboratorios,
   obtenerSerie,
@@ -24,16 +24,20 @@ export default function Historico() {
     })
   }, [])
 
-  const cargar = useCallback(() => {
+  useEffect(() => {
     if (zona === '') return
+    // Sin esta guarda, una peticion anterior que llegue tarde sobrescribe el
+    // resultado de la actual y se muestra la zona equivocada.
+    let vigente = true
     setCargando(true)
     obtenerSerie(zona, rango.desde, rango.hasta)
-      .then(setDatos)
-      .catch(() => setDatos(null))
-      .finally(() => setCargando(false))
+      .then((datos) => vigente && setDatos(datos))
+      .catch(() => vigente && setDatos(null))
+      .finally(() => vigente && setCargando(false))
+    return () => {
+      vigente = false
+    }
   }, [zona, rango])
-
-  useEffect(cargar, [cargar])
 
   const serie = datos?.series[0]
   const sinMediciones = serie?.points.every((p) => p.anomaly_c === null) ?? false

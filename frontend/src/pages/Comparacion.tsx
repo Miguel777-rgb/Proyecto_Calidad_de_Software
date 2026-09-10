@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ApiError,
   compararSeries,
@@ -31,23 +31,29 @@ export default function Comparacion() {
     })
   }, [])
 
-  const cargar = useCallback(() => {
+  useEffect(() => {
     if (elegidas.length === 0) {
       setDatos(null)
       return
     }
+    // Sin esta guarda, una peticion anterior que llegue tarde sobrescribe el
+    // resultado de la actual y el grafico muestra zonas que ya no estan
+    // seleccionadas.
+    let vigente = true
     setCargando(true)
     setError(null)
     compararSeries(elegidas, rango.desde, rango.hasta)
-      .then(setDatos)
+      .then((datos) => vigente && setDatos(datos))
       .catch((e) => {
+        if (!vigente) return
         setDatos(null)
         setError(e instanceof ApiError ? e.message : textos.errores.inesperado)
       })
-      .finally(() => setCargando(false))
+      .finally(() => vigente && setCargando(false))
+    return () => {
+      vigente = false
+    }
   }, [elegidas, rango])
-
-  useEffect(cargar, [cargar])
 
   function alternar(code: string) {
     setError(null)

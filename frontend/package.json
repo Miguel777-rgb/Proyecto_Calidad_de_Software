@@ -16,7 +16,9 @@
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.1"
+    "react-router-dom": "^7.1.1",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
@@ -34,7 +36,8 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",
     "vite": "^6.0.7",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@types/leaflet": "^1.9.15"
   },
   "packageManager": "pnpm@9.15.2"
 }

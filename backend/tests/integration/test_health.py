@@ -3,15 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
-from ola.main import create_app
-
-
-@pytest.fixture(scope="module")
-def client():
-    with TestClient(create_app()) as c:
-        yield c
 
 
 def test_liveness_responde_ok_sin_tocar_la_base(client):

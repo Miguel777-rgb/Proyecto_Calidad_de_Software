@@ -59,6 +59,13 @@ markers = [
     "slow: pruebas lentas, como la carga del dataset completo de 125k filas",
     "integration: requieren una base de datos PostgreSQL disponible",
 ]
+# Ruido de librerias de terceros que no depende de nuestro codigo.
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:httpx.*",
+    "ignore:Using `httpx` with `starlette.testclient`:UserWarning",
+]
 
 [tool.coverage.run]
 source = ["src/ola"]

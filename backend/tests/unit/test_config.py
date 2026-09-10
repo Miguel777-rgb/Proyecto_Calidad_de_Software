@@ -62,3 +62,42 @@ def test_cors_origins_se_lee_desde_variable_de_entorno_sin_formato_json(monkeypa
     monkeypatch.setenv("OLA_CORS_ORIGINS", "http://localhost:5173,https://ola.pe")
     s = Settings(_env_file=None)
     assert s.cors_origins == ["http://localhost:5173", "https://ola.pe"]
+
+
+class TestSecretosEnProduccion:
+    """Un JWT firmado con un secreto debil o publico permite a cualquiera
+    emitir tokens de administrador. Produccion debe negarse a arrancar.
+    """
+
+    SECRETO_VALIDO = "a" * 64
+    CLAVE_ADMIN_VALIDA = "clave-propia-del-equipo"
+
+    def _produccion(self, settings_factory, **overrides):
+        base = {
+            "env": "production",
+            "jwt_secret": self.SECRETO_VALIDO,
+            "admin_password": self.CLAVE_ADMIN_VALIDA,
+        }
+        return settings_factory(**{**base, **overrides})
+
+    def test_acepta_una_configuracion_de_produccion_correcta(self, settings_factory):
+        assert self._produccion(settings_factory).is_production is True
+
+    def test_rechaza_un_secreto_mas_corto_de_32_bytes(self, settings_factory):
+        with pytest.raises(ValidationError, match="al menos 32 bytes"):
+            self._produccion(settings_factory, jwt_secret="corto")
+
+    def test_rechaza_el_secreto_de_la_plantilla(self, settings_factory):
+        with pytest.raises(ValidationError, match="valor de la plantilla"):
+            self._produccion(
+                settings_factory,
+                jwt_secret="cambia_este_secreto_por_uno_aleatorio_de_64_caracteres",
+            )
+
+    def test_rechaza_la_clave_de_administrador_de_la_plantilla(self, settings_factory):
+        with pytest.raises(ValidationError, match="OLA_ADMIN_PASSWORD"):
+            self._produccion(settings_factory, admin_password="cambia_esta_clave_de_admin")
+
+    def test_en_desarrollo_no_estorba_con_valores_por_defecto(self, settings_factory):
+        # Levantar el entorno local no debe exigir generar secretos.
+        assert settings_factory(env="development").is_production is False

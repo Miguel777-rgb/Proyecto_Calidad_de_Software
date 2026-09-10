@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.5 |
+| Versión | 1.6 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -29,6 +29,7 @@ Este documento especifica los requisitos funcionales y no funcionales del sistem
 - No predice con certeza científica eventos El Niño/La Niña (eso es función oficial de ENFEN, que usa más variables que solo temperatura).
 - No reemplaza los boletines técnicos de IMARPE, los complementa.
 - No incluye aplicación móvil nativa (solo web responsiva).
+- No envía mensajes de texto (SMS); las alertas llegan por correo electrónico y dentro de la aplicación.
 - No procesa pagos ni tiene modelo de monetización en esta fase.
 
 **Beneficios esperados:** dar visibilidad accesible, en un formato simple, a un dato público que hoy solo llega a especialistas — dirigido principalmente a pescadores artesanales del litoral peruano.
@@ -121,10 +122,10 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 #### RF-03 — Notificación automática
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** enviar una notificación (correo electrónico y, cuando esté disponible, SMS) a los usuarios suscritos a una zona cuando dicha zona entre en estado de alerta (evento del RF-01). |
+| Descripción | El sistema **deberá** enviar una notificación por **correo electrónico** y registrar un aviso dentro de la aplicación para los usuarios suscritos a una zona cuando dicha zona entre en estado de alerta (evento del RF-01), y también cuando el episodio termine. Cada episodio genera un único aviso por usuario y momento, sin importar cuántas veces se reevalúe. |
 | Entradas | Evento de tendencia sostenida (RF-01), lista de usuarios suscritos por zona. |
-| Proceso | Envío vía SMTP (correo) y pasarela de terceros (SMS). |
-| Salidas | Notificación entregada + registro de envío. |
+| Proceso | La evaluación de alertas **registra** los avisos pendientes; el envío por SMTP se dispara en un paso posterior, de modo que un servidor de correo lento o caído no bloquee la evaluación. Un envío fallido queda marcado con su motivo y se reintenta en el siguiente intento. |
+| Salidas | Correo entregado, aviso visible en la aplicación y registro auditable del envío con su estado. |
 | Complejidad | Alta |
 
 #### RF-04 — Mapa interactivo de estado por zona
@@ -169,7 +170,6 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 - API REST propia (FastAPI) como capa de comunicación entre frontend y base de datos.
 - Consumo del archivo CSV público de datosabiertos.gob.pe (IMARPE/ATSM) como fuente de datos externa.
 - Servicio SMTP externo para envío de correos (RF-03).
-- Pasarela de SMS de terceros (a definir por el equipo) para envío de mensajes de texto (RF-03).
 
 **3.2.4 Interfaces de comunicación:** HTTPS para todo el tráfico entre cliente y servidor.
 
@@ -236,6 +236,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 | 1.3 | 2026-09-10 | RF-01, RF-04 | Se precisa el conteo de la racha (registros consecutivos con tolerancia de 2 días faltantes) y el origen del color del mapa (promedio de 5 días medido contra la fecha del dato, con marca de «sin datos recientes» a los 7 días). | La redacción original decía «días consecutivos» sin definir qué ocurre con los huecos, y el dataset de IMARPE los tiene con frecuencia. Sin precisarlo, dos implementaciones válidas darían resultados distintos. Además, usar el reloj del servidor dejaría todas las zonas sin clasificar, porque el dato se publica con retraso. | Miguel Angel Flores Leon (PO) |
 | 1.4 | 2026-09-10 | RF-05, RF-06 | Se precisa el agrupado automático de las series según el rango, el tratamiento de los periodos sin medición y el máximo de cuatro laboratorios comparables, cada uno distinguido además por forma y trazo. | Una serie de 56 años tiene hasta 16,678 puntos y el navegador no puede dibujarlos sin incumplir el límite de 3 segundos de la sección 3.3. La redacción original decía «dos o más» sin fijar un techo, y con más de cuatro líneas superpuestas el gráfico deja de leerse. Distinguir las series solo por color excluiría a las personas que no lo perciben, en contra del atributo de Usabilidad de la sección 3.5. | Miguel Angel Flores Leon (PO) |
 | 1.5 | 2026-09-10 | RF-02 | Se implementan los dos modelos en lugar de uno, se fija el horizonte por defecto en 5 días, se define la ventana y los pesos, y se añade un indicador de confianza junto a tres señales visuales que marcan el tramo estimado. | La redacción original ofrecía «regresión lineal o media móvil ponderada» sin decidir cuál. Mostrar ambas es más informativo: la regresión detecta un cambio de tendencia antes que el promedio, y su discrepancia es en sí una medida de incertidumbre. El indicador de confianza responde al atributo de Confiabilidad de la sección 3.5, porque una estimación calculada sobre datos antiguos tiene la misma apariencia de validez que una fiable. | Miguel Angel Flores Leon (PO) |
+| 1.6 | 2026-09-10 | RF-03 | Se elimina el envío por SMS. El requisito queda en correo electrónico más aviso dentro de la aplicación. Se añade el aviso de fin de episodio, se separa el registro del envío y se define el comportamiento ante fallos. Se actualizan en consecuencia el alcance (sección 2.3) y las interfaces de software (sección 3.2.3). | La pasarela de SMS quedaba «a definir» y su envío tiene costo por mensaje en Perú, sin aportar nada demostrable dentro del alcance del curso. Separar el registro del envío evita que un servidor de correo caído haga fallar la evaluación de alertas, que es una operación independiente. | Miguel Angel Flores Leon (PO) |
 
 ---
 

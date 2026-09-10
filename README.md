@@ -22,7 +22,7 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 |---|---|
 | RF-01 | Detectar anomalías sostenidas fuera del rango neutro de ±0.5 °C durante un número configurable de días. |
 | RF-02 | Proyectar la clasificación térmica de los próximos 3 a 7 días mediante un modelo simple. |
-| RF-03 | Notificar por correo y, cuando esté disponible, SMS a los usuarios suscritos. |
+| RF-03 | Notificar por correo y dentro de la aplicación a los usuarios suscritos. |
 | RF-04 | Mostrar el estado vigente de los 10 laboratorios costeros en un mapa interactivo. |
 | RF-05 | Graficar el histórico de anomalías por laboratorio y rango de fechas. |
 | RF-06 | Comparar las series de dos o más laboratorios en un mismo periodo. |
@@ -90,7 +90,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Mapa interactivo de las 10 zonas.
 - [x] Gráficos históricos y comparación entre laboratorios.
 - [x] Proyección de tendencia a corto plazo.
-- [ ] Suscripciones y notificaciones por correo.
+- [x] Suscripciones y notificaciones por correo.
 - [ ] Despliegue en VPS con Dokploy.
 
 ## Documentación

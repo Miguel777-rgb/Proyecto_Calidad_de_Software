@@ -154,3 +154,44 @@ a partir de la densidad de la ventana y la vigencia del último dato:
 Las fechas proyectadas parten del **último dato de la propia zona**, no de la fecha de
 referencia del sistema. Para MATARANI eso significa proyectar sobre enero de 2017, lo que
 delata por sí solo que la serie está vieja: es la señal más clara posible.
+
+## Avisos a los usuarios (RF-03)
+
+**Sin SMS.** El requisito se redujo a correo electrónico más aviso dentro de la aplicación; la
+SRS se actualizó en consecuencia (sección 5, versión 1.6).
+
+### El envío va en dos pasos
+
+1. La **evaluación de alertas registra** los avisos pendientes. Es rápida y no toca el servidor
+   de correo.
+2. Un endpoint de administrador (`POST /api/notifications/send`) **dispara el envío**.
+
+Separarlos evita que un servidor de correo lento o caído bloquee o haga fallar la evaluación,
+que es una operación independiente. Un envío fallido queda marcado con su motivo y **se
+reintenta solo** en el siguiente intento; los que ya salieron no se reenvían.
+
+### Un aviso por episodio
+
+La restricción `UNIQUE(alert_event_id, user_id, channel, kind)` es lo que impide repetir un
+aviso. Por eso importa que la evaluación conserve el identificador del episodio entre
+ejecuciones (ver RF-01): reevaluar mil veces no manda mil correos.
+
+Se avisa en dos momentos: cuando el episodio **empieza** y cuando **termina**. RF-03 solo
+obliga a lo primero, pero para quien planifica una salida de pesca saber que la anomalía
+terminó es igual de útil, y no añade correos.
+
+### Casos que se cubrieron a propósito
+
+- **Suscribirse a una zona que ya está en alerta** genera el aviso de inmediato. Sin esto la
+  persona no se enteraría hasta que el episodio terminara: en CALLAO hay uno abierto desde abril.
+- **Subir el umbral borra episodios**, pero eso no genera avisos de cierre: la zona no volvió a
+  la normalidad, simplemente se calcula distinto.
+
+### Datos que dejan las pruebas E2E
+
+Cada corrida registra usuarios con correos `e2e-…@ejemplo.pe` y sus suscripciones. Se limpian
+con:
+
+```sql
+DELETE FROM users WHERE email LIKE 'e2e-%';
+```

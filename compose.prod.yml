@@ -1,0 +1,88 @@
+# OLA — despliegue en un VPS con Dokploy.
+#
+# Uso en Dokploy: crear un servicio de tipo Compose apuntando a este archivo y
+# definir las variables en su interfaz. NO se usa un archivo .env en el
+# servidor: los secretos se cargan desde Dokploy.
+#
+#   docker compose -f compose.prod.yml up -d --build   (para probar en local)
+#
+# Diferencias con compose.yml: sin montajes de codigo, sin puertos publicados
+# (Traefik enruta por dominio), sin Mailpit, y con las imagenes construidas
+# en su etapa de produccion.
+
+name: ola
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api:
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    environment:
+      OLA_ENV: production
+      OLA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      OLA_JWT_SECRET: ${OLA_JWT_SECRET}
+      OLA_ACCESS_TOKEN_MINUTES: ${OLA_ACCESS_TOKEN_MINUTES:-60}
+      OLA_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
+      OLA_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
+      # La aplicacion vive en otro dominio, asi que su origen debe permitirse
+      # explicitamente. Sin esto el navegador bloquea todas las llamadas.
+      OLA_CORS_ORIGINS: ${OLA_WEB_ORIGIN}
+      OLA_SMTP_HOST: ${OLA_SMTP_HOST}
+      OLA_SMTP_PORT: ${OLA_SMTP_PORT:-587}
+      OLA_SMTP_USER: ${OLA_SMTP_USER}
+      OLA_SMTP_PASSWORD: ${OLA_SMTP_PASSWORD}
+      OLA_SMTP_TLS: ${OLA_SMTP_TLS:-true}
+      OLA_MAIL_FROM: ${OLA_MAIL_FROM}
+      OLA_LOG_LEVEL: ${OLA_LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      # Dominio de la API. Dokploy usa Traefik por debajo.
+      - traefik.enable=true
+      - traefik.http.routers.ola-api.rule=Host(`${OLA_API_HOST}`)
+      - traefik.http.routers.ola-api.entrypoints=websecure
+      - traefik.http.routers.ola-api.tls.certresolver=letsencrypt
+      - traefik.http.services.ola-api.loadbalancer.server.port=8000
+      # El CSV de IMARPE pesa unos 3 MB y la importacion puede tardar; sin
+      # este margen Traefik cortaria la subida del RF-08.
+      - traefik.http.middlewares.ola-api-body.buffering.maxRequestBodyBytes=52428800
+      - traefik.http.routers.ola-api.middlewares=ola-api-body
+
+  web:
+    build:
+      context: ./frontend
+      target: production
+      args:
+        # Vite escribe esta direccion DENTRO del JavaScript al compilar.
+        # Cambiarla exige reconstruir la imagen, no basta con reiniciar.
+        VITE_API_URL: ${OLA_API_URL}
+    restart: always
+    depends_on:
+      - api
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ola-web.rule=Host(`${OLA_WEB_HOST}`)
+      - traefik.http.routers.ola-web.entrypoints=websecure
+      - traefik.http.routers.ola-web.tls.certresolver=letsencrypt
+      - traefik.http.services.ola-web.loadbalancer.server.port=80
+
+volumes:
+  pgdata:

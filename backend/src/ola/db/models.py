@@ -166,3 +166,74 @@ class ImportRun(Base):
 
     def __repr__(self) -> str:
         return f"<ImportRun {self.id} {self.filename} {self.status}>"
+
+
+class AlertState(enum.StrEnum):
+    """Estados que pueden originar una alerta. Refleja ThermalState del dominio,
+    limitado a los dos valores anomalos: una zona neutra nunca alerta.
+    """
+
+    WARM = "warm"
+    COLD = "cold"
+
+
+class AlertEvent(Base):
+    """Episodio de anomalia sostenida detectado (RF-01).
+
+    Guarda los parametros con los que se detecto, de modo que cambiar los
+    umbrales no reescriba el pasado: el historico queda auditable y solo se
+    reemplaza cuando el administrador reevalua explicitamente.
+    """
+
+    __tablename__ = "alert_events"
+    __table_args__ = (
+        # Hace idempotente volver a evaluar: no se duplican episodios.
+        UniqueConstraint("laboratory_id", "state", "started_on", name="uq_alert_lab_state_start"),
+        Index("ix_alert_open", "is_open", "laboratory_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    laboratory_id: Mapped[int] = mapped_column(
+        ForeignKey("laboratories.id", ondelete="CASCADE"), nullable=False
+    )
+    state: Mapped[AlertState] = mapped_column(
+        Enum(AlertState, name="alert_state", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+    )
+    started_on: Mapped[date] = mapped_column(Date, nullable=False)
+    ended_on: Mapped[date] = mapped_column(Date, nullable=False)
+    streak_length: Mapped[int] = mapped_column(Integer, nullable=False)
+    peak_anomaly_c: Mapped[Decimal] = mapped_column(Numeric(7, 4), nullable=False)
+
+    # Instantanea de la configuracion usada al detectarlo.
+    threshold_c: Mapped[Decimal] = mapped_column(Numeric(4, 2), nullable=False)
+    min_streak_records: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_gap_days: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Abierto = el episodio llega hasta la ultima medicion de la zona, asi que
+    # la tendencia sigue vigente. Solo los abiertos notifican (RF-03).
+    is_open: Mapped[bool] = mapped_column(default=False, nullable=False)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    laboratory: Mapped[Laboratory] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<AlertEvent {self.laboratory_id} {self.state} {self.started_on}>"
+
+
+class AppSetting(Base):
+    """Parametros que el administrador puede ajustar sin tocar el codigo."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+    def __repr__(self) -> str:
+        return f"<AppSetting {self.key}>"

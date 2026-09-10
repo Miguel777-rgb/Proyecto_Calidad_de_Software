@@ -2,7 +2,9 @@
 
 Proyecto académico del curso **Calidad de Software**. OLA es una aplicación web que transforma el dataset público de anomalía de la temperatura superficial del mar (ATSM), publicado por IMARPE/PRODUCE, en información sencilla para consultar el estado térmico de los laboratorios costeros del litoral peruano.
 
-> Este repositorio se encuentra en fase de planificación y prototipado. La implementación del backend y frontend se desarrollará durante los sprints del curso.
+> Sistema completo y verificado: 688 pruebas automatizadas, 95% de cobertura en el backend y
+> el stack de producción probado de extremo a extremo. Ver
+> [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito.
 
 ## Objetivo
 
@@ -29,11 +31,12 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 | RF-07 | Permitir registro, autenticación y suscripción a zonas de interés. |
 | RF-08 | Importar y actualizar el CSV de ATSM validando sus columnas. |
 
-## Tecnologías previstas
+## Tecnologías
 
-- **Backend:** Python con FastAPI.
-- **Base de datos:** PostgreSQL.
-- **Frontend:** aplicación web responsiva.
+- **Backend:** Python 3.13 con FastAPI, SQLAlchemy y Alembic.
+- **Base de datos:** PostgreSQL 17.
+- **Frontend:** React con Vite y TypeScript; Leaflet para el mapa y Recharts para los gráficos.
+- **Pruebas:** pytest, Vitest y Playwright.
 - **Despliegue:** Docker sobre un VPS Linux administrado con Dokploy.
 - **Comunicación:** API REST propia mediante HTTPS.
 - **Fuente de datos:** dataset abierto de IMARPE/PRODUCE.
@@ -52,9 +55,12 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 ├── dataset/
 │   └── IMARPE_Anomalia_TSM.csv      # Dataset base para desarrollo
 ├── docs/
-│   ├── presentacion-ola.html        # Presentación del proyecto
-│   └── requisitos.md                # Especificación de Requisitos de Software
-├── compose.yml                      # Orquestación de todos los servicios
+│   ├── requisitos.md                # Especificación de Requisitos de Software
+│   ├── trazabilidad.md              # Matriz de trazabilidad y evidencia de pruebas
+│   ├── decisiones.md                # Registro de decisiones de diseño
+│   └── presentacion-ola.html        # Presentación del proyecto
+├── compose.yml                      # Entorno de desarrollo
+├── compose.prod.yml                 # Despliegue en el VPS con Dokploy
 ├── .env.example                     # Plantilla de configuración
 └── README.md
 ```
@@ -91,11 +97,13 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Gráficos históricos y comparación entre laboratorios.
 - [x] Proyección de tendencia a corto plazo.
 - [x] Suscripciones y notificaciones por correo.
-- [ ] Despliegue en VPS con Dokploy.
+- [x] Despliegue en VPS con Dokploy.
 
 ## Documentación
 
 - [Especificación de Requisitos de Software](docs/requisitos.md)
+- [Matriz de trazabilidad y evidencia de pruebas](docs/trazabilidad.md)
+- [Registro de decisiones de diseño](docs/decisiones.md)
 - [Presentación del proyecto OLA](docs/presentacion-ola.html)
 
 ## Desarrollo local
@@ -137,16 +145,121 @@ docker compose --profile e2e run --rm e2e     # extremo a extremo con Playwright
 No se deben incluir credenciales reales en el repositorio: `.env` está en `.gitignore` y solo
 se versiona `.env.example`.
 
+## Despliegue en un VPS con Dokploy
+
+El sistema se despliega con [`compose.prod.yml`](compose.prod.yml), que se diferencia del
+entorno de desarrollo en que no monta el código, no publica puertos (Traefik enruta por
+dominio), no incluye Mailpit y construye las imágenes en su etapa de producción.
+
+### 1. Preparar los dominios
+
+Se usan dos subdominios apuntando al VPS:
+
+| Dominio | Servicio |
+|---|---|
+| `ola.tudominio.pe` | Aplicación web |
+| `api.ola.tudominio.pe` | API |
+
+### 2. Crear el servicio en Dokploy
+
+Crea un proyecto de tipo **Compose**, apunta al repositorio y a `compose.prod.yml`, y define
+las variables en su interfaz. **No subas un archivo `.env` al servidor:** los secretos se
+cargan desde Dokploy. Las variables necesarias están listadas en
+[`.env.example`](.env.example), sección de producción.
+
+Genera los secretos antes de empezar:
+
+```bash
+openssl rand -hex 32   # OLA_JWT_SECRET
+openssl rand -hex 16   # POSTGRES_PASSWORD
+openssl rand -hex 12   # OLA_ADMIN_PASSWORD
+```
+
+> En producción la aplicación **se niega a arrancar** si `OLA_JWT_SECRET` tiene menos de 32
+> bytes o conserva el valor de la plantilla. Es deliberado: un secreto débil permitiría a
+> cualquiera emitir tokens de administrador.
+
+### 3. Dos detalles que suelen causar problemas
+
+- **`OLA_API_URL` se aplica al construir, no al arrancar.** Vite escribe las variables `VITE_*`
+  dentro del JavaScript compilado. Si cambias el dominio de la API hay que **reconstruir** la
+  imagen del frontend; reiniciar el contenedor no basta.
+- **`OLA_WEB_ORIGIN` debe coincidir exactamente** con el dominio de la web, con su esquema y
+  sin barra final. Como la API vive en otro subdominio, sin este origen permitido el navegador
+  bloquea todas las llamadas.
+
+### 4. Desplegar y verificar
+
+Al arrancar, el contenedor de la API aplica las migraciones automáticamente, protegidas con un
+bloqueo de PostgreSQL para que dos réplicas no lo hagan a la vez, y crea la cuenta de
+administrador definida en las variables.
+
+```bash
+curl https://api.ola.tudominio.pe/api/health/ready    # {"status":"ok","database":"ok"}
+curl https://api.ola.tudominio.pe/api/laboratories    # las 10 zonas
+```
+
+### 5. Cargar el dataset
+
+La base arranca **vacía**, con el catálogo de zonas pero sin mediciones. Inicia sesión en
+`https://ola.tudominio.pe` con la cuenta de administrador e importa
+`dataset/IMARPE_Anomalia_TSM.csv` desde la pantalla de administración. Después pulsa
+**Reevaluar alertas**.
+
+Esa importación sirve además de verificación del despliegue: si funciona, el sistema entero
+funciona. Medición de referencia: 125,701 filas en unos 12 segundos.
+
+### 6. Copias de seguridad
+
+Dokploy incluye respaldos programados para bases de datos. En el servicio `db`, sección
+**Backups**, configura un destino S3 y una expresión de cron (por ejemplo `0 3 * * *` para un
+respaldo diario a las 3 de la madrugada).
+
+> Esta parte no pudo verificarse: depende de la instalación de Dokploy y de un destino de
+> almacenamiento. Conviene comprobar que el primer respaldo se generó y **probar una
+> restauración** antes de confiar en ella.
+
+Respaldo y restauración manuales, como respaldo de lo anterior:
+
+```bash
+docker compose -f compose.prod.yml exec db \
+  pg_dump -U ola -d ola --format=custom > ola-$(date +%F).dump
+
+docker compose -f compose.prod.yml exec -T db \
+  pg_restore -U ola -d ola --clean --if-exists < ola-2026-09-10.dump
+```
+
+El dataset siempre se puede reimportar, pero los usuarios, las suscripciones y el historial de
+alertas solo viven en la base.
+
 ## Calidad de software
 
-El proyecto se desarrollará aplicando prácticas de calidad durante todo el ciclo de vida:
+El proyecto se desarrolló aplicando prácticas de calidad durante todo el ciclo de vida.
 
-- requisitos trazables mediante la matriz incluida en la SRS;
-- pruebas unitarias e integración para cada requisito implementado;
-- validación del formato y contenido del dataset;
-- contraseñas almacenadas con hash y comunicación exclusivamente por HTTPS;
+| Evidencia | Estado |
+|---|---|
+| Pruebas automatizadas | **688** en tres capas |
+| Cobertura del backend | **95%** de las sentencias |
+| Análisis estático | ruff y mypy en modo estricto, sin observaciones |
+| Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |
+| Control de cambios | toda desviación de la SRS registrada con fecha y motivo en su sección 5 |
+
+```bash
+docker compose exec api pytest --cov=ola     # backend
+docker compose exec api ruff check .         # linter
+docker compose exec api mypy src             # tipos
+docker compose exec web pnpm test            # frontend
+docker compose exec web pnpm typecheck       # tipos del frontend
+docker compose --profile e2e run --rm e2e    # extremo a extremo
+```
+
+Otras prácticas aplicadas:
+
+- validación del formato y del contenido del dataset, con importación parcial y reporte de
+  errores por fila;
+- contraseñas con bcrypt y negativa a arrancar en producción con secretos débiles;
 - código versionado con commits descriptivos;
-- documentación actualizada junto con cada avance relevante.
+- documentación actualizada junto con cada avance.
 
 ## Equipo
 

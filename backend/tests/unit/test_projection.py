@@ -93,9 +93,10 @@ class TestRegresionLineal:
 
     def test_no_depende_del_orden_de_llegada(self):
         serie = creciente(10, 1.0, 0.1)
-        assert linear_regression(serie).final_value == linear_regression(
-            list(reversed(serie))
-        ).final_value
+        assert (
+            linear_regression(serie).final_value
+            == linear_regression(list(reversed(serie))).final_value
+        )
 
     def test_varias_mediciones_del_mismo_dia_no_revientan(self):
         # Sin pendiente estimable, el modelo debe devolver un valor, no fallar.
@@ -207,9 +208,7 @@ class TestConfianza:
 
     def test_un_retraso_dentro_de_la_ventana_no_penaliza(self):
         serie = [Reading(self.REF - timedelta(days=i + 3), D("1.0")) for i in range(28)]
-        confianza = assess_confidence(
-            serie, reference_date=self.REF, window=30, freshness_days=7
-        )
+        confianza = assess_confidence(serie, reference_date=self.REF, window=30, freshness_days=7)
         assert confianza is Confidence.HIGH
 
 

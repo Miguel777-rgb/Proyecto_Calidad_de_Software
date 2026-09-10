@@ -86,6 +86,10 @@ services:
     environment:
       E2E_BASE_URL: http://web:5173
       E2E_API_URL: http://api:8000
+      # Credenciales del administrador creado al arrancar la API, para
+      # probar el acceso por rol sin sembrar datos a mano.
+      E2E_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
+      E2E_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
       CI: "1"
     volumes:
       - ./frontend:/app

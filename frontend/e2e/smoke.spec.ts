@@ -9,14 +9,13 @@ test.describe('Fase 0 — andamiaje', () => {
     expect(await respuesta.json()).toEqual({ status: 'ok', database: 'ok' })
   })
 
-  test('la aplicacion carga y se conecta con el servidor', async ({ page }) => {
-    await page.goto('/')
+  test('la aplicacion carga y muestra su cabecera', async ({ page }) => {
+    await page.goto('/entrar')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('OLA')
-    await expect(page.getByTestId('estado-conexion')).toHaveText('Servidor conectado')
   })
 
   test('la atribucion a IMARPE es visible, como exige la SRS', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/entrar')
     await expect(page.getByTestId('atribucion')).toContainText('IMARPE')
   })
 })

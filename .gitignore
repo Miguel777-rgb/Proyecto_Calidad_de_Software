@@ -44,6 +44,7 @@ frontend/build/
 frontend/test-results/
 frontend/playwright-report/
 frontend/.playwright/
+frontend/capturas/
 
 # IDE y editores
 .vscode/*

@@ -52,3 +52,24 @@ El estado térmico vigente **no se calcula contra el reloj del servidor** sino c
 del dato más reciente en la base. El dataset de IMARPE se publica con retraso, y usar el reloj
 real dejaría todas las zonas marcadas como sin datos recientes. El reloj del sistema solo sella
 eventos de auditoría: importaciones, detección de alertas y envíos de correo.
+
+## Autenticación (RF-07)
+
+- Contraseñas con **bcrypt**; nunca se almacenan ni se devuelven en claro.
+- Sesión mediante **JWT** en la cabecera `Authorization: Bearer <token>`, con 60 minutos de
+  vigencia configurables en `OLA_ACCESS_TOKEN_MINUTES`.
+- Política de contraseñas: mínimo 8 caracteres y sin reglas de composición, siguiendo la
+  recomendación del NIST. Exigir mayúsculas y símbolos empuja a claves predecibles y perjudica
+  al perfil de usuario del sistema.
+- El registro público **siempre** crea usuarios con rol `user`. El rol `admin` solo existe
+  mediante el arranque desde `OLA_ADMIN_EMAIL` / `OLA_ADMIN_PASSWORD`.
+- El correo se normaliza a minúsculas, así que `Juan@Ejemplo.pe` y `juan@ejemplo.pe` son la
+  misma cuenta.
+- En `OLA_ENV=production` la aplicación **se niega a arrancar** si `OLA_JWT_SECRET` tiene menos
+  de 32 bytes o si conserva el valor de la plantilla.
+
+## Base de datos de pruebas
+
+Las pruebas de integración usan una base aparte llamada `ola_test`, que se crea sola en la
+primera ejecución. Nunca escriben en la base de desarrollo, así que los datos importados
+sobreviven a `pytest`.

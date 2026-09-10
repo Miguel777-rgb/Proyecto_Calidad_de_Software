@@ -84,13 +84,14 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Incorporación del dataset de desarrollo.
 - [x] Prototipo de presentación del proyecto.
 - [x] Andamiaje del monorepo, contenedores y arranque con Docker Compose.
-- [ ] Implementación del importador y validación del CSV.
-- [ ] Desarrollo de la API FastAPI.
-- [ ] Desarrollo del mapa, gráficos y comparación de series.
-- [ ] Registro, autenticación y suscripciones.
-- [ ] Detección de tendencias, proyecciones y notificaciones.
-- [ ] Pruebas unitarias, de integración y validación del prototipo.
-- [ ] Contenedorización y despliegue.
+- [x] Registro, autenticación con JWT y control de acceso por rol.
+- [ ] Importación del CSV y validación de su formato.
+- [ ] Clasificación térmica y detección de tendencias sostenidas.
+- [ ] Mapa interactivo de las 10 zonas.
+- [ ] Gráficos históricos y comparación entre laboratorios.
+- [ ] Proyección de tendencia a corto plazo.
+- [ ] Suscripciones y notificaciones por correo.
+- [ ] Despliegue en VPS con Dokploy.
 
 ## Documentación
 

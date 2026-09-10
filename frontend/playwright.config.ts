@@ -6,9 +6,10 @@ const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173'
 
 export default defineConfig({
   testDir: './e2e',
-  // captura.spec.ts no es una prueba: genera imagenes para el informe.
-  // Se ejecuta a proposito con: pnpm exec playwright test captura.spec.ts
-  testIgnore: '**/captura.spec.ts',
+  // captura.spec.ts no es una prueba: genera imagenes para el informe y se
+  // excluye de la suite. Para ejecutarla a proposito:
+  //   E2E_CAPTURAS=1 pnpm exec playwright test captura.spec.ts
+  testIgnore: process.env.E2E_CAPTURAS ? [] : '**/captura.spec.ts',
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

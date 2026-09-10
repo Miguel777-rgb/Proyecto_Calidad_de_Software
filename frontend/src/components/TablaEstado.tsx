@@ -1,5 +1,6 @@
 import type { EstadoZona } from '../api/client'
 import { textos } from '../i18n/textos'
+import { PuntoEstado } from './PuntoEstado'
 
 const grados = (valor: string | null): string =>
   valor === null ? '—' : `${Number(valor).toFixed(2)} °C`
@@ -22,7 +23,7 @@ export function TablaEstado({ zonas }: { zonas: EstadoZona[] }) {
             <tr key={zona.laboratory.code} data-testid={`zona-${zona.laboratory.code}`}>
               <td>{zona.laboratory.name}</td>
               <td>
-                <span className={`punto punto--${zona.state}`} aria-hidden="true" />
+                <PuntoEstado estado={zona.state} />
                 <span data-testid={`situacion-${zona.laboratory.code}`}>
                   {textos.estado[zona.state]}
                 </span>

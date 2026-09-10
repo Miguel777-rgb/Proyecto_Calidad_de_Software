@@ -1,5 +1,6 @@
 import type { EstadoTermico } from '../api/client'
 import { textos } from '../i18n/textos'
+import { PuntoEstado } from './PuntoEstado'
 
 const ESTADOS: EstadoTermico[] = ['warm', 'neutral', 'cold', 'no_data']
 
@@ -8,7 +9,7 @@ export function LeyendaEstados() {
     <ul className="leyenda" data-testid="leyenda">
       {ESTADOS.map((estado) => (
         <li key={estado}>
-          <span className={`punto punto--${estado}`} aria-hidden="true" />
+          <PuntoEstado estado={estado} />
           {textos.estado[estado]}
         </li>
       ))}

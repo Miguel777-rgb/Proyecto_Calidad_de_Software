@@ -276,20 +276,6 @@ input[type='file'] {
   vertical-align: middle;
 }
 
-/* Colores del estado termico. Se acompanan siempre del texto, para no
-   depender solo del color (accesibilidad). */
-.punto--warm {
-  background: #d1495b;
-}
-.punto--neutral {
-  background: #e0c368;
-}
-.punto--cold {
-  background: #2a6f97;
-}
-.punto--no_data {
-  background: #b9c2c9;
-}
 
 .campo {
   display: contents;
@@ -310,4 +296,122 @@ button.secundario {
 button.secundario:disabled {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* --- Mapa y panel de detalle ------------------------------------------- */
+
+.mapa-y-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+/* A partir de tablet el panel se coloca al costado; en celular queda debajo
+   del mapa para no taparlo. */
+@media (min-width: 48rem) {
+  .mapa-y-panel {
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  }
+}
+
+.mapa {
+  height: 26rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+@media (min-width: 48rem) {
+  .mapa {
+    height: 32rem;
+  }
+}
+
+/* Leaflet fija z-index altos que se montan sobre la navegacion. */
+.mapa .leaflet-pane,
+.mapa .leaflet-top,
+.mapa .leaflet-bottom {
+  z-index: 1;
+}
+
+.panel-zona {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.panel-zona--vacio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.panel-zona__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.panel-zona__cabecera h3 {
+  margin: 0;
+}
+
+.panel-zona__situacion {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0 1rem;
+  font-weight: 600;
+}
+
+.panel-zona__datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.panel-zona__datos dt {
+  color: #4a5a66;
+}
+
+.panel-zona__datos dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.panel-zona__alerta {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fdecea;
+  border-left: 4px solid var(--error);
+  border-radius: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.panel-zona__alerta p {
+  margin: 0.35rem 0 0;
+}
+
+.aviso--atencion {
+  background: #fdf6e3;
+  border-color: var(--espera);
+  color: #6b4f0e;
+}
+
+/* Leaflet dibuja las zonas como SVG. Al pulsarlas con el raton el navegador
+   añade un recuadro de foco cuadrado alrededor del circulo, que parece un
+   defecto de dibujo. Se conserva solo para el foco por teclado, donde si
+   hace falta; la seleccion con raton ya se distingue por el borde oscuro. */
+.leaflet-interactive:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.leaflet-interactive:focus-visible {
+  outline: 2px solid var(--texto);
+  outline-offset: 2px;
 }

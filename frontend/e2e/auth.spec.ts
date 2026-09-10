@@ -25,9 +25,10 @@ async function entrar(page: Page, email: string, clave: string) {
 }
 
 test.describe('Fase 1 — autenticación (RF-07)', () => {
-  test('una visita sin sesión es enviada al inicio de sesión', async ({ page }) => {
+  test('la página principal se puede ver sin iniciar sesión', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toBeVisible()
   })
 
   test('un usuario nuevo se registra y queda con la sesión iniciada', async ({ page }) => {
@@ -48,13 +49,14 @@ test.describe('Fase 1 — autenticación (RF-07)', () => {
     await expect(page.getByTestId('sesion-actual')).toContainText(email)
   })
 
-  test('al cerrar sesión se pierde el acceso a la página principal', async ({ page }) => {
+  test('al cerrar sesión se pierde la sesión pero no el acceso público', async ({ page }) => {
     await registrarse(page, correoUnico())
     await page.getByRole('button', { name: 'Cerrar sesión' }).click()
 
-    await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
-    await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+    await expect(page.getByTestId('sesion-actual')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toBeVisible()
+    // El estado de las zonas sigue siendo visible.
+    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
   })
 
   test('un correo ya registrado no puede volver a registrarse', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { render, type RenderOptions } from '@testing-library/react'
+import { vi } from 'vitest'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
@@ -189,4 +190,38 @@ export function proyeccionDe(cambios: Partial<Proyeccion> = {}): Proyeccion {
     unavailable_reason: null,
     ...cambios,
   }
+}
+
+/**
+ * Deja una sesion iniciada antes de montar el componente.
+ *
+ * Guarda un token en el navegador simulado; el proveedor de sesion lo
+ * revalidara contra /auth/me, que el simulador de fetch debe responder.
+ */
+export function conSesionIniciada(usuario: Usuario = USUARIO): void {
+  localStorage.setItem('ola.token', 'token-de-prueba')
+  void usuario
+}
+
+/** Enruta las respuestas simuladas por endpoint. La clave se busca como
+ *  subcadena de la URL; `perfil` responde a /auth/me. */
+export function apiPorRuta(
+  rutas: Record<string, unknown>,
+  usuario: Usuario = USUARIO,
+): ReturnType<typeof vi.fn> {
+  return vi.fn(async (url: string, init?: RequestInit) => {
+    const ruta = String(url)
+    if (ruta.includes('/auth/me')) return respuesta(usuario)
+    for (const [clave, cuerpo] of Object.entries(rutas)) {
+      if (ruta.includes(clave)) {
+        if (init?.method === 'DELETE' || init?.method === 'POST') {
+          return typeof cuerpo === 'function'
+            ? (cuerpo as (i?: RequestInit) => Response)(init)
+            : respuesta(cuerpo, 201)
+        }
+        return respuesta(cuerpo)
+      }
+    }
+    return respuesta({})
+  })
 }

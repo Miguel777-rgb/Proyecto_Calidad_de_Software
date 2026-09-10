@@ -27,3 +27,11 @@ test('captura de los graficos', async ({ page }) => {
   await page.waitForTimeout(1200)
   await page.screenshot({ path: 'capturas/comparacion.png' })
 })
+
+test('captura de la proyeccion', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await page.goto('/proyeccion')
+  await page.locator('[data-testid="grafico-proyeccion"] svg').first().waitFor()
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: 'capturas/proyeccion.png' })
+})

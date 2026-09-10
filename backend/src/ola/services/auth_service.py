@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ola.config import Settings
@@ -83,16 +84,27 @@ def ensure_admin_exists(session: Session, settings: Settings) -> User | None:
     Se ejecuta al arrancar la aplicacion. La base nace vacia y solo un
     administrador puede importar el dataset, asi que sin esto el sistema
     quedaria inutilizable tras un despliegue limpio.
+
+    En produccion arrancan varios procesos a la vez y todos ejecutan esto:
+    comprobar y despues insertar deja una ventana en la que dos pueden crear
+    la misma cuenta. La restriccion de unicidad del correo es la que decide,
+    y el proceso que pierde la carrera simplemente no crea nada.
     """
     existing = users_repo.get_by_email(session, settings.admin_email)
     if existing is not None:
         return None
-    admin = users_repo.create(
-        session,
-        email=settings.admin_email,
-        password_hash=hash_password(settings.admin_password),
-        full_name="Administrador",
-        role=UserRole.ADMIN,
-    )
-    session.commit()
+    try:
+        # La insercion ya ocurre en el flush del repositorio, asi que el
+        # guardado tiene que cubrir tambien esa llamada.
+        admin = users_repo.create(
+            session,
+            email=settings.admin_email,
+            password_hash=hash_password(settings.admin_password),
+            full_name="Administrador",
+            role=UserRole.ADMIN,
+        )
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        return None
     return admin

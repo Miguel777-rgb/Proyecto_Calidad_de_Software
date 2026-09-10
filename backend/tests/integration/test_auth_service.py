@@ -50,6 +50,37 @@ class TestAdministradorInicial:
         assert admin is not None
         assert verify_password("clave-original", admin.password_hash)
 
+    def test_dos_arranques_simultaneos_no_chocan(
+        self, db_session, settings_factory, monkeypatch
+    ):
+        """En produccion arrancan varios procesos y todos ejecutan esto.
+
+        Comprobar y despues insertar deja una ventana en la que dos procesos
+        pueden intentar crear la misma cuenta. Se simula esa ventana dejando
+        la comprobacion previa obsoleta: el segundo intento debe rendirse en
+        silencio, no reventar el arranque.
+        """
+        s = settings_factory(admin_email="jefe@ola.pe", admin_password="clave-seguraaa")
+        assert auth_service.ensure_admin_exists(db_session, s) is not None
+
+        monkeypatch.setattr(users_repo, "get_by_email", lambda *_a, **_k: None)
+        assert auth_service.ensure_admin_exists(db_session, s) is None
+
+    def test_tras_la_carrera_solo_queda_una_cuenta(
+        self, db_session, settings_factory, monkeypatch
+    ):
+        s = settings_factory(admin_email="jefe@ola.pe", admin_password="clave-seguraaa")
+        auth_service.ensure_admin_exists(db_session, s)
+        monkeypatch.setattr(users_repo, "get_by_email", lambda *_a, **_k: None)
+        auth_service.ensure_admin_exists(db_session, s)
+
+        from sqlalchemy import func, select
+
+        total = db_session.scalar(
+            select(func.count()).select_from(User).where(User.email == "jefe@ola.pe")
+        )
+        assert total == 1
+
     def test_el_administrador_puede_iniciar_sesion(self, client, db_session, settings_factory):
         s = settings_factory(admin_email="jefe@ola.pe", admin_password="clave-seguraaa")
         auth_service.ensure_admin_exists(db_session, s)

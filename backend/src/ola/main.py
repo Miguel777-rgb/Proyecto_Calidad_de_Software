@@ -39,9 +39,13 @@ def _bootstrap_admin(settings: Settings) -> None:
         with SessionLocal() as session:
             creado = auth_service.ensure_admin_exists(session, settings)
     except SQLAlchemyError:
-        # Aun no se han aplicado las migraciones. No es motivo para impedir
-        # que el proceso arranque: el healthcheck reportara el estado real.
-        logger.warning("No se pudo crear el administrador inicial: la base no esta lista.")
+        # La base todavia no responde o no tiene las tablas. No es motivo para
+        # impedir que el proceso arranque: el healthcheck reportara el estado
+        # real y la cuenta se creara en el siguiente reinicio.
+        logger.warning(
+            "No se pudo crear el administrador inicial: la base no responde o "
+            "no tiene las tablas aplicadas."
+        )
         return
     if creado is not None:
         logger.info("Administrador inicial creado: %s", creado.email)

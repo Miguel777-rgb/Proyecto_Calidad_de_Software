@@ -87,7 +87,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Registro, autenticación con JWT y control de acceso por rol.
 - [x] Importación del CSV, validación de su formato y catálogo de las 10 zonas.
 - [x] Clasificación térmica y detección de tendencias sostenidas.
-- [ ] Mapa interactivo de las 10 zonas.
+- [x] Mapa interactivo de las 10 zonas.
 - [ ] Gráficos históricos y comparación entre laboratorios.
 - [ ] Proyección de tendencia a corto plazo.
 - [ ] Suscripciones y notificaciones por correo.

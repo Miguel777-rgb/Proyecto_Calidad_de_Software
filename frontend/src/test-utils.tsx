@@ -6,6 +6,7 @@ import type {
   EstadoSistema,
   EstadoZona,
   Laboratorio,
+  Proyeccion,
   RespuestaSeries,
   Sesion,
   Usuario,
@@ -145,5 +146,47 @@ export function seriesDe(
         samples: v === null ? 0 : 1,
       })),
     })),
+  }
+}
+
+/** Proyeccion de ejemplo: cuatro dias medidos y tres estimados. */
+export function proyeccionDe(cambios: Partial<Proyeccion> = {}): Proyeccion {
+  return {
+    laboratory: LABORATORIOS[0],
+    reference_date: '2026-07-31',
+    last_measured_on: '2026-07-31',
+    days_behind: 0,
+    horizon_days: 3,
+    window: 30,
+    confidence: 'high',
+    history: [
+      { measured_on: '2026-07-28', anomaly_c: '1.0000' },
+      { measured_on: '2026-07-29', anomaly_c: '1.2000' },
+      { measured_on: '2026-07-30', anomaly_c: '1.4000' },
+      { measured_on: '2026-07-31', anomaly_c: '1.6000' },
+    ],
+    linear: {
+      method: 'linear_regression',
+      points: [
+        { projected_on: '2026-08-01', anomaly_c: '1.8000' },
+        { projected_on: '2026-08-02', anomaly_c: '2.0000' },
+        { projected_on: '2026-08-03', anomaly_c: '2.2000' },
+      ],
+      final_value: '2.2000',
+      final_state: 'warm',
+    },
+    weighted: {
+      method: 'weighted_moving_average',
+      points: [
+        { projected_on: '2026-08-01', anomaly_c: '1.3000' },
+        { projected_on: '2026-08-02', anomaly_c: '1.3000' },
+        { projected_on: '2026-08-03', anomaly_c: '1.3000' },
+      ],
+      final_value: '1.3000',
+      final_state: 'warm',
+    },
+    agreement_c: '0.9000',
+    unavailable_reason: null,
+    ...cambios,
   }
 }

@@ -23,6 +23,8 @@ export const textos = {
     historico: 'Histórico',
     comparacion: 'Comparar',
     proyeccion: 'Proyección',
+    misZonas: 'Mis zonas',
+    avisos: 'Avisos',
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -134,6 +136,46 @@ export const textos = {
     limiteZonas: (max: number) => `Solo se pueden comparar ${max} zonas a la vez.`,
     ningunaZona: 'Elige al menos una zona para comparar.',
     rangoInvertido: 'La fecha inicial no puede ser posterior a la final.',
+  },
+  suscripciones: {
+    titulo: 'Mis zonas de interés',
+    ayuda:
+      'Elige las zonas de las que quieres recibir avisos. Te escribiremos al correo cuando una entre en alerta y cuando vuelva a la normalidad.',
+    seguir: 'Seguir',
+    dejarDeSeguir: 'Dejar de seguir',
+    siguiendo: 'Siguiendo',
+    ninguna: 'Todavía no sigues ninguna zona.',
+    entrarPara: 'Inicia sesión para elegir tus zonas de interés y recibir avisos.',
+  },
+  avisos: {
+    titulo: 'Mis avisos',
+    // «Alerta» es femenino: no sirve reutilizar los nombres de estado, que
+    // concuerdan con «estado» y son masculinos.
+    situacionFemenina: {
+      warm: 'cálida',
+      cold: 'fría',
+    },
+    ninguno: 'No tienes avisos por ahora.',
+    sinLeer: (n: number) => `${n} sin leer`,
+    marcarTodos: 'Marcar todos como leídos',
+    nuevo: 'Nuevo',
+    tipos: {
+      opened: (zona: string, situacion: string) => `${zona} entró en alerta ${situacion}`,
+      closed: (zona: string, situacion: string) => `Terminó la alerta ${situacion} en ${zona}`,
+    },
+    desde: (fecha: string) => `Episodio iniciado el ${fecha}`,
+    envio: {
+      titulo: 'Envío de avisos',
+      ayuda:
+        'La evaluación de alertas registra los avisos pendientes; el envío se dispara aquí. Así un servidor de correo caído no bloquea la evaluación.',
+      boton: 'Enviar avisos pendientes',
+      enviando: 'Enviando…',
+      resultado: (r: { attempted: number; sent: number; failed: number }) =>
+        r.attempted === 0
+          ? 'No había avisos pendientes.'
+          : `Se intentaron ${r.attempted} envíos: ${r.sent} correctos y ${r.failed} fallidos.`,
+      reintento: 'Los envíos fallidos se reintentan la próxima vez.',
+    },
   },
   proyeccion: {
     titulo: 'Proyección de tendencia',

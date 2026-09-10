@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, importarCsv, listarImportaciones, type Importacion } from '../api/client'
 import { textos } from '../i18n/textos'
 import { PanelConfiguracion } from '../components/PanelConfiguracion'
+import { PanelEnvioAvisos } from '../components/PanelEnvioAvisos'
 import { ResumenImportacion } from '../components/ResumenImportacion'
 
 export default function Admin() {
@@ -49,6 +50,8 @@ export default function Admin() {
       <h2>{textos.admin.titulo}</h2>
 
       <PanelConfiguracion />
+
+      <PanelEnvioAvisos />
 
       <div className="tarjeta">
         <h3>{textos.admin.importar}</h3>

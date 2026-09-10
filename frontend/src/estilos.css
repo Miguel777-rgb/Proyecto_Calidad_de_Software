@@ -606,3 +606,63 @@ button.secundario:disabled {
 .estimaciones strong {
   font-size: 1.5rem;
 }
+
+/* --- Suscripciones y avisos --------------------------------------------- */
+
+.lista-zonas,
+.lista-avisos {
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-zonas li,
+.aviso-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.lista-zonas button {
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #1a5e8a;
+  border: 1px solid #1a5e8a;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.lista-zonas button.secundario {
+  margin-top: 0;
+  color: #1a5e8a;
+  background: #fff;
+}
+
+.etiqueta {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  background: #eef5fa;
+  border: 1px solid #b9d4e6;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1a5e8a;
+}
+
+.aviso-item p {
+  margin: 0.15rem 0 0;
+}
+
+.aviso-item--nuevo {
+  border-left: 4px solid #1a5e8a;
+}

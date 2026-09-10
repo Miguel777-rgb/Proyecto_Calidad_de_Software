@@ -3,9 +3,11 @@ import { RutaProtegida } from './components/RutaProtegida'
 import { useAuth } from './auth/useAuth'
 import { textos } from './i18n/textos'
 import Admin from './pages/Admin'
+import Avisos from './pages/Avisos'
 import Comparacion from './pages/Comparacion'
 import Entrar from './pages/Entrar'
 import Historico from './pages/Historico'
+import MisZonas from './pages/MisZonas'
 import Proyeccion from './pages/Proyeccion'
 import Inicio from './pages/Inicio'
 import Registro from './pages/Registro'
@@ -25,6 +27,8 @@ function Navegacion() {
         </>
       ) : (
         <>
+          <Link to="/mis-zonas">{textos.navegacion.misZonas}</Link>
+          <Link to="/avisos">{textos.navegacion.avisos}</Link>
           {usuario.role === 'admin' && (
             <Link to="/admin">{textos.navegacion.administracion}</Link>
           )}
@@ -69,6 +73,22 @@ export default function App() {
           <Route path="/historico" element={<Historico />} />
           <Route path="/comparar" element={<Comparacion />} />
           <Route path="/proyeccion" element={<Proyeccion />} />
+          <Route
+            path="/mis-zonas"
+            element={
+              <RutaProtegida>
+                <MisZonas />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/avisos"
+            element={
+              <RutaProtegida>
+                <Avisos />
+              </RutaProtegida>
+            }
+          />
           <Route path="/entrar" element={<Entrar />} />
           <Route path="/registro" element={<Registro />} />
         </Routes>

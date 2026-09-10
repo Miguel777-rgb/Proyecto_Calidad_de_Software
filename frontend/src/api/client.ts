@@ -333,3 +333,58 @@ export const obtenerProyeccion = (code: string, horizonte: number) =>
   apiFetch<Proyeccion>(
     `/laboratories/${encodeURIComponent(code)}/projection?horizon=${horizonte}`,
   )
+
+export interface Suscripcion {
+  id: number
+  laboratory: Laboratorio
+  created_at: string
+}
+
+export type TipoAviso = 'opened' | 'closed'
+
+export interface Aviso {
+  id: number
+  laboratory_code: string
+  laboratory_name: string
+  kind: TipoAviso
+  alert_state: 'warm' | 'cold'
+  started_on: string
+  ended_on: string
+  streak_length: number
+  created_at: string
+  read_at: string | null
+}
+
+export interface ListaAvisos {
+  unread: number
+  items: Aviso[]
+}
+
+export interface ResumenEnvio {
+  attempted: number
+  sent: number
+  failed: number
+  by_status: Record<string, number>
+}
+
+export const listarSuscripciones = () => apiFetch<Suscripcion[]>('/subscriptions')
+
+export const suscribirse = (code: string) =>
+  apiFetch<Suscripcion>('/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify({ laboratory_code: code }),
+  })
+
+export const darseDeBaja = (code: string) =>
+  apiFetch<void>(`/subscriptions/${encodeURIComponent(code)}`, { method: 'DELETE' })
+
+export const listarAvisos = () => apiFetch<ListaAvisos>('/notifications')
+
+export const marcarAvisoLeido = (id: number) =>
+  apiFetch<void>(`/notifications/${id}/read`, { method: 'POST' })
+
+export const marcarTodosLeidos = () =>
+  apiFetch<void>('/notifications/read-all', { method: 'POST' })
+
+export const enviarAvisosPendientes = () =>
+  apiFetch<ResumenEnvio>('/notifications/send', { method: 'POST' })

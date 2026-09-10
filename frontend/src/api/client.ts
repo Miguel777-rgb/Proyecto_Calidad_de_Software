@@ -255,3 +255,44 @@ export const listarAlertas = (params: { lab?: string; soloVigentes?: boolean } =
   const cadena = query.toString()
   return apiFetch<Episodio[]>(`/alerts${cadena ? `?${cadena}` : ''}`)
 }
+
+export type Resolucion = 'daily' | 'weekly' | 'monthly'
+
+export interface PuntoSerie {
+  period: string
+  /** `null` marca un periodo sin mediciones: el grafico corta la linea ahi. */
+  anomaly_c: string | null
+  samples: number
+}
+
+export interface SerieLaboratorio {
+  laboratory: Laboratorio
+  points: PuntoSerie[]
+}
+
+export interface RespuestaSeries {
+  since: string
+  until: string
+  resolution: Resolucion
+  series: SerieLaboratorio[]
+}
+
+function rangoQuery(desde?: string, hasta?: string): string {
+  const query = new URLSearchParams()
+  if (desde) query.set('from', desde)
+  if (hasta) query.set('to', hasta)
+  const cadena = query.toString()
+  return cadena ? `?${cadena}` : ''
+}
+
+export const obtenerSerie = (code: string, desde?: string, hasta?: string) =>
+  apiFetch<RespuestaSeries>(
+    `/laboratories/${encodeURIComponent(code)}/readings${rangoQuery(desde, hasta)}`,
+  )
+
+export const compararSeries = (codes: string[], desde?: string, hasta?: string) => {
+  const query = new URLSearchParams({ labs: codes.join(',') })
+  if (desde) query.set('from', desde)
+  if (hasta) query.set('to', hasta)
+  return apiFetch<RespuestaSeries>(`/readings/compare?${query.toString()}`)
+}

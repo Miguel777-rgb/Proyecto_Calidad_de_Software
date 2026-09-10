@@ -20,6 +20,8 @@ export const textos = {
     registrarse: 'Crear cuenta',
     salir: 'Cerrar sesión',
     administracion: 'Administración',
+    historico: 'Histórico',
+    comparacion: 'Comparar',
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -105,6 +107,32 @@ export const textos = {
       'Todavía no hay mediciones cargadas. Un administrador debe importar el dataset de IMARPE.',
     explicacionPromedio: (dias: number) =>
       `La situación de cada zona se calcula con el promedio de los últimos ${dias} días, para que un solo día atípico no cambie el color.`,
+  },
+  graficos: {
+    historico: 'Histórico por zona',
+    comparacion: 'Comparar zonas',
+    zona: 'Zona costera',
+    desde: 'Desde',
+    hasta: 'Hasta',
+    aplicar: 'Aplicar',
+    periodo: 'Periodo',
+    sinDato: 'Sin dato',
+    verTabla: 'Ver los datos en una tabla',
+    resolucion: {
+      daily: 'Un punto por día',
+      weekly: 'Promedio semanal',
+      monthly: 'Promedio mensual',
+    },
+    explicacionResolucion:
+      'Al ampliar el rango, los valores se agrupan automáticamente para que el gráfico siga siendo legible.',
+    explicacionHuecos:
+      'La línea se corta donde no hay mediciones: unir esos puntos mostraría una tendencia que nadie midió.',
+    explicacionUmbral: 'Las líneas punteadas marcan el umbral de ±0.5 °C.',
+    sinDatosEnRango: 'No hay mediciones de esta zona en el periodo elegido.',
+    elegirZonas: (max: number) => `Elige hasta ${max} zonas para superponer sus series.`,
+    limiteZonas: (max: number) => `Solo se pueden comparar ${max} zonas a la vez.`,
+    ningunaZona: 'Elige al menos una zona para comparar.',
+    rangoInvertido: 'La fecha inicial no puede ser posterior a la final.',
   },
   mapa: {
     titulo: 'Mapa de zonas costeras',

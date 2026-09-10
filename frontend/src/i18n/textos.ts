@@ -106,6 +106,20 @@ export const textos = {
     explicacionPromedio: (dias: number) =>
       `La situación de cada zona se calcula con el promedio de los últimos ${dias} días, para que un solo día atípico no cambie el color.`,
   },
+  mapa: {
+    titulo: 'Mapa de zonas costeras',
+    sinSeleccion: 'Pulsa una zona del mapa para ver su detalle.',
+    cerrarPanel: 'Cerrar el detalle de la zona',
+    ultimoValor: 'Último valor',
+    avisoObsoleta:
+      'Esta zona no registra mediciones recientes, así que no se muestra su situación térmica.',
+    enAlerta: (situacion: string) => `Alerta ${situacion.toLowerCase()} en curso`,
+    detalleAlerta: (desde: string, registros: number, pico: string) =>
+      `Sostenida desde el ${desde}, con ${registros} mediciones seguidas fuera del rango normal. Valor más extremo: ${pico} °C.`,
+    sinAlertaExplicacion: 'Esta zona no presenta una tendencia sostenida.',
+    verTabla: 'Detalle de todas las zonas',
+    atribucionMapa: 'Mapa base de OpenStreetMap.',
+  },
   configuracion: {
     titulo: 'Parámetros de detección',
     ayuda:

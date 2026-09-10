@@ -15,6 +15,8 @@ from ola.db.models import Base, Laboratory, User, UserRole
 from ola.main import create_app
 from ola.security import create_access_token, hash_password
 from ola.seeds.laboratories import LABORATORIES
+from ola.services import import_service, settings_service
+from ola.services.settings_service import EffectiveSettings
 
 
 @pytest.fixture
@@ -164,3 +166,20 @@ def admin_headers(admin_user: User) -> dict[str, str]:
 @pytest.fixture
 def user_headers(normal_user: User) -> dict[str, str]:
     return auth_headers(normal_user)
+
+
+@pytest.fixture
+def datos_de_muestra(db_session: Session, sample_csv_path: Path) -> None:
+    """Carga el dataset reducido con los casos de racha construidos a proposito.
+
+    La tabla de casos esta documentada en tests/fixtures/generar_muestra.py.
+    """
+    with sample_csv_path.open("rb") as archivo:
+        import_service.run_import(
+            db_session, filename="sample_atsm.csv", stream=archivo, uploaded_by_id=None
+        )
+
+
+@pytest.fixture
+def config_por_defecto(db_session: Session) -> EffectiveSettings:
+    return settings_service.get_effective(db_session, Settings(_env_file=None))  # type: ignore[call-arg]

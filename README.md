@@ -42,13 +42,20 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 
 ```text
 .
-├── backend/                         # API, lógica de negocio e importador
+├── backend/                         # API FastAPI, lógica de negocio e importador
+│   ├── src/ola/                     # Código fuente
+│   ├── alembic/                     # Migraciones de base de datos
+│   └── tests/                       # Pruebas unitarias y de integración
+├── frontend/                        # Interfaz web (React + Vite + TypeScript)
+│   ├── src/                         # Código fuente
+│   └── e2e/                         # Pruebas de extremo a extremo (Playwright)
 ├── dataset/
 │   └── IMARPE_Anomalia_TSM.csv      # Dataset base para desarrollo
 ├── docs/
 │   ├── presentacion-ola.html        # Presentación del proyecto
 │   └── requisitos.md                # Especificación de Requisitos de Software
-├── frontend/                        # Interfaz web responsiva
+├── compose.yml                      # Orquestación de todos los servicios
+├── .env.example                     # Plantilla de configuración
 └── README.md
 ```
 
@@ -76,6 +83,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Catálogo inicial de requisitos funcionales y no funcionales.
 - [x] Incorporación del dataset de desarrollo.
 - [x] Prototipo de presentación del proyecto.
+- [x] Andamiaje del monorepo, contenedores y arranque con Docker Compose.
 - [ ] Implementación del importador y validación del CSV.
 - [ ] Desarrollo de la API FastAPI.
 - [ ] Desarrollo del mapa, gráficos y comparación de series.
@@ -91,15 +99,42 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 
 ## Desarrollo local
 
-La implementación aún no cuenta con un entorno ejecutable completo. Cuando se incorporen los servicios, esta sección documentará los comandos para:
+Requisitos previos: **Docker** y **Docker Compose**. No hace falta instalar Python ni Node en
+el equipo: todo corre dentro de contenedores.
 
-1. configurar las variables de entorno;
-2. iniciar PostgreSQL y la API mediante Docker;
-3. ejecutar el frontend;
-4. importar el CSV de prueba;
-5. ejecutar las pruebas automatizadas.
+```bash
+cp .env.example .env      # 1. configura el entorno
+```
 
-No se deben incluir credenciales reales en el repositorio. Las variables de configuración deberán documentarse en un archivo `.env.example` sin secretos.
+Edita `.env` y cambia al menos `POSTGRES_PASSWORD`, `OLA_JWT_SECRET` y `OLA_ADMIN_PASSWORD`.
+Puedes generar secretos con `openssl rand -hex 32`. Si algún puerto choca con un servicio que
+ya tengas corriendo (es frecuente con PostgreSQL en el 5432), cámbialo en el mismo archivo.
+
+```bash
+docker compose up -d --build                  # 2. levanta db, api, web y mailpit
+docker compose exec api alembic upgrade head  # 3. aplica las migraciones
+```
+
+| Servicio | URL por defecto |
+|---|---|
+| Aplicación web | http://localhost:5173 |
+| API | http://localhost:8000/api |
+| Documentación de la API | http://localhost:8000/api/docs |
+| Bandeja de correo (Mailpit) | http://localhost:8025 |
+
+La base de datos arranca **vacía**. Para cargar datos, inicia sesión con el administrador
+definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicación (RF-08).
+
+### Pruebas
+
+```bash
+docker compose exec api pytest --cov=ola      # unitarias e integración del backend
+docker compose exec web pnpm test             # unitarias del frontend
+docker compose --profile e2e run --rm e2e     # extremo a extremo con Playwright
+```
+
+No se deben incluir credenciales reales en el repositorio: `.env` está en `.gitignore` y solo
+se versiona `.env.example`.
 
 ## Calidad de software
 

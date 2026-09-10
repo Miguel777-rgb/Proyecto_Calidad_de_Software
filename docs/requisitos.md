@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.0 |
+| Versión | 1.1 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -56,7 +56,7 @@ Este documento especifica los requisitos funcionales y no funcionales del sistem
 - Enunciado del trabajo de creatividad del curso (objetivo, descripción del proyecto, dominio de la aplicación).
 
 ### 1.5 Visión general del documento
-La sección 2 describe el producto de forma general (perspectiva, funciones, usuarios, restricciones y supuestos). La sección 3 detalla los requisitos específicos: funcionales, de interfaz, de rendimiento, de diseño y de calidad. La sección 4 incluye la matriz de trazabilidad de requisitos exigida por el enunciado del curso.
+La sección 2 describe el producto de forma general (perspectiva, funciones, usuarios, restricciones y supuestos). La sección 3 detalla los requisitos específicos: funcionales, de interfaz, de rendimiento, de diseño y de calidad. La sección 4 incluye la matriz de trazabilidad de requisitos exigida por el enunciado del curso. La sección 5 registra el control de versiones del propio documento.
 
 ---
 
@@ -224,4 +224,15 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 
 ---
 
-*Documento sujeto a revisión conforme avance el proyecto. Cualquier cambio en el catálogo de requisitos deberá registrarse con fecha y motivo en una futura sección de control de versiones.*
+## 5. Control de versiones del documento
+
+> Sección creada para dar cumplimiento al cierre de la versión 1.0, que exigía registrar con fecha y motivo cualquier cambio en el catálogo de requisitos. Toda modificación posterior a un RF debe añadir una fila a esta tabla en el mismo avance en que se implementa el cambio.
+
+| Versión | Fecha | RF afectado | Cambio | Motivo | Responsable |
+|---|---|---|---|---|---|
+| 1.0 | 2026-09-10 | — | Versión inicial del catálogo de requisitos, presentada para el Hito 1. | Línea base del documento. | Miguel Angel Flores Leon (PO) |
+| 1.1 | 2026-09-10 | — | Se incorpora esta sección de control de versiones. | El cierre de la v1.0 la exigía explícitamente y era necesaria antes de registrar cualquier cambio de alcance. | Miguel Angel Flores Leon (PO) |
+
+---
+
+*Documento sujeto a revisión conforme avance el proyecto. Cada cambio en el catálogo de requisitos se registra en la sección 5.*

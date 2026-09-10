@@ -45,6 +45,8 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/.playwright/
 frontend/capturas/
+# Cache incremental de TypeScript, generada por `tsc -b`.
+*.tsbuildinfo
 
 # IDE y editores
 .vscode/*

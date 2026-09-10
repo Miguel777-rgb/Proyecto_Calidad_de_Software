@@ -1,8 +1,15 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+// Leaflet no puede montarse en jsdom: mide el contenedor real y usa APIs de
+// dibujo que no existen fuera del navegador. El mapa autentico se prueba en
+// las E2E; aqui basta con el doble.
+vi.mock('react-leaflet', async () => await import('../test-mocks/react-leaflet'))
 import Inicio from './Inicio'
 import { textos } from '../i18n/textos'
+import userEvent from '@testing-library/user-event'
 import { ESTADO_MUESTRA, ESTADO_VACIO, renderConProveedores, respuesta } from '../test-utils'
+import { COLORES } from '../components/mapa/paleta'
 
 function simularApi(estado: unknown) {
   vi.stubGlobal(
@@ -98,5 +105,100 @@ describe('Inicio', () => {
 
     await screen.findByTestId('sin-datos')
     expect(screen.queryByTestId('fecha-referencia')).not.toBeInTheDocument()
+  })
+})
+
+describe('Inicio — mapa (RF-04)', () => {
+  const circulos = () => screen.getAllByTestId('mapa-circulo')
+
+  it('dibuja un circulo por cada zona', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(circulos()).toHaveLength(ESTADO_MUESTRA.zones.length)
+  })
+
+  it('colorea cada circulo segun su estado', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    const colores = circulos().map((c) => c.getAttribute('data-color'))
+    expect(colores).toContain(COLORES.warm)
+    expect(colores).toContain(COLORES.cold)
+    expect(colores).toContain(COLORES.no_data)
+  })
+
+  it('agranda las zonas en alerta', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    const radios = circulos().map((c) => Number(c.getAttribute('data-radius')))
+    // CALLAO esta en alerta; el resto no.
+    expect(Math.max(...radios)).toBeGreaterThan(Math.min(...radios))
+  })
+
+  it('muestra la atribucion obligatoria de OpenStreetMap', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    const mosaicos = await screen.findByTestId('mapa-mosaicos')
+    expect(mosaicos.getAttribute('data-attribution')).toContain('OpenStreetMap')
+  })
+
+  it('al pulsar una zona se abre su detalle', async () => {
+    simularApi(ESTADO_MUESTRA)
+    const user = userEvent.setup()
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.getByTestId('panel-zona')).toHaveTextContent(textos.mapa.sinSeleccion)
+
+    await user.click(circulos()[0])
+    expect(screen.getByRole('heading', { name: 'Callao' })).toBeInTheDocument()
+    expect(screen.getByTestId('panel-alerta')).toBeInTheDocument()
+  })
+
+  it('al cerrar el detalle vuelve la invitacion a elegir zona', async () => {
+    simularApi(ESTADO_MUESTRA)
+    const user = userEvent.setup()
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    await user.click(circulos()[0])
+    await user.click(screen.getByRole('button', { name: textos.mapa.cerrarPanel }))
+
+    expect(screen.getByTestId('panel-zona')).toHaveTextContent(textos.mapa.sinSeleccion)
+  })
+
+  it('elegir otra zona reemplaza el detalle', async () => {
+    simularApi(ESTADO_MUESTRA)
+    const user = userEvent.setup()
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    await user.click(circulos()[0])
+    await user.click(circulos()[4])
+
+    expect(screen.getByRole('heading', { name: 'Matarani' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Callao' })).not.toBeInTheDocument()
+  })
+
+  it('mantiene la tabla como alternativa accesible al mapa', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.getByTestId('tabla-estado')).toBeInTheDocument()
+  })
+
+  it('sin mediciones cargadas no se dibuja el mapa', async () => {
+    simularApi(ESTADO_VACIO)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('sin-datos')
+    expect(screen.queryByTestId('mapa-zonas')).not.toBeInTheDocument()
   })
 })

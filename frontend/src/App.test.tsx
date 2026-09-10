@@ -5,6 +5,8 @@ import App from './App'
 import { textos } from './i18n/textos'
 import { ESTADO_VACIO, USUARIO, renderConProveedores, respuesta, sesionDe } from './test-utils'
 
+vi.mock('react-leaflet', async () => await import('./test-mocks/react-leaflet'))
+
 /** Responde a cada endpoint que la aplicacion consulta al arrancar. */
 function apiSimulada(alIniciarSesion?: () => Response) {
   return vi.fn(async (url: string) => {

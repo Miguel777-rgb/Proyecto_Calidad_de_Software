@@ -5,8 +5,19 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+MIN_JWT_SECRET_BYTES = 32
+
+# Valores que vienen en .env.example y que nunca deben llegar a produccion.
+INSECURE_SECRETS = frozenset(
+    {
+        "inseguro-solo-para-desarrollo",
+        "cambia_este_secreto_por_uno_aleatorio_de_64_caracteres",
+    }
+)
+INSECURE_ADMIN_PASSWORDS = frozenset({"cambiar", "cambia_esta_clave_de_admin"})
 
 
 class Settings(BaseSettings):
@@ -54,6 +65,32 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _exige_secreto_fuerte_en_produccion(self) -> Settings:
+        """Impide desplegar con un secreto debil o con el de la plantilla.
+
+        Un JWT firmado con un secreto corto o conocido permite a cualquiera
+        emitir tokens de administrador. En desarrollo solo se advierte.
+        """
+        if self.env != "production":
+            return self
+        if len(self.jwt_secret.encode("utf-8")) < MIN_JWT_SECRET_BYTES:
+            raise ValueError(
+                f"OLA_JWT_SECRET debe tener al menos {MIN_JWT_SECRET_BYTES} bytes "
+                "en produccion. Genera uno con: openssl rand -hex 32"
+            )
+        if self.jwt_secret in INSECURE_SECRETS:
+            raise ValueError(
+                "OLA_JWT_SECRET conserva el valor de la plantilla. "
+                "Genera uno propio con: openssl rand -hex 32"
+            )
+        if self.admin_password in INSECURE_ADMIN_PASSWORDS:
+            raise ValueError(
+                "OLA_ADMIN_PASSWORD conserva el valor de la plantilla. "
+                "Define una contrasena propia antes de desplegar."
+            )
+        return self
 
     @property
     def is_production(self) -> bool:

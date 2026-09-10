@@ -73,3 +73,28 @@ eventos de auditoría: importaciones, detección de alertas y envíos de correo.
 Las pruebas de integración usan una base aparte llamada `ola_test`, que se crea sola en la
 primera ejecución. Nunca escriben en la base de desarrollo, así que los datos importados
 sobreviven a `pytest`.
+
+## Importación del dataset (RF-08)
+
+La importación es **manual**: la ejecuta un administrador desde la aplicación. No hay tarea
+programada; la SRS se actualizó en consecuencia (sección 5, versión 1.2).
+
+- El archivo se lee como `utf-8-sig`, porque IMARPE lo publica con marca de orden de bytes.
+- La carga es **parcial**: las filas válidas entran y las inválidas se rechazan indicando línea
+  y motivo. Descartar 125,000 filas correctas por unas pocas erróneas dejaría el sistema vacío.
+- Los laboratorios **nunca** se crean al importar. El catálogo lo carga una migración; una
+  errata en el archivo generaría una zona fantasma y el mapa dejaría de tener las 10 del RF-04.
+- Reimportar el archivo **actualiza** los valores que IMARPE haya corregido, sin duplicar
+  mediciones. El resumen distingue filas nuevas, corregidas y sin cambios.
+- Una fila con un decimal escrito con coma (`1,5`) se rechaza: al partirse en dos columnas
+  entraría con el valor `1` y corrompería el dato en silencio.
+
+Medición real con el dataset completo: **125,701 filas en unos 11 segundos**, muy por debajo
+del límite de 2 minutos que fija la SRS.
+
+## Datos de prueba
+
+`tests/fixtures/sample_atsm.csv` es un dataset reducido de 392 filas con casos de racha
+construidos a propósito (rachas al límite, huecos que rompen o no la racha, zonas sin datos
+recientes). Se regenera con `python tests/fixtures/generar_muestra.py`, cuyo encabezado
+documenta cada caso.

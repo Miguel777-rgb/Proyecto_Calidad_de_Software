@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.1 |
+| Versión | 1.2 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -156,7 +156,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 #### RF-08 — Importación y actualización del dataset ATSM
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** poder importar el CSV publicado por IMARPE de forma manual (carga por el administrador) o programada (tarea automática), validando el formato de las 3 columnas del dataset. |
+| Descripción | El sistema **deberá** permitir que un administrador cargue manualmente el CSV publicado por IMARPE desde la aplicación, validando el formato de las 3 columnas del dataset. La importación es parcial y tolerante: las filas válidas se registran y las inválidas se rechazan con su motivo. Reimportar el archivo actualiza los valores corregidos por IMARPE sin duplicar mediciones. |
 | Complejidad | Baja |
 
 ### 3.2 Requisitos de interfaces externas
@@ -232,6 +232,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 |---|---|---|---|---|---|
 | 1.0 | 2026-09-10 | — | Versión inicial del catálogo de requisitos, presentada para el Hito 1. | Línea base del documento. | Miguel Angel Flores Leon (PO) |
 | 1.1 | 2026-09-10 | — | Se incorpora esta sección de control de versiones. | El cierre de la v1.0 la exigía explícitamente y era necesaria antes de registrar cualquier cambio de alcance. | Miguel Angel Flores Leon (PO) |
+| 1.2 | 2026-09-10 | RF-08 | Se elimina la importación programada. El requisito queda limitado a la carga manual por el administrador. | El sistema depende de un dataset que IMARPE publica sin una frecuencia garantizada, por lo que una tarea automática añadiría un planificador y su infraestructura sin aportar valor demostrable dentro del alcance del curso. Se precisa además el comportamiento ante filas inválidas y reimportaciones, que la versión anterior no definía. | Miguel Angel Flores Leon (PO) |
 
 ---
 

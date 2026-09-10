@@ -85,7 +85,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Prototipo de presentación del proyecto.
 - [x] Andamiaje del monorepo, contenedores y arranque con Docker Compose.
 - [x] Registro, autenticación con JWT y control de acceso por rol.
-- [ ] Importación del CSV y validación de su formato.
+- [x] Importación del CSV, validación de su formato y catálogo de las 10 zonas.
 - [ ] Clasificación térmica y detección de tendencias sostenidas.
 - [ ] Mapa interactivo de las 10 zonas.
 - [ ] Gráficos históricos y comparación entre laboratorios.

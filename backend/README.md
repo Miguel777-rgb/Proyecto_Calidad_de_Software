@@ -123,3 +123,34 @@ documenta cada caso.
 
 Medición real sobre el dataset completo: **4,164 episodios desde 1970 en unos 3 segundos**, de
 los cuales 8 siguen vigentes.
+
+## Proyección de tendencia (RF-02)
+
+Se implementan **los dos modelos** que admite el requisito, no uno:
+
+- **Regresión lineal** por mínimos cuadrados sobre las últimas 30 mediciones. Usa la fecha real
+  como variable, no la posición, de modo que un hueco de una semana no cuente como un día.
+  Proyecta la **tendencia**: si la anomalía viene subiendo, la estimación sigue subiendo.
+- **Media móvil ponderada** sobre la misma ventana, con pesos lineales decrecientes (la
+  medición más nueva pesa 30, la más antigua 1). Proyecta el **nivel** reciente típico, así que
+  resiste mejor un día atípico.
+
+Mostrarlos juntos es lo informativo: ante una serie estable coinciden, y ante un cambio de
+tendencia la regresión se adelanta. Un caso real del dataset de prueba: PISCO lleva seis
+registros fríos tras semanas neutras; la regresión ya proyecta frío mientras la media ponderada
+todavía lee neutro. Esa discrepancia es una medida de incertidumbre, no un fallo.
+
+### Confianza
+
+Una zona sin datos recientes **se proyecta igualmente**, marcada con confianza baja. Se calcula
+a partir de la densidad de la ventana y la vigencia del último dato:
+
+| Confianza | Condición |
+|---|---|
+| Baja | El último dato supera la ventana de vigencia, o hay menos del 40% de la ventana |
+| Media | Entre el 40% y el 70% de la ventana |
+| Alta | Al menos el 70% de la ventana, con el dato al día |
+
+Las fechas proyectadas parten del **último dato de la propia zona**, no de la fecha de
+referencia del sistema. Para MATARANI eso significa proyectar sobre enero de 2017, lo que
+delata por sí solo que la serie está vieja: es la señal más clara posible.

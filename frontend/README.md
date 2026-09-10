@@ -114,3 +114,25 @@ requisito o a un rasgo real del dataset.
 Como con Leaflet, Recharts no puede dibujarse en jsdom porque mide un contenedor de tamaño
 cero. Las pruebas unitarias usan el doble de `src/test-mocks/GraficoSerie.tsx`, la lógica pura
 se prueba directamente en `datos.test.ts` y **el gráfico real se valida en las E2E**.
+
+## Proyección (RF-02)
+
+La SRS exige marcar la proyección **explícitamente como estimación aproximada**. Se usan tres
+señales simultáneas, a propósito redundantes, porque confundir una estimación con una certeza
+es el riesgo real del requisito:
+
+1. Aviso en texto sobre el gráfico, que además aclara que no predice El Niño ni La Niña.
+2. Trazo **punteado** en las dos líneas estimadas, frente a la línea continua de lo medido.
+3. **Fondo sombreado** del tramo proyectado, rotulado «Tramo estimado».
+
+El gráfico muestra exactamente las mediciones con las que se ajustó el modelo, ni más ni menos,
+para que se vea de dónde sale la estimación. El último valor medido se repite como primer punto
+de ambas estimaciones: sin eso las líneas punteadas empezarían flotando, desconectadas de la
+serie de la que salen.
+
+### Peticiones que llegan tarde
+
+Las páginas que recargan datos al cambiar un filtro (histórico, comparación y proyección) usan
+una guarda de cancelación en su efecto. Sin ella, una petición anterior que llegue tarde
+sobrescribe el resultado de la actual y la pantalla muestra la zona equivocada. Lo detectó una
+prueba E2E al cambiar de zona.

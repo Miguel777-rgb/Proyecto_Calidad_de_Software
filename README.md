@@ -89,7 +89,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Clasificación térmica y detección de tendencias sostenidas.
 - [x] Mapa interactivo de las 10 zonas.
 - [x] Gráficos históricos y comparación entre laboratorios.
-- [ ] Proyección de tendencia a corto plazo.
+- [x] Proyección de tendencia a corto plazo.
 - [ ] Suscripciones y notificaciones por correo.
 - [ ] Despliegue en VPS con Dokploy.
 

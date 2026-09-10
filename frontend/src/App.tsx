@@ -3,7 +3,9 @@ import { RutaProtegida } from './components/RutaProtegida'
 import { useAuth } from './auth/useAuth'
 import { textos } from './i18n/textos'
 import Admin from './pages/Admin'
+import Comparacion from './pages/Comparacion'
 import Entrar from './pages/Entrar'
+import Historico from './pages/Historico'
 import Inicio from './pages/Inicio'
 import Registro from './pages/Registro'
 
@@ -12,6 +14,8 @@ function Navegacion() {
   return (
     <nav>
       <Link to="/">{textos.navegacion.inicio}</Link>
+      <Link to="/historico">{textos.navegacion.historico}</Link>
+      <Link to="/comparar">{textos.navegacion.comparacion}</Link>
       {usuario === null ? (
         <>
           <Link to="/entrar">{textos.navegacion.entrar}</Link>
@@ -60,6 +64,8 @@ export default function App() {
               </RutaProtegida>
             }
           />
+          <Route path="/historico" element={<Historico />} />
+          <Route path="/comparar" element={<Comparacion />} />
           <Route path="/entrar" element={<Entrar />} />
           <Route path="/registro" element={<Registro />} />
         </Routes>

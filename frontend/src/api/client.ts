@@ -112,3 +112,71 @@ export const iniciarSesion = (datos: { email: string; password: string }) =>
   apiFetch<Sesion>('/auth/login', { method: 'POST', body: JSON.stringify(datos) })
 
 export const obtenerPerfil = () => apiFetch<Usuario>('/auth/me')
+
+export interface Laboratorio {
+  id: number
+  code: string
+  name: string
+  latitude: string
+  longitude: string
+  is_active: boolean
+}
+
+export type EstadoImportacion = 'running' | 'completed' | 'failed'
+
+export interface ErrorImportacion {
+  line: number
+  reason: string
+  content: string
+}
+
+export interface Importacion {
+  id: number
+  filename: string
+  byte_size: number
+  sha256: string
+  status: EstadoImportacion
+  rows_total: number
+  rows_inserted: number
+  rows_updated: number
+  rows_unchanged: number
+  rows_rejected: number
+  error_sample: ErrorImportacion[] | null
+  error_message: string | null
+  duration_ms: number | null
+  started_at: string
+  finished_at: string | null
+  uploaded_by_email: string | null
+}
+
+export const listarLaboratorios = () => apiFetch<Laboratorio[]>('/laboratories')
+
+export const listarImportaciones = () => apiFetch<Importacion[]>('/imports')
+
+/** Envia el CSV. No fija Content-Type: el navegador debe generar el limite
+ *  del formulario multipart por su cuenta. */
+export async function importarCsv(archivo: File): Promise<Importacion> {
+  const cuerpo = new FormData()
+  cuerpo.append('file', archivo)
+  const token = tokenStorage.get()
+
+  const respuesta = await fetch(`${BASE_URL}/imports`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: cuerpo,
+  })
+
+  let datos: unknown = null
+  try {
+    datos = await respuesta.json()
+  } catch {
+    // Respuesta sin cuerpo JSON.
+  }
+  if (!respuesta.ok) {
+    throw new ApiError(
+      extraerMensaje(datos, `Error ${respuesta.status} al importar el archivo`),
+      respuesta.status,
+    )
+  }
+  return datos as Importacion
+}

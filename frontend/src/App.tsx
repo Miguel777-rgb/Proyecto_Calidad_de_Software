@@ -2,6 +2,7 @@ import { Link, Route, Routes } from 'react-router-dom'
 import { RutaProtegida } from './components/RutaProtegida'
 import { useAuth } from './auth/useAuth'
 import { textos } from './i18n/textos'
+import Admin from './pages/Admin'
 import Entrar from './pages/Entrar'
 import Inicio from './pages/Inicio'
 import Registro from './pages/Registro'
@@ -17,9 +18,14 @@ function Navegacion() {
           <Link to="/registro">{textos.navegacion.registrarse}</Link>
         </>
       ) : (
-        <button type="button" className="enlace" onClick={salir}>
-          {textos.navegacion.salir}
-        </button>
+        <>
+          {usuario.role === 'admin' && (
+            <Link to="/admin">{textos.navegacion.administracion}</Link>
+          )}
+          <button type="button" className="enlace" onClick={salir}>
+            {textos.navegacion.salir}
+          </button>
+        </>
       )}
     </nav>
   )
@@ -43,6 +49,14 @@ export default function App() {
             element={
               <RutaProtegida>
                 <Inicio />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RutaProtegida soloAdmin>
+                <Admin />
               </RutaProtegida>
             }
           />

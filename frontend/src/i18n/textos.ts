@@ -19,6 +19,7 @@ export const textos = {
     entrar: 'Iniciar sesión',
     registrarse: 'Crear cuenta',
     salir: 'Cerrar sesión',
+    administracion: 'Administración',
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -43,11 +44,45 @@ export const textos = {
     proximamente:
       'El mapa de zonas, los históricos y las alertas se habilitarán en las siguientes etapas.',
   },
+  admin: {
+    titulo: 'Administración',
+    importar: 'Importar dataset de IMARPE',
+    ayudaArchivo:
+      'Selecciona el CSV de anomalía térmica publicado por IMARPE. Debe tener las columnas FECHA_MEDICION, LABORATORIO_COSTERO y ANOMALIA_TEMPERATURA.',
+    seleccionar: 'Archivo CSV',
+    boton: 'Importar',
+    importando: 'Importando… esto puede tardar unos segundos',
+    historial: 'Importaciones anteriores',
+    sinImportaciones: 'Todavía no se ha importado ningún archivo.',
+    resultado: 'Resultado de la importación',
+    columnas: {
+      archivo: 'Archivo',
+      fecha: 'Fecha',
+      estado: 'Estado',
+      total: 'Filas leídas',
+      insertadas: 'Nuevas',
+      actualizadas: 'Corregidas',
+      sinCambios: 'Sin cambios',
+      rechazadas: 'Rechazadas',
+      duracion: 'Duración',
+      autor: 'Importado por',
+    },
+    estados: {
+      completed: 'Completada',
+      failed: 'Fallida',
+      running: 'En curso',
+    },
+    erroresDetectados: 'Filas rechazadas',
+    linea: 'Línea',
+    motivo: 'Motivo',
+    verDetalle: 'Ver filas rechazadas',
+  },
   errores: {
     soloAdmin: 'Esta sección requiere permisos de administrador.',
     contrasenaCorta: 'La contraseña debe tener al menos 8 caracteres.',
     correoRequerido: 'Indica tu correo electrónico.',
     inesperado: 'Ocurrió un error inesperado. Inténtalo de nuevo.',
+    archivoRequerido: 'Selecciona un archivo CSV antes de importar.',
   },
   estado: {
     calido: 'Cálido',

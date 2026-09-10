@@ -6,6 +6,7 @@ import Admin from './pages/Admin'
 import Comparacion from './pages/Comparacion'
 import Entrar from './pages/Entrar'
 import Historico from './pages/Historico'
+import Proyeccion from './pages/Proyeccion'
 import Inicio from './pages/Inicio'
 import Registro from './pages/Registro'
 
@@ -16,6 +17,7 @@ function Navegacion() {
       <Link to="/">{textos.navegacion.inicio}</Link>
       <Link to="/historico">{textos.navegacion.historico}</Link>
       <Link to="/comparar">{textos.navegacion.comparacion}</Link>
+      <Link to="/proyeccion">{textos.navegacion.proyeccion}</Link>
       {usuario === null ? (
         <>
           <Link to="/entrar">{textos.navegacion.entrar}</Link>
@@ -66,6 +68,7 @@ export default function App() {
           />
           <Route path="/historico" element={<Historico />} />
           <Route path="/comparar" element={<Comparacion />} />
+          <Route path="/proyeccion" element={<Proyeccion />} />
           <Route path="/entrar" element={<Entrar />} />
           <Route path="/registro" element={<Registro />} />
         </Routes>

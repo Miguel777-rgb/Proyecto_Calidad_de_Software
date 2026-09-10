@@ -40,9 +40,7 @@ class TestDosMetodos:
         datos = proyeccion(client, "CALLAO")
         assert datos["linear"]["final_state"] == "warm"
 
-    def test_un_enfriamiento_reciente_lo_detecta_antes_la_regresion(
-        self, client, datos_de_muestra
-    ):
+    def test_un_enfriamiento_reciente_lo_detecta_antes_la_regresion(self, client, datos_de_muestra):
         """Este contraste es la razon de mostrar los dos metodos.
 
         PISCO lleva seis registros frios tras semanas neutras. La regresion ve
@@ -117,9 +115,7 @@ class TestZonaSinDatosRecientes:
 
 
 class TestContexto:
-    def test_devuelve_el_historico_reciente_junto_a_la_estimacion(
-        self, client, datos_de_muestra
-    ):
+    def test_devuelve_el_historico_reciente_junto_a_la_estimacion(self, client, datos_de_muestra):
         # El grafico necesita mostrar de donde sale la proyeccion.
         datos = proyeccion(client, "CALLAO")
         assert len(datos["history"]) > 0
@@ -135,9 +131,7 @@ class TestContexto:
 
 class TestErrores:
     def test_una_zona_inexistente_responde_404(self, client, datos_de_muestra):
-        assert (
-            client.get("/api/laboratories/HUANCHACO/projection").status_code == 404
-        )
+        assert client.get("/api/laboratories/HUANCHACO/projection").status_code == 404
 
     def test_la_consulta_es_publica(self, client, datos_de_muestra):
         assert client.get("/api/laboratories/CALLAO/projection").status_code == 200

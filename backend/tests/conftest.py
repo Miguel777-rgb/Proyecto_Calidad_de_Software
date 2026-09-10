@@ -9,9 +9,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from ola.api.deps import get_session
+from ola.api.deps import get_mailer, get_session
 from ola.config import Settings, get_settings
 from ola.db.models import Base, Laboratory, User, UserRole
+from ola.mail import RecordingMailer
 from ola.main import create_app
 from ola.security import create_access_token, hash_password
 from ola.seeds.laboratories import LABORATORIES
@@ -92,7 +93,13 @@ def db_session(engine) -> Iterator[Session]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> Iterator[TestClient]:
+def mailer() -> RecordingMailer:
+    """Servicio de correo que guarda los mensajes en lugar de enviarlos."""
+    return RecordingMailer()
+
+
+@pytest.fixture
+def client(db_session: Session, mailer: RecordingMailer) -> Iterator[TestClient]:
     """Cliente HTTP cuya API usa la base de pruebas.
 
     Se instancia TestClient sin `with` a proposito: asi no se ejecuta el
@@ -101,6 +108,7 @@ def client(db_session: Session) -> Iterator[TestClient]:
     """
     app = create_app()
     app.dependency_overrides[get_session] = lambda: db_session
+    app.dependency_overrides[get_mailer] = lambda: mailer
     yield TestClient(app)
     app.dependency_overrides.clear()
 

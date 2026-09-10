@@ -41,6 +41,9 @@ pnpm-debug.log*
 .pnpm-store/
 frontend/dist/
 frontend/build/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/
 
 # IDE y editores
 .vscode/*

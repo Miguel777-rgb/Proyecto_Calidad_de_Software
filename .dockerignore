@@ -1,1 +1,15 @@
-# Var Boza;
+.git/
+.env
+.env.*
+!.env.example
+**/node_modules/
+**/__pycache__/
+**/.venv/
+**/dist/
+**/build/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/htmlcov/
+**/test-results/
+**/playwright-report/

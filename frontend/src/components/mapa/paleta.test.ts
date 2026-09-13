@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORES, limitesDe, radioDe } from './paleta'
+import { COLORES, contrasteEntre, limitesDe, radioDe } from './paleta'
 import type { EstadoZona } from '../../api/client'
 
 const zona = (lat: string, lon: string, conAlerta = false): EstadoZona =>
@@ -24,6 +24,34 @@ describe('COLORES', () => {
   it('usa colores distintos para cada estado', () => {
     const valores = Object.values(COLORES)
     expect(new Set(valores).size).toBe(valores.length)
+  })
+})
+
+describe('contrasteEntre', () => {
+  it('negro sobre blanco da el maximo de 21:1', () => {
+    expect(contrasteEntre('#000000', '#ffffff')).toBeCloseTo(21, 5)
+  })
+
+  it('un color contra si mismo da 1:1', () => {
+    expect(contrasteEntre('#2a6f97', '#2a6f97')).toBeCloseTo(1, 5)
+  })
+
+  it('no depende del orden de los colores', () => {
+    expect(contrasteEntre('#0a2530', '#f3f7f5')).toBeCloseTo(contrasteEntre('#f3f7f5', '#0a2530'), 10)
+  })
+
+  it('coincide con el valor de referencia de WCAG para #767676 sobre blanco', () => {
+    // #767676 es el gris mas claro que cumple 4.5:1 sobre blanco.
+    expect(contrasteEntre('#767676', '#ffffff')).toBeCloseTo(4.54, 2)
+  })
+
+  it('acepta mayusculas', () => {
+    expect(contrasteEntre('#FFFFFF', '#000000')).toBeCloseTo(21, 5)
+  })
+
+  it('rechaza un color que no tenga la forma #rrggbb', () => {
+    expect(() => contrasteEntre('red', '#ffffff')).toThrow()
+    expect(() => contrasteEntre('#fff', '#ffffff')).toThrow()
   })
 })
 

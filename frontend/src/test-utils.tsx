@@ -1,4 +1,5 @@
 import { render, type RenderOptions } from '@testing-library/react'
+import axe from 'axe-core'
 import { vi } from 'vitest'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
@@ -31,7 +32,21 @@ export const sesionDe = (user: Usuario): Sesion => ({
   user,
 })
 
-/** Respuesta simulada de fetch. */
+/**
+ * Violaciones de accesibilidad que axe encuentra en un fragmento renderizado,
+ * como lista de textos legibles para que un fallo diga que regla se rompio.
+ *
+ * Se desactivan dos reglas que jsdom no puede evaluar con sentido: el
+ * contraste de color (jsdom no calcula estilos reales; lo comprueba Playwright)
+ * y `region` (un componente suelto no vive dentro de un landmark).
+ */
+export async function violacionesAxe(contenedor: Element): Promise<string[]> {
+  const resultado = await axe.run(contenedor, {
+    rules: { 'color-contrast': { enabled: false }, region: { enabled: false } },
+  })
+  return resultado.violations.map((v) => `${v.id}: ${v.help}`)
+}
+
 /** Estado del sistema sin mediciones cargadas. */
 export const ESTADO_VACIO = { reference_date: null, zones: [] }
 

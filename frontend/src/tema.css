@@ -1,0 +1,38 @@
+/*
+ * Sistema visual del rediseno de OLA.
+ *
+ * Tailwind se carga SIN su reset global (preflight): las pantallas que no se
+ * redisenan dependen de estilos.css y el reset las descuadraria.
+ *
+ * Las utilidades se marcan !important. estilos.css tiene reglas por elemento
+ * (h1, nav a, form, label, table, button[type=submit]...) y la hoja de Leaflet
+ * trae las suyas; sin la marca, esas reglas pisarian a las utilidades en los
+ * componentes nuevos segun su especificidad. Consecuencia: en un mismo
+ * elemento no se mezcla una utilidad con un `style` en linea para la misma
+ * propiedad.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) important;
+
+@theme {
+  /* Solo existen los colores de OLA: sin la paleta por defecto de Tailwind,
+     un color fuera del sistema no compila. Los colores de estado termico NO
+     viven aqui: su unica fuente es components/mapa/paleta.ts. */
+  --color-*: initial;
+
+  /* Identidad de docs/presentacion-ola.html. La adaptacion a tema claro
+     (textos, bordes, superficies) se fija con la maqueta de la Fase 1. */
+  --color-abisal: #0a2530;
+  --color-abisal-2: #0f3849;
+  --color-abisal-3: #133f52;
+  --color-espuma: #f3f7f5;
+  --color-espuma-tenue: #a9c1c4;
+  --color-dorado: #e8b84b;
+  --color-blanco: #ffffff;
+
+  --font-*: initial;
+  --font-titulo: 'Space Grotesk Variable', system-ui, sans-serif;
+  --font-cuerpo: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-datos: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+}

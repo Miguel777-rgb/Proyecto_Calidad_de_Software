@@ -14,6 +14,28 @@ export const COLORES: Record<EstadoTermico, string> = {
   no_data: '#b9c2c9',
 }
 
+/** Luminancia relativa de un color #rrggbb, segun la formula de WCAG 2.2. */
+function luminancia(hex: string): number {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) {
+    throw new Error(`Color con formato invalido: ${hex}. Se espera #rrggbb.`)
+  }
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const canal = parseInt(hex.slice(i, i + 2), 16) / 255
+    return canal <= 0.03928 ? canal / 12.92 : ((canal + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/**
+ * Razon de contraste entre dos colores, de 1 a 21. WCAG pide al menos 3:1
+ * para elementos graficos (los circulos del mapa, los puntos de la leyenda)
+ * y 4.5:1 para texto normal.
+ */
+export function contrasteEntre(a: string, b: string): number {
+  const [clara, oscura] = [luminancia(a), luminancia(b)].sort((x, y) => y - x)
+  return (clara + 0.05) / (oscura + 0.05)
+}
+
 /** Radio del circulo en pixeles. Las zonas en alerta se dibujan mas grandes
  *  para que destaquen sin depender solo del color. */
 export function radioDe(zona: EstadoZona): number {

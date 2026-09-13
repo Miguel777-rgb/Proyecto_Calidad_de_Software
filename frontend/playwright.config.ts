@@ -15,10 +15,21 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [['list']],
+  expect: {
+    // Tolerancia minima: las referencias se generan en el mismo contenedor
+    // donde se comparan, asi que solo absorbe el suavizado de bordes.
+    toHaveScreenshot: { maxDiffPixelRatio: 0.005, animations: 'disabled', caret: 'hide' },
+  },
   use: {
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Celular emulado: pantalla de 412 px, tactil y con agente movil. Solo
+    // ejecuta las pruebas etiquetadas @movil, que son las que dependen del
+    // tamano de pantalla; el resto ya se cubre en escritorio.
+    { name: 'movil', use: { ...devices['Pixel 7'] }, grep: /@movil/ },
+  ],
 })

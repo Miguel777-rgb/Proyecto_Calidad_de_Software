@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PanelZona } from './PanelZona'
 import type { EstadoZona } from '../../api/client'
 import { textos } from '../../i18n/textos'
-import { ESTADO_MUESTRA } from '../../test-utils'
+import { ESTADO_MUESTRA, violacionesAxe } from '../../test-utils'
 
 const buscar = (code: string): EstadoZona =>
   ESTADO_MUESTRA.zones.find((z) => z.laboratory.code === code)!
@@ -58,5 +58,18 @@ describe('PanelZona', () => {
 
     await userEvent.setup().click(screen.getByRole('button', { name: textos.mapa.cerrarPanel }))
     expect(alCerrar).toHaveBeenCalledOnce()
+  })
+
+  it.each(['CALLAO', 'MATARANI'])(
+    'no tiene violaciones de accesibilidad con la zona %s',
+    async (code) => {
+      const { container } = render(<PanelZona zona={buscar(code)} alCerrar={vi.fn()} />)
+      expect(await violacionesAxe(container)).toEqual([])
+    },
+  )
+
+  it('no tiene violaciones de accesibilidad sin zona elegida', async () => {
+    const { container } = render(<PanelZona zona={null} alCerrar={vi.fn()} />)
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })

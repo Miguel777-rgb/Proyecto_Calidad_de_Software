@@ -32,7 +32,7 @@ const PANTALLAS: Pantalla[] = [
       await fijarEstado(page)
     },
     lista: async (page) => {
-      await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(10)
+      await expect(page.locator('.leaflet-marker-pane .marcador-zona')).toHaveCount(10)
       await page.getByTestId('tabla-estado').waitFor()
     },
   },
@@ -102,13 +102,33 @@ test.describe('Regresión visual — Inicio en celular', { tag: '@movil' }, () =
     await page.clock.setFixedTime(HOY_FIJO)
     await fijarEstado(page)
     await page.goto('/')
-    await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(10)
+    await expect(page.locator('.leaflet-marker-pane .marcador-zona')).toHaveCount(10)
     await page.getByText('Ver todos los datos').click()
 
     await expect(page).toHaveScreenshot('inicio-celular.png', {
       fullPage: true,
       stylePath: OCULTAR_MARCO,
     })
+  })
+})
+
+// Detalle de una zona en alerta: hoja inferior en celular, panel en escritorio.
+test.describe('Regresión visual — detalle de zona', { tag: '@movil' }, () => {
+  test('detalle de una zona en alerta', async ({ page, isMobile }) => {
+    await bloquearMosaicos(page)
+    await page.clock.setFixedTime(HOY_FIJO)
+    await fijarEstado(page)
+    await page.goto('/?zona=CALLAO')
+    await expect(page.locator('.leaflet-marker-pane .marcador-zona')).toHaveCount(10)
+
+    if (isMobile) {
+      await expect(page.getByRole('dialog', { name: 'Detalle de Callao' })).toBeVisible()
+      await expect(page).toHaveScreenshot('detalle-hoja.png')
+    } else {
+      const panel = page.getByTestId('panel-zona')
+      await expect(panel.getByRole('heading', { name: 'Callao' })).toBeVisible()
+      await expect(panel).toHaveScreenshot('detalle-panel.png')
+    }
   })
 })
 

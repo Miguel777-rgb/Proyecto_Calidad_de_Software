@@ -57,6 +57,26 @@
   --color-atencion-borde: #e2c378;
   --color-alerta: #b4531f;
 
+  /* Entrada de la hoja inferior y su fondo (Fase 3). */
+  --animate-subir: subir 220ms ease-out;
+  --animate-aparecer: aparecer 220ms ease-out;
+  @keyframes subir {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   /* Brillo del esqueleto de carga. */
   --animate-brillo: brillo 1.4s ease-in-out infinite;
   @keyframes brillo {

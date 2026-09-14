@@ -1,11 +1,14 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useId, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { obtenerConfiguracion, obtenerEstado, type EstadoSistema } from '../api/client'
 import { TablaEstado } from '../components/TablaEstado'
 import { ErrorCarga, EsqueletoInicio, SinDatosCargados } from '../components/inicio/EstadosCarga'
 import { ResumenEstado } from '../components/inicio/ResumenEstado'
 import { TarjetasZonas } from '../components/inicio/TarjetasZonas'
 import { ordenarZonas } from '../components/inicio/datos'
+import { DetalleZona } from '../components/mapa/DetalleZona'
+import { HojaInferior } from '../components/mapa/HojaInferior'
 import { MapaZonas } from '../components/mapa/MapaZonas'
 import { PanelZona } from '../components/mapa/PanelZona'
 import { ESCRITORIO, useMediaQuery } from '../hooks/useMediaQuery'
@@ -35,9 +38,13 @@ function Titulo() {
 export default function Inicio() {
   const [carga, setCarga] = useState<Carga>({ fase: 'cargando' })
   const [intento, setIntento] = useState(0)
-  const [seleccionada, setSeleccionada] = useState<string | null>(null)
+  const [parametros, setParametros] = useSearchParams()
   const escritorio = useMediaQuery(ESCRITORIO)
   const idTabla = useId()
+
+  // La zona elegida vive en la direccion (/?zona=CALLAO): sobrevive a una
+  // recarga y permite volver a ella despues de iniciar sesion.
+  const seleccionada = parametros.get('zona')
 
   useEffect(() => {
     let vigente = true
@@ -94,25 +101,19 @@ export default function Inicio() {
 
   const zonaActiva = zonas.find((z) => z.laboratory.code === seleccionada) ?? null
 
-  // Desde la lista, tocar de nuevo la zona elegida la deselecciona. En celular
-  // el detalle queda arriba, junto al mapa: se lleva a la vista.
-  function elegirDesdeLista(code: string) {
-    const nueva = seleccionada === code ? null : code
-    setSeleccionada(nueva)
-    if (nueva === null || escritorio) return
-    const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
-    document
-      .querySelector('[data-testid="panel-zona"]')
-      ?.scrollIntoView?.({ behavior: reducido ? 'auto' : 'smooth', block: 'center' })
+  function seleccionar(code: string | null) {
+    setParametros(code === null ? {} : { zona: code }, { replace: true })
   }
 
+  // Desde la lista, tocar de nuevo la zona elegida la deselecciona.
+  function alternar(code: string) {
+    seleccionar(seleccionada === code ? null : code)
+  }
+
+  const cerrar = () => seleccionar(null)
+
   const tabla = (
-    <TablaEstado
-      zonas={zonas}
-      ventana={ventana}
-      seleccionada={seleccionada}
-      alSeleccionar={elegirDesdeLista}
-    />
+    <TablaEstado zonas={zonas} ventana={ventana} seleccionada={seleccionada} alSeleccionar={alternar} />
   )
 
   return (
@@ -125,9 +126,22 @@ export default function Inicio() {
         vigenciaDias={vigencia}
       />
 
-      <div className="mapa-y-panel my-0">
-        <MapaZonas zonas={estado.zones} seleccionada={seleccionada} alSeleccionar={setSeleccionada} />
-        <PanelZona zona={zonaActiva} alCerrar={() => setSeleccionada(null)} />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,1fr)] lg:items-start lg:gap-4">
+        <MapaZonas
+          zonas={estado.zones}
+          seleccionada={seleccionada}
+          alSeleccionar={seleccionar}
+          conEtiquetas={escritorio}
+        />
+        {escritorio && (
+          <PanelZona
+            zona={zonaActiva}
+            zonas={zonas}
+            ventana={ventana}
+            alSeleccionar={seleccionar}
+            alCerrar={cerrar}
+          />
+        )}
       </div>
       <p className="tenue m-0">{textos.mapa.atribucionMapa}</p>
 
@@ -142,7 +156,7 @@ export default function Inicio() {
         </section>
       ) : (
         <>
-          <TarjetasZonas zonas={zonas} seleccionada={seleccionada} alSeleccionar={elegirDesdeLista} />
+          <TarjetasZonas zonas={zonas} seleccionada={seleccionada} alSeleccionar={alternar} />
           <details className="group m-0 rounded-[14px] border border-borde bg-blanco">
             <summary className="flex min-h-[50px] cursor-pointer list-none items-center justify-between gap-2.5 rounded-[14px] px-4 font-semibold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-marea [&::-webkit-details-marker]:hidden">
               {textos.estado.verTodosLosDatos}
@@ -157,6 +171,18 @@ export default function Inicio() {
       )}
 
       {ventana !== null && <p className="tenue m-0">{textos.estado.explicacionPromedio(ventana)}</p>}
+
+      {!escritorio && (
+        <HojaInferior
+          abierta={zonaActiva !== null}
+          etiqueta={zonaActiva === null ? '' : textos.mapa.detalleDe(zonaActiva.laboratory.name)}
+          alCerrar={cerrar}
+        >
+          {zonaActiva !== null && (
+            <DetalleZona zona={zonaActiva} ventana={ventana} alCerrar={cerrar} />
+          )}
+        </HojaInferior>
+      )}
     </section>
   )
 }

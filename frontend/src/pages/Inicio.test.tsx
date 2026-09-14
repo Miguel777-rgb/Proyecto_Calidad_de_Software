@@ -51,6 +51,8 @@ const CON_ALERTA_EN_PISCO: EstadoSistema = {
   ),
 }
 
+const hoja = (zona: string) => screen.findByRole('dialog', { name: textos.mapa.detalleDe(zona) })
+
 afterEach(() => {
   vi.useRealTimers()
 })
@@ -135,12 +137,13 @@ describe('Inicio — carga, errores y ausencia de datos', () => {
     expect(screen.queryByTestId('tabla-estado')).not.toBeInTheDocument()
   })
 
-  it('sin datos no muestra la fecha de referencia', async () => {
+  it('sin datos no muestra la fecha de referencia ni el mapa', async () => {
     simularApi(ESTADO_VACIO)
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('sin-datos')
     expect(screen.queryByTestId('fecha-referencia')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('mapa-zonas')).not.toBeInTheDocument()
   })
 })
 
@@ -221,18 +224,41 @@ describe('Inicio — celular', () => {
     expect(within(desplegable!).getByText(textos.estado.verTodosLosDatos)).toBeInTheDocument()
   })
 
-  it('tocar una tarjeta abre el detalle de esa zona y tocarla otra vez lo cierra', async () => {
+  it('no hay panel lateral: el detalle se abre en la hoja inferior', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.queryByTestId('panel-zona')).not.toBeInTheDocument()
+  })
+
+  it('tocar una tarjeta abre el detalle en la hoja y tocarla otra vez lo cierra', async () => {
     simularApi(ESTADO_MUESTRA)
     const user = userEvent.setup()
     renderConProveedores(<Inicio />)
 
     const tarjeta = await screen.findByTestId('tarjeta-HUACHO')
     await user.click(tarjeta)
-    expect(within(screen.getByTestId('panel-zona')).getByRole('heading', { name: 'Huacho' })).toBeInTheDocument()
+    expect(within(await hoja('Huacho')).getByRole('heading', { name: 'Huacho' })).toBeInTheDocument()
     expect(tarjeta).toHaveAttribute('aria-pressed', 'true')
 
     await user.click(tarjeta)
-    expect(screen.getByTestId('panel-zona')).toHaveTextContent(textos.mapa.sinSeleccion)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('la zona indicada en la direccion se abre al cargar', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />, { ruta: '/?zona=PISCO' })
+
+    expect(within(await hoja('Pisco')).getByRole('heading', { name: 'Pisco' })).toBeInTheDocument()
+  })
+
+  it('una zona desconocida en la direccion no abre nada', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />, { ruta: '/?zona=NO-EXISTE' })
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
 
@@ -248,7 +274,21 @@ describe('Inicio — escritorio', () => {
     expect(screen.queryByTestId('tarjetas-zonas')).not.toBeInTheDocument()
   })
 
-  it('elegir una zona en la tabla abre su detalle', async () => {
+  it('el panel lateral invita a elegir y da acceso a las zonas en alerta', async () => {
+    simularEscritorio()
+    simularApi(ESTADO_MUESTRA)
+    const user = userEvent.setup()
+    renderConProveedores(<Inicio />)
+
+    const panel = await screen.findByTestId('panel-zona')
+    expect(panel).toHaveTextContent(textos.mapa.sinSeleccion)
+
+    await user.click(within(screen.getByTestId('accesos-alerta')).getByRole('button', { name: 'Callao' }))
+    expect(within(screen.getByTestId('panel-zona')).getByRole('heading', { name: 'Callao' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('elegir una zona en la tabla abre su detalle en el panel', async () => {
     simularEscritorio()
     simularApi(ESTADO_MUESTRA)
     const user = userEvent.setup()
@@ -263,46 +303,68 @@ describe('Inicio — escritorio', () => {
       ).toBeInTheDocument(),
     )
   })
+
+  it('los marcadores llevan el nombre de la zona visible', async () => {
+    simularEscritorio()
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.getAllByTestId('mapa-etiqueta').map((e) => e.textContent)).toEqual(
+      ESTADO_MUESTRA.zones.map((z) => z.laboratory.name),
+    )
+  })
 })
 
 describe('Inicio — mapa (RF-04)', () => {
-  const circulos = () => screen.getAllByTestId('mapa-circulo')
+  const marcadores = () => screen.getAllByTestId('mapa-marcador')
 
-  it('dibuja un circulo por cada zona', async () => {
+  it('dibuja un marcador por cada zona', async () => {
     simularApi(ESTADO_MUESTRA)
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    expect(circulos()).toHaveLength(ESTADO_MUESTRA.zones.length)
+    expect(marcadores()).toHaveLength(ESTADO_MUESTRA.zones.length)
   })
 
-  it('colorea cada circulo segun su estado', async () => {
+  it('pinta cada marcador con el color de su estado', async () => {
     simularApi(ESTADO_MUESTRA)
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    const colores = circulos().map((c) => c.getAttribute('data-color'))
-    expect(colores).toContain(COLORES.warm)
-    expect(colores).toContain(COLORES.cold)
-    expect(colores).toContain(COLORES.no_data)
+    const contenido = marcadores().map((m) => m.getAttribute('data-html')).join('')
+    expect(contenido).toContain(COLORES.warm)
+    expect(contenido).toContain(COLORES.cold)
+    expect(contenido).toContain(COLORES.no_data)
   })
 
-  it('agranda las zonas en alerta', async () => {
+  it('destaca solo las zonas en alerta', async () => {
     simularApi(ESTADO_MUESTRA)
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    const radios = circulos().map((c) => Number(c.getAttribute('data-radius')))
+    const enAlerta = marcadores().filter((m) =>
+      m.getAttribute('data-html')?.includes('data-alerta="true"'),
+    )
     // CALLAO esta en alerta; el resto no.
-    expect(Math.max(...radios)).toBeGreaterThan(Math.min(...radios))
+    expect(enAlerta).toHaveLength(1)
   })
 
-  it('muestra la atribucion obligatoria de OpenStreetMap', async () => {
+  it('en celular no muestra los nombres fijos en el mapa', async () => {
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    await screen.findByTestId('mapa-zonas')
+    expect(screen.queryByTestId('mapa-etiqueta')).not.toBeInTheDocument()
+  })
+
+  it('atribuye el mapa base a OpenStreetMap, como exige su licencia', async () => {
     simularApi(ESTADO_MUESTRA)
     renderConProveedores(<Inicio />)
 
     const mosaicos = await screen.findByTestId('mapa-mosaicos')
     expect(mosaicos.getAttribute('data-attribution')).toContain('OpenStreetMap')
+    expect(screen.getByText(textos.mapa.atribucionMapa)).toBeInTheDocument()
   })
 
   it('al pulsar una zona se abre su detalle', async () => {
@@ -311,37 +373,33 @@ describe('Inicio — mapa (RF-04)', () => {
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    expect(screen.getByTestId('panel-zona')).toHaveTextContent(textos.mapa.sinSeleccion)
+    await user.click(marcadores()[0])
 
-    await user.click(circulos()[0])
-    expect(within(screen.getByTestId('panel-zona')).getByRole('heading', { name: 'Callao' })).toBeInTheDocument()
-    expect(screen.getByTestId('panel-alerta')).toBeInTheDocument()
+    const dialogo = await hoja('Callao')
+    expect(within(dialogo).getByTestId('panel-alerta')).toBeInTheDocument()
   })
 
-  it('al cerrar el detalle vuelve la invitacion a elegir zona', async () => {
+  it('al cerrar el detalle desaparece la hoja', async () => {
     simularApi(ESTADO_MUESTRA)
     const user = userEvent.setup()
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    await user.click(circulos()[0])
-    await user.click(screen.getByRole('button', { name: textos.mapa.cerrarPanel }))
+    await user.click(marcadores()[0])
+    await user.click(within(await hoja('Callao')).getByRole('button', { name: textos.mapa.cerrarPanel }))
 
-    expect(screen.getByTestId('panel-zona')).toHaveTextContent(textos.mapa.sinSeleccion)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('elegir otra zona reemplaza el detalle', async () => {
+  it('una zona sin datos recientes lo explica en su detalle', async () => {
     simularApi(ESTADO_MUESTRA)
     const user = userEvent.setup()
     renderConProveedores(<Inicio />)
 
     await screen.findByTestId('mapa-zonas')
-    await user.click(circulos()[0])
-    await user.click(circulos()[4])
+    await user.click(marcadores()[4])
 
-    const panel = screen.getByTestId('panel-zona')
-    expect(within(panel).getByRole('heading', { name: 'Matarani' })).toBeInTheDocument()
-    expect(within(panel).queryByRole('heading', { name: 'Callao' })).not.toBeInTheDocument()
+    expect(within(await hoja('Matarani')).getByTestId('panel-obsoleta')).toBeInTheDocument()
   })
 
   it('mantiene la tabla como alternativa accesible al mapa', async () => {
@@ -350,13 +408,5 @@ describe('Inicio — mapa (RF-04)', () => {
 
     await screen.findByTestId('mapa-zonas')
     expect(screen.getByTestId('tabla-estado')).toBeInTheDocument()
-  })
-
-  it('sin mediciones cargadas no se dibuja el mapa', async () => {
-    simularApi(ESTADO_VACIO)
-    renderConProveedores(<Inicio />)
-
-    await screen.findByTestId('sin-datos')
-    expect(screen.queryByTestId('mapa-zonas')).not.toBeInTheDocument()
   })
 })

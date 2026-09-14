@@ -123,15 +123,16 @@ test.describe('Inicio — celular', { tag: '@movil' }, () => {
     )
   })
 
-  test('tocar una tarjeta lleva al detalle de esa zona', async ({ page }) => {
+  test('tocar una tarjeta abre el detalle de esa zona en la hoja inferior', async ({ page }) => {
     await preparar(page)
     await page.goto('/')
 
     const tarjeta = page.getByTestId('tarjeta-HUACHO')
     await tarjeta.tap()
     await expect(tarjeta).toHaveAttribute('aria-pressed', 'true')
-    const titulo = page.getByTestId('panel-zona').getByRole('heading', { name: 'Huacho' })
-    await expect(titulo).toBeInViewport()
+    const hoja = page.getByRole('dialog', { name: 'Detalle de Huacho' })
+    await expect(hoja).toBeInViewport()
+    await expect(hoja.getByRole('heading', { name: 'Huacho' })).toBeVisible()
   })
 
   test('la tabla completa está dentro de «Ver todos los datos»', async ({ page }) => {

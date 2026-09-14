@@ -18,9 +18,17 @@ export async function fijarEstado(page: Page, estado: unknown = ESTADO_FIJO): Pr
 export const botonCuenta = (page: Page): Locator =>
   page.getByRole('button', { name: /^Menú de cuenta/ })
 
+/**
+ * Espera para que aparezca la sesion. Tras entrar, registrarse o recargar, la
+ * aplicacion revalida el token con /api/auth/me. Solo tarda milisegundos, pero
+ * con varias pruebas registrando usuarios a la vez (bcrypt es costoso) el
+ * backend de desarrollo, de un solo proceso, supero los 5 s por defecto.
+ */
+export const ESPERA_SESION = { timeout: 15_000 }
+
 async function abrirMenuCuenta(page: Page): Promise<void> {
   const boton = botonCuenta(page)
-  await expect(boton).toBeVisible()
+  await expect(boton).toBeVisible(ESPERA_SESION)
   if ((await boton.getAttribute('aria-expanded')) !== 'true') await boton.click()
 }
 
@@ -99,12 +107,32 @@ export async function revisarAccesibilidad(
   page: Page,
   testInfo: TestInfo,
   selectores: string[] = [],
+  {
+    exentosDeTamano = [],
+  }: {
+    /**
+     * Elementos que no se miden con la regla de tamaño de objetivo
+     * (target-size). Solo para la excepción «equivalente» de WCAG 2.5.8: la
+     * misma función está en otro control de la página que sí cumple. El resto
+     * de reglas se les sigue aplicando.
+     */
+    exentosDeTamano?: string[]
+  } = {},
 ): Promise<ViolacionResumida[]> {
   let analisis = new AxeBuilder({ page }).withTags(WCAG_AA)
   for (const selector of selectores) analisis = analisis.include(selector)
+  if (exentosDeTamano.length > 0) analisis = analisis.disableRules(['target-size'])
   const resultado = await analisis.analyze()
+  const violaciones = [...resultado.violations]
 
-  const todas: ViolacionResumida[] = resultado.violations.map((v) => ({
+  if (exentosDeTamano.length > 0) {
+    let tamano = new AxeBuilder({ page }).withRules(['target-size'])
+    for (const selector of selectores) tamano = tamano.include(selector)
+    for (const selector of exentosDeTamano) tamano = tamano.exclude(selector)
+    violaciones.push(...(await tamano.analyze()).violations)
+  }
+
+  const todas: ViolacionResumida[] = violaciones.map((v) => ({
     regla: v.id,
     impacto: v.impact ?? 'desconocido',
     nodos: v.nodes.length,
@@ -112,7 +140,7 @@ export async function revisarAccesibilidad(
   }))
 
   await testInfo.attach('axe-violaciones', {
-    body: JSON.stringify(resultado.violations, null, 2),
+    body: JSON.stringify(violaciones, null, 2),
     contentType: 'application/json',
   })
   if (todas.length === 0) console.log(`  [axe] ${testInfo.title} · sin violaciones`)

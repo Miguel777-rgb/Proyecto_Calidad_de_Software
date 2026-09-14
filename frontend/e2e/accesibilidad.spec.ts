@@ -12,6 +12,13 @@ import {
 // Inicio ya esta redisenado: una violacion seria hace fallar la prueba. Se
 // revisa con datos fijos (alertas, zona sin datos) y con la tabla abierta en
 // celular, para que axe vea todo lo que Inicio puede mostrar.
+//
+// Los marcadores del mapa quedan fuera de la regla de tamaño de objetivo: con
+// toda la costa a la vista, zonas vecinas se solapan. WCAG 2.5.8 lo admite
+// cuando la misma función está en otro control que cumple, y aquí lo están
+// las tarjetas (celular) y la tabla (escritorio).
+const MARCADORES_EXENTOS = { exentosDeTamano: ['.marcador-zona'] }
+
 test.describe('Accesibilidad — Inicio', { tag: '@movil' }, () => {
   test('Inicio con alertas y todos los datos a la vista: sin violaciones serias', async ({
     page,
@@ -25,7 +32,21 @@ test.describe('Accesibilidad — Inicio', { tag: '@movil' }, () => {
     if (isMobile) await page.getByText('Ver todos los datos').click()
     await page.getByTestId('tabla-estado').waitFor()
 
-    expect(await revisarAccesibilidad(page, testInfo)).toEqual([])
+    expect(await revisarAccesibilidad(page, testInfo, [], MARCADORES_EXENTOS)).toEqual([])
+  })
+
+  test('detalle de una zona abierto: sin violaciones serias', async ({ page, isMobile }, testInfo) => {
+    await bloquearMosaicos(page)
+    await page.clock.setFixedTime(HOY_FIJO)
+    await fijarEstado(page)
+    await page.goto('/?zona=CALLAO')
+    if (isMobile) {
+      await page.getByRole('dialog', { name: 'Detalle de Callao' }).waitFor()
+    } else {
+      await page.getByTestId('panel-zona').getByRole('heading', { name: 'Callao' }).waitFor()
+    }
+
+    expect(await revisarAccesibilidad(page, testInfo, [], MARCADORES_EXENTOS)).toEqual([])
   })
 })
 

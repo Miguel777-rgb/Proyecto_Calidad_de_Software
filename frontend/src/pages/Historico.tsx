@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   listarLaboratorios,
   obtenerSerie,
@@ -17,12 +18,19 @@ export default function Historico() {
   const [rango, setRango] = useState<{ desde?: string; hasta?: string }>({})
   const [cargando, setCargando] = useState(true)
 
+  // El detalle de una zona en Inicio enlaza aqui con ?zona=CALLAO.
+  const [parametros] = useSearchParams()
+  const zonaPedida = parametros.get('zona')
+
   useEffect(() => {
     listarLaboratorios().then((lista) => {
       setLaboratorios(lista)
-      setZona((actual) => actual || (lista[0]?.code ?? ''))
+      setZona(
+        (actual) =>
+          actual || (lista.find((l) => l.code === zonaPedida)?.code ?? lista[0]?.code ?? ''),
+      )
     })
-  }, [])
+  }, [zonaPedida])
 
   useEffect(() => {
     if (zona === '') return

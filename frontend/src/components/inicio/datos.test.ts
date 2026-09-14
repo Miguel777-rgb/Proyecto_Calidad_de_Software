@@ -98,17 +98,23 @@ describe('conteoPorEstado', () => {
 })
 
 describe('gradosConSigno', () => {
+  // Entre el valor y la unidad va un espacio duro (U+00A0), no un espacio normal:
+  // en estas cadenas se ve igual, pero la ultima prueba comprueba la diferencia.
   it('marca con + las anomalias positivas', () => {
-    expect(gradosConSigno('1.5800')).toBe('+1.58 °C')
+    expect(gradosConSigno('1.5800')).toBe('+1.58 °C')
   })
 
   it('conserva el signo de las negativas', () => {
-    expect(gradosConSigno('-0.7400')).toBe('-0.74 °C')
+    expect(gradosConSigno('-0.7400')).toBe('-0.74 °C')
   })
 
   it('un valor que redondea a cero no lleva signo', () => {
-    expect(gradosConSigno('0.0000')).toBe('0.00 °C')
-    expect(gradosConSigno('-0.0010')).toBe('0.00 °C')
+    expect(gradosConSigno('0.0000')).toBe('0.00 °C')
+    expect(gradosConSigno('-0.0010')).toBe('0.00 °C')
+  })
+
+  it('no deja que la unidad se separe del valor al partir la linea', () => {
+    expect(gradosConSigno('1.5800')).not.toContain(' °C')
   })
 
   it('sin valor muestra una raya', () => {

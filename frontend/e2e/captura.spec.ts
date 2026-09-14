@@ -1,15 +1,17 @@
 import { test } from '@playwright/test'
 
 // Captura de apoyo para revisar el resultado visual. No es una prueba.
+const MARCADORES = '.leaflet-marker-pane .marcador-zona'
+
 test('captura del mapa', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
-  await page.locator('.leaflet-overlay-pane path').first().waitFor()
+  await page.locator(MARCADORES).first().waitFor()
   await page.waitForTimeout(2500)
   await page.screenshot({ path: 'capturas/mapa-escritorio.png', fullPage: false })
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.locator('.leaflet-overlay-pane path').nth(6).click()
+  await page.locator(MARCADORES).nth(6).click()
   await page.waitForTimeout(1200)
   await page.screenshot({ path: 'capturas/mapa-celular.png', fullPage: true })
 })

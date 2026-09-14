@@ -1,0 +1,114 @@
+/*
+ * Mapa de Inicio: marcadores, etiquetas y aviso de gestos.
+ *
+ * Leaflet crea estos elementos fuera de React, asi que se estilan aqui y no
+ * con utilidades. MapaZonas importa este archivo despues de las hojas de
+ * Leaflet y del plugin de gestos, para ganarles cuando la especificidad empata.
+ */
+
+/* Leaflet fija z-index altos que se montan sobre la banda y la barra inferior. */
+.mapa .leaflet-pane,
+.mapa .leaflet-top,
+.mapa .leaflet-bottom {
+  z-index: 1;
+}
+
+.mapa .leaflet-container {
+  background: #d6dee1;
+  font-family: var(--font-cuerpo);
+}
+
+/* OpenStreetMap en gris claro: los colores de estado quedan como lo unico con
+   color del mapa. El filtro solo toca los mosaicos, no marcadores ni controles. */
+.mapa .leaflet-tile-pane {
+  filter: grayscale(1) brightness(1.12) contrast(0.82);
+}
+
+/* Contenedor de 44 x 44 px: el area tactil minima, aunque el dibujo sea menor. */
+.marcador-zona {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+}
+
+.marcador-zona:focus-visible {
+  outline: 3px solid var(--color-marea);
+  outline-offset: 0;
+}
+
+.marcador-zona__cuerpo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: var(--estado);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgb(10 37 48 / 30%);
+}
+
+.marcador-zona__cuerpo svg {
+  width: 62%;
+  height: 62%;
+}
+
+/* Zona en alerta: mas grande y con un anillo de su color, sin animacion. */
+.marcador-zona__cuerpo[data-alerta='true'] {
+  width: 32px;
+  height: 32px;
+}
+
+.marcador-zona__cuerpo[data-alerta='true']::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--estado);
+  border-radius: 9999px;
+  opacity: 0.45;
+}
+
+/* Sin datos: circulo blanco con el simbolo punteado, que dice «falta el dato». */
+.marcador-zona__cuerpo[data-estado='no_data'] {
+  border: 0;
+  background: #ffffff;
+  color: var(--estado);
+}
+
+.marcador-zona__cuerpo[data-estado='no_data'] svg {
+  width: 100%;
+  height: 100%;
+}
+
+.marcador-zona--elegida .marcador-zona__cuerpo {
+  outline: 3px solid var(--color-abisal);
+  outline-offset: 2px;
+}
+
+/* Nombre fijo junto al marcador (escritorio): texto con halo, sin globo. */
+.mapa .etiqueta-zona.leaflet-tooltip {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--color-abisal);
+  font: 600 12.5px/1.2 var(--font-cuerpo);
+  text-shadow:
+    0 0 3px #ffffff,
+    0 0 3px #ffffff,
+    0 0 3px #ffffff;
+}
+
+.mapa .etiqueta-zona.leaflet-tooltip::before {
+  display: none;
+}
+
+/* Aviso del plugin de gestos con la tipografia y los colores de OLA. */
+.mapa .leaflet-container::after {
+  background: rgb(10 37 48 / 55%);
+  font-family: var(--font-cuerpo);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+}

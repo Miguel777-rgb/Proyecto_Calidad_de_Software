@@ -24,9 +24,11 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   expect: {
-    // Tolerancia minima: las referencias se generan en el mismo contenedor
-    // donde se comparan, asi que solo absorbe el suavizado de bordes.
-    toHaveScreenshot: { maxDiffPixelRatio: 0.005, animations: 'disabled', caret: 'hide' },
+    // Tolerancia absoluta y minima: las referencias se generan en el mismo
+    // contenedor donde se comparan, asi que el dibujo es determinista. Una
+    // tolerancia relativa (0.5 %) dejaba pasar cambios reales: en una captura
+    // de 300 x 500 px, que «°C» saltara de linea cambiaba menos de 750 pixeles.
+    toHaveScreenshot: { maxDiffPixels: 20, animations: 'disabled', caret: 'hide' },
   },
   use: {
     baseURL,

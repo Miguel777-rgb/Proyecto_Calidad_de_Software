@@ -44,14 +44,18 @@ export function conteoPorEstado(zonas: EstadoZona[]): Record<EstadoTermico, numb
   return conteo
 }
 
+// Espacio duro entre el valor y la unidad: sin el, «°C» podia quedar solo en
+// la linea siguiente del detalle de una zona.
+const UNIDAD = ' °C'
+
 /** «+1.58 °C», «-0.74 °C», «0.00 °C»; una raya si no hay valor. */
 export function gradosConSigno(valor: string | null): string {
   if (valor === null) return '—'
   const numero = Number(valor)
   const redondeado = numero.toFixed(2)
   // Un valor que redondea a cero no lleva signo: «-0.00» o «+0.00» confunden.
-  if (Number(redondeado) === 0) return '0.00 °C'
-  return `${numero > 0 ? '+' : ''}${redondeado} °C`
+  if (Number(redondeado) === 0) return `0.00${UNIDAD}`
+  return `${numero > 0 ? '+' : ''}${redondeado}${UNIDAD}`
 }
 
 /**

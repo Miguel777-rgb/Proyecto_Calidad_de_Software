@@ -18,6 +18,27 @@ function simularApi(respuestaSeries: unknown = seriesDe('TUMBES', ['1.5', null, 
 }
 
 describe('Historico', () => {
+  it('abre la zona indicada en la direccion', async () => {
+    const mock = simularApi()
+    renderConProveedores(<Historico />, { ruta: '/historico?zona=PISCO' })
+
+    await waitFor(() =>
+      expect(
+        mock.mock.calls.some((c) => String(c[0]).includes('/laboratories/PISCO/readings')),
+      ).toBe(true),
+    )
+    expect(screen.getByLabelText(textos.graficos.zona)).toHaveValue('PISCO')
+  })
+
+  it('con una zona desconocida en la direccion abre la primera del catalogo', async () => {
+    simularApi()
+    renderConProveedores(<Historico />, { ruta: '/historico?zona=NO-EXISTE' })
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(textos.graficos.zona)).toHaveValue(LABORATORIOS[0].code),
+    )
+  })
+
   it('ofrece elegir entre las zonas del catalogo', async () => {
     simularApi()
     renderConProveedores(<Historico />)

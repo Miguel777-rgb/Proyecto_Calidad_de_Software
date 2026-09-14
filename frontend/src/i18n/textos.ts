@@ -248,16 +248,34 @@ export const textos = {
   },
   mapa: {
     titulo: 'Mapa de zonas costeras',
-    sinSeleccion: 'Pulsa una zona del mapa para ver su detalle.',
+    sinSeleccion: 'Elige una zona en el mapa o en la tabla para ver su detalle.',
+    zonasEnAlerta: 'Zonas en alerta:',
     cerrarPanel: 'Cerrar el detalle de la zona',
-    ultimoValor: 'Último valor',
-    avisoObsoleta:
-      'Esta zona no registra mediciones recientes, así que no se muestra su situación térmica.',
-    enAlerta: (situacion: string) => `Alerta ${situacion.toLowerCase()} en curso`,
-    detalleAlerta: (desde: string, registros: number, pico: string) =>
-      `Sostenida desde el ${desde}, con ${registros} mediciones seguidas fuera del rango normal. Valor más extremo: ${pico} °C.`,
-    sinAlertaExplicacion: 'Esta zona no presenta una tendencia sostenida.',
-    atribucionMapa: 'Mapa base de OpenStreetMap.',
+    detalleDe: (zona: string) => `Detalle de ${zona}`,
+    marcador: (zona: string, estado: string, enAlerta: boolean) =>
+      `${zona}: ${estado.toLowerCase()}${enAlerta ? ', en alerta' : ''}`,
+    promedioDeDias: (dias: number | null) =>
+      dias === null
+        ? 'Promedio de los últimos días'
+        : `Promedio de los últimos ${dias} ${dias === 1 ? 'día' : 'días'}`,
+    valorMedido: (fecha: string) => `Valor medido el ${fecha}:`,
+    enAlerta: (situacion: string, desde: string) => `En alerta ${situacion} desde el ${desde}`,
+    detalleAlerta: (mediciones: number, pico: string) =>
+      `${mediciones} mediciones seguidas fuera de lo normal · valor más extremo ${pico}`,
+    sinAlertaExplicacion: 'Sin alerta: el mar no se mantiene fuera de lo normal.',
+    avisoObsoleta: (fecha: string | null) =>
+      fecha === null
+        ? 'No hay mediciones recientes: no se puede saber cómo está el mar aquí.'
+        : `No hay mediciones desde el ${fecha}: no se puede saber cómo está el mar aquí.`,
+    verHistorico: (zona: string) => `Ver histórico de ${zona}`,
+    recibirAvisos: (zona: string) => `Recibir avisos de ${zona}`,
+    recibesAvisos: (zona: string) => `Recibes avisos de ${zona}`,
+    dejarDeRecibir: 'Dejar de recibir',
+    entraParaAvisos: 'Entra para recibir avisos',
+    gestoTactil: 'Usa dos dedos para mover el mapa',
+    gestoRueda: 'Mantén Ctrl y gira la rueda para acercar el mapa',
+    gestoRuedaMac: 'Mantén ⌘ y gira la rueda para acercar el mapa',
+    atribucionMapa: 'Mapa base: © colaboradores de OpenStreetMap.',
   },
   configuracion: {
     titulo: 'Parámetros de detección',

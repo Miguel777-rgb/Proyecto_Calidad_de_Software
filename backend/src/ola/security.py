@@ -17,6 +17,13 @@ import jwt
 # antes: los esquemas de la API validan la longitud maxima.
 BCRYPT_MAX_BYTES = 72
 
+# Tolerancia ante relojes desajustados al validar iat y exp. Si la hora del
+# servidor retrocede unos segundos justo despues de emitir un token (NTP en el
+# VPS, la VM de Docker en desarrollo), su iat queda "en el futuro" y PyJWT lo
+# rechaza: la sesion recien iniciada se pierde con un 401. Medio minuto no
+# alarga de forma apreciable la vida de un token de una hora.
+CLOCK_SKEW_LEEWAY = timedelta(seconds=30)
+
 
 class PasswordTooLongError(ValueError):
     def __init__(self) -> None:
@@ -66,5 +73,7 @@ def decode_access_token(token: str, *, secret: str, algorithm: str) -> dict[str,
     Lanza jwt.PyJWTError (InvalidSignatureError, ExpiredSignatureError, ...)
     si el token no es valido; quien llama decide como responder.
     """
-    decoded: dict[str, Any] = jwt.decode(token, secret, algorithms=[algorithm])
+    decoded: dict[str, Any] = jwt.decode(
+        token, secret, algorithms=[algorithm], leeway=CLOCK_SKEW_LEEWAY
+    )
     return decoded

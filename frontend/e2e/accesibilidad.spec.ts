@@ -56,10 +56,10 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
 /**
  * Accesibilidad automatizada con axe (WCAG 2.2 AA).
  *
- * `bloquea` indica si una violacion seria o critica hace fallar la prueba.
- * Solo bloquea en lo que el rediseno ya cubre (marco global e Inicio); en las
- * demas pantallas las violaciones se listan en la salida sin fallar, porque
- * quedan fuera del alcance del rediseno.
+ * `bloquea` indica si una violacion seria o critica hace fallar la prueba. Al
+ * cerrar el rediseno todas las pantallas estaban sin violaciones, asi que todas
+ * bloquean: ninguna nueva puede colarse sin que la suite lo diga. Poner una en
+ * false solo deja la revision como informe.
  */
 interface Revision {
   nombre: string
@@ -73,51 +73,51 @@ const REVISIONES: Revision[] = [
   {
     nombre: 'Entrar',
     ruta: '/entrar',
-    bloquea: false,
+    bloquea: true,
     lista: (page) => page.getByRole('button', { name: 'Entrar' }).waitFor(),
   },
   {
     nombre: 'Registro',
     ruta: '/registro',
-    bloquea: false,
+    bloquea: true,
     lista: (page) => page.getByRole('button', { name: 'Registrarme' }).waitFor(),
   },
   {
     nombre: 'Histórico',
     ruta: '/historico',
-    bloquea: false,
+    bloquea: true,
     lista: (page) => page.locator('[data-testid="grafico-serie"] svg').first().waitFor(),
   },
   {
     nombre: 'Comparación',
     ruta: '/comparar',
-    bloquea: false,
+    bloquea: true,
     lista: (page) => page.locator('[data-testid="grafico-serie"] svg').first().waitFor(),
   },
   {
     nombre: 'Proyección',
     ruta: '/proyeccion',
-    bloquea: false,
+    bloquea: true,
     lista: (page) => page.locator('[data-testid="grafico-proyeccion"] svg').first().waitFor(),
   },
   {
     nombre: 'Mis zonas',
     ruta: '/mis-zonas',
-    bloquea: false,
+    bloquea: true,
     conSesion: true,
     lista: (page) => page.getByTestId('lista-zonas').waitFor(),
   },
   {
     nombre: 'Avisos',
     ruta: '/avisos',
-    bloquea: false,
+    bloquea: true,
     conSesion: true,
     lista: (page) => page.getByTestId('lista-avisos').waitFor({ state: 'attached' }),
   },
   {
     nombre: 'Administración',
     ruta: '/admin',
-    bloquea: false,
+    bloquea: true,
     conSesion: true,
     lista: (page) => page.getByRole('button', { name: 'Importar' }).waitFor(),
   },

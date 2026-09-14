@@ -5,6 +5,8 @@ import { obtenerConfiguracion, obtenerEstado, type EstadoSistema } from '../api/
 import { TablaEstado } from '../components/TablaEstado'
 import { ErrorCarga, EsqueletoInicio, SinDatosCargados } from '../components/inicio/EstadosCarga'
 import { ResumenEstado } from '../components/inicio/ResumenEstado'
+import { TituloInicio } from '../components/inicio/TituloInicio'
+import { ENVOLTURA_INICIO } from '../components/inicio/estructura'
 import { TarjetasZonas } from '../components/inicio/TarjetasZonas'
 import { ordenarZonas } from '../components/inicio/datos'
 import { DetalleZona } from '../components/mapa/DetalleZona'
@@ -21,19 +23,6 @@ type Carga =
   | { fase: 'cargando' }
   | { fase: 'error' }
   | { fase: 'lista'; estado: EstadoSistema; ventana: number | null; vigencia: number }
-
-// La columna minmax(0, 1fr) deja que los hijos se estrechen por debajo del
-// ancho de su contenido. Sin ella, la tabla abierta en celular ensanchaba toda
-// la pagina en lugar de desplazarse dentro de su propio contenedor.
-const ENVOLTURA = 'grid grid-cols-[minmax(0,1fr)] gap-5 text-[17px] lg:gap-6 lg:text-base'
-
-function Titulo() {
-  return (
-    <h2 className="m-0 font-titulo text-[26px] leading-tight font-bold tracking-[-0.02em] text-balance lg:text-[32px]">
-      {textos.estado.titulo}
-    </h2>
-  )
-}
 
 export default function Inicio() {
   const [carga, setCarga] = useState<Carga>({ fase: 'cargando' })
@@ -72,8 +61,8 @@ export default function Inicio() {
 
   if (carga.fase === 'cargando') {
     return (
-      <section className={ENVOLTURA}>
-        <Titulo />
+      <section className={ENVOLTURA_INICIO}>
+        <TituloInicio />
         <EsqueletoInicio />
       </section>
     )
@@ -81,8 +70,8 @@ export default function Inicio() {
 
   if (carga.fase === 'error') {
     return (
-      <section className={ENVOLTURA}>
-        <Titulo />
+      <section className={ENVOLTURA_INICIO}>
+        <TituloInicio />
         <ErrorCarga alReintentar={() => setIntento((n) => n + 1)} />
       </section>
     )
@@ -92,8 +81,8 @@ export default function Inicio() {
 
   if (estado.reference_date === null) {
     return (
-      <section className={ENVOLTURA}>
-        <Titulo />
+      <section className={ENVOLTURA_INICIO}>
+        <TituloInicio />
         <SinDatosCargados />
       </section>
     )
@@ -117,8 +106,8 @@ export default function Inicio() {
   )
 
   return (
-    <section className={ENVOLTURA}>
-      <Titulo />
+    <section className={ENVOLTURA_INICIO}>
+      <TituloInicio />
       <ResumenEstado
         referencia={estado.reference_date}
         zonas={estado.zones}

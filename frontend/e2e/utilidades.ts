@@ -26,9 +26,23 @@ export const botonCuenta = (page: Page): Locator =>
  */
 export const ESPERA_SESION = { timeout: 15_000 }
 
+/**
+ * Espera a que la pantalla de destino termine de mostrarse.
+ *
+ * Tras entrar o registrarse, el boton de cuenta aparece al instante, pero la
+ * pantalla a la que se redirige se descarga al abrirla y el cambio de ruta se
+ * completa despues. El menu de cuenta se cierra al cambiar de ruta: abierto en
+ * ese intervalo, se cerraria solo. Mientras tanto, Entrar y Registro ya no
+ * muestran nada, asi que un titulo en el contenido indica que la ruta cambio.
+ */
+export async function esperarPantalla(page: Page): Promise<void> {
+  await expect(page.getByRole('main').getByRole('heading').first()).toBeVisible(ESPERA_SESION)
+}
+
 async function abrirMenuCuenta(page: Page): Promise<void> {
   const boton = botonCuenta(page)
   await expect(boton).toBeVisible(ESPERA_SESION)
+  await esperarPantalla(page)
   if ((await boton.getAttribute('aria-expanded')) !== 'true') await boton.click()
 }
 

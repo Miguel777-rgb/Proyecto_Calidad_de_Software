@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ESPERA_SESION, botonCuenta, simularSesion } from './utilidades'
+import { ESPERA_SESION, botonCuenta, esperarPantalla, simularSesion } from './utilidades'
 
 const PESTANAS = ['Mapa', 'Histórico', 'Comparar', 'Próximos días']
 
@@ -11,6 +11,7 @@ async function registrarse(page: Page) {
   await page.getByLabel('Contraseña').fill('miclave123')
   await page.getByRole('button', { name: 'Registrarme' }).click()
   await expect(botonCuenta(page)).toBeVisible(ESPERA_SESION)
+  await esperarPantalla(page)
 }
 
 async function sinDesbordeHorizontal(page: Page) {

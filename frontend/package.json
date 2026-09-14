@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:rendimiento": "E2E_RENDIMIENTO=1 playwright test",
     "lint": "eslint .",
     "typecheck": "tsc -b --force"
   },

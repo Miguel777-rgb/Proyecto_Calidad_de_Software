@@ -57,6 +57,21 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: /Menú de cuenta/ })).not.toBeInTheDocument()
   })
 
+  it('mientras llega el codigo de la portada muestra su titulo y su silueta', () => {
+    renderConProveedores(<App />, { ruta: '/' })
+    expect(screen.getByRole('heading', { name: textos.estado.titulo })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: textos.estado.cargando })).toBeInTheDocument()
+  })
+
+  it('las pantallas se cargan al abrirlas', async () => {
+    renderConProveedores(<App />, { ruta: '/entrar' })
+    // Con varias pruebas en paralelo, la primera descarga de la pantalla en
+    // jsdom puede superar el segundo de espera por defecto.
+    expect(
+      await screen.findByRole('heading', { name: textos.entrar.titulo }, { timeout: 10_000 }),
+    ).toBeInTheDocument()
+  })
+
   it('ofrece saltar directamente al contenido principal', () => {
     renderConProveedores(<App />, { ruta: '/entrar' })
     expect(screen.getByRole('link', { name: navegacion.saltar })).toHaveAttribute(
@@ -82,13 +97,15 @@ describe('App', () => {
   it('tras iniciar sesion muestra el menu de cuenta y permite salir', async () => {
     const user = userEvent.setup()
     renderConProveedores(<App />, { ruta: '/entrar' })
-    await user.type(screen.getByLabelText(textos.comun.correo), USUARIO.email)
+    // La pantalla se descarga al abrirla: se espera a que aparezca.
+    await user.type(await screen.findByLabelText(textos.comun.correo), USUARIO.email)
     await user.type(screen.getByLabelText(textos.comun.contrasena), 'miclave123')
     await user.click(screen.getByRole('button', { name: textos.entrar.boton }))
 
     // Entrar redirige a la portada; el menu se cierra al cambiar de ruta, asi
-    // que se abre cuando la redireccion ya termino.
-    await screen.findByRole('heading', { name: textos.estado.titulo })
+    // que se abre cuando la redireccion ya termino. La portada se descarga al
+    // abrirla y en jsdom su primera carga (con Leaflet) supera el segundo.
+    await screen.findByRole('heading', { name: textos.estado.titulo }, { timeout: 10_000 })
     await user.click(await botonCuenta())
     expect(screen.getByTestId('sesion-actual')).toHaveTextContent(USUARIO.email)
 

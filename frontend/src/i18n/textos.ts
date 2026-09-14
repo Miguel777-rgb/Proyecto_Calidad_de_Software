@@ -4,8 +4,9 @@ export const textos = {
   app: {
     nombre: 'OLA',
     titulo: 'Observatorio Litoral de Anomalías térmicas',
-    descripcion:
-      'Estado térmico del litoral peruano a partir del dataset abierto de IMARPE.',
+    descripcion: 'El estado del mar en la costa peruana, con datos abiertos del IMARPE.',
+    avisoAlcance:
+      'OLA es una herramienta complementaria: no reemplaza los boletines del IMARPE ni del ENFEN.',
   },
   comun: {
     cargando: 'Cargando…',
@@ -15,16 +16,21 @@ export const textos = {
     opcional: 'opcional',
   },
   navegacion: {
-    inicio: 'Inicio',
-    entrar: 'Iniciar sesión',
+    inicio: 'Mapa',
+    entrar: 'Entrar',
     registrarse: 'Crear cuenta',
     salir: 'Cerrar sesión',
     administracion: 'Administración',
     historico: 'Histórico',
     comparacion: 'Comparar',
-    proyeccion: 'Proyección',
+    proyeccion: 'Próximos días',
     misZonas: 'Mis zonas',
     avisos: 'Avisos',
+    principal: 'Navegación principal',
+    saltar: 'Saltar al contenido',
+    menuCuenta: 'Menú de cuenta',
+    menuCuentaConAvisos: (n: number) =>
+      `Menú de cuenta, ${n} ${n === 1 ? 'aviso sin leer' : 'avisos sin leer'}`,
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -43,7 +49,7 @@ export const textos = {
   },
   inicio: {
     bienvenida: 'Bienvenido a OLA',
-    sesionComo: 'Sesión iniciada como',
+    sesionComo: 'Conectado como',
     administrador: 'Administrador',
     usuario: 'Usuario',
     proximamente:

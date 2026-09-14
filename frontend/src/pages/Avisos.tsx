@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { listarAvisos, marcarAvisoLeido, marcarTodosLeidos, type ListaAvisos } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { useAvisosSinLeer } from '../avisos/useAvisosSinLeer'
 import { textos } from '../i18n/textos'
 
 export default function Avisos() {
   const { usuario } = useAuth()
+  const { refrescar } = useAvisosSinLeer()
   const [datos, setDatos] = useState<ListaAvisos | null>(null)
 
   const cargar = useCallback(() => {
@@ -15,14 +17,17 @@ export default function Avisos() {
 
   useEffect(cargar, [cargar])
 
+  // Tras marcar, tambien se actualiza el contador que muestra el marco.
   async function marcar(id: number) {
     await marcarAvisoLeido(id)
     cargar()
+    refrescar()
   }
 
   async function marcarTodos() {
     await marcarTodosLeidos()
     cargar()
+    refrescar()
   }
 
   if (usuario === null) {

@@ -1,0 +1,11 @@
+/*
+ * Solo para las capturas del contenido de cada pantalla (visual.spec.ts).
+ *
+ * La banda es fija: al capturar un <main> mas alto que la ventana, Playwright
+ * desplaza la pagina y la banda queda pintada encima del titulo. El marco
+ * tiene sus propias capturas, asi que aqui se retira del todo.
+ */
+header,
+[data-testid='barra-inferior'] {
+  display: none !important;
+}

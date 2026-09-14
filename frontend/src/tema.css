@@ -15,21 +15,41 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) important;
 
-@theme {
+@layer base {
+  /* La banda superior es fija: sin este margen, al saltar a un ancla o al
+     recorrer la pagina con el teclado hacia arriba, el elemento enfocado
+     queda debajo de ella (WCAG 2.2, criterio 2.4.11). Alto de la banda mas
+     un respiro: 56 px en celular y 64 px desde 768 px. */
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+}
+
+/* `static` emite siempre las variables, aunque ninguna utilidad las use:
+   estilos.css tambien las lee (fuentes y fondo de las pantallas antiguas). */
+@theme static {
   /* Solo existen los colores de OLA: sin la paleta por defecto de Tailwind,
      un color fuera del sistema no compila. Los colores de estado termico NO
      viven aqui: su unica fuente es components/mapa/paleta.ts. */
   --color-*: initial;
 
-  /* Identidad de docs/presentacion-ola.html. La adaptacion a tema claro
-     (textos, bordes, superficies) se fija con la maqueta de la Fase 1. */
+  /* Identidad de docs/presentacion-ola.html. */
   --color-abisal: #0a2530;
   --color-abisal-2: #0f3849;
   --color-abisal-3: #133f52;
   --color-espuma: #f3f7f5;
   --color-espuma-tenue: #a9c1c4;
   --color-dorado: #e8b84b;
+  --color-dorado-claro: #f0c664;
   --color-blanco: #ffffff;
+
+  /* Adaptacion a tema claro, aprobada con la maqueta de la Fase 1. Todos los
+     textos cumplen 4.5:1 sobre espuma y sobre blanco. */
+  --color-tinta-tenue: #465b62;
+  --color-borde: #d3dfdd;
+  --color-marea: #1f6f80;
+  --color-marea-fondo: #e3eef0;
+  --color-realce: #edf3f2;
 
   --font-*: initial;
   --font-titulo: 'Space Grotesk Variable', system-ui, sans-serif;

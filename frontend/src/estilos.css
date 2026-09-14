@@ -1,13 +1,21 @@
 :root {
   --texto: #12232e;
-  --fondo: #f7f9fb;
+  --fondo: #f3f7f5;
   --borde: #d8e0e6;
   --ok: #1b7f4b;
   --error: #b3261e;
   --espera: #8a6d1f;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-cuerpo);
   color: var(--texto);
   background: var(--fondo);
+}
+
+/* Tipografia del marco aplicada a todas las pantallas: solo cambia la familia
+   de los titulos, no su tamano ni la maquetacion. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-titulo);
 }
 
 * {
@@ -22,18 +30,6 @@ body {
   max-width: 60rem;
   margin: 0 auto;
   padding: 2rem 1rem;
-}
-
-h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.75rem;
-}
-
-.subtitulo {
-  display: block;
-  font-size: 1rem;
-  font-weight: 400;
-  color: #4a5a66;
 }
 
 .conexion {
@@ -57,34 +53,12 @@ h1 {
   color: var(--espera);
 }
 
-footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--borde);
-  font-size: 0.8125rem;
-  color: #4a5a66;
-}
-
-nav {
-  display: flex;
-  /* Sin ajuste de linea, los enlaces desbordan la pantalla de un celular en
-     cuanto el menu crece. */
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--borde);
-}
-
-nav a,
 .enlace {
   color: #1a5e8a;
   text-decoration: none;
   font-weight: 600;
 }
 
-nav a:hover,
 .enlace:hover {
   text-decoration: underline;
 }

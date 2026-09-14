@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -9,7 +10,7 @@ async function entrarComoAdmin(page: Page) {
   await page.getByLabel('Correo electrónico').fill(ADMIN_EMAIL)
   await page.getByLabel('Contraseña').fill(ADMIN_PASSWORD)
   await page.getByRole('button', { name: 'Entrar' }).click()
-  await expect(page.getByTestId('sesion-actual')).toContainText('Administrador')
+  await esperarSesion(page, 'Administrador')
 }
 
 test.describe('Fase 3 — estado térmico y rachas (RF-01)', () => {

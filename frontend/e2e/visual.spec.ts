@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { CONFIGURACION_FIJA, ESTADO_FIJO } from './datos/estadoFijo'
-import { bloquearMosaicos } from './utilidades'
+import { bloquearMosaicos, botonCuenta, simularSesion } from './utilidades'
 
 /**
  * Regresion visual del contenido de cada pantalla.
@@ -12,6 +13,8 @@ import { bloquearMosaicos } from './utilidades'
  * visual:
  *   pnpm exec playwright test visual.spec.ts --update-snapshots
  */
+const OCULTAR_MARCO = fileURLToPath(new URL('./ocultar-marco.css', import.meta.url))
+
 interface Pantalla {
   nombre: string
   ruta: string
@@ -60,6 +63,37 @@ const PANTALLAS: Pantalla[] = [
   },
 ]
 
+/**
+ * Marco global en escritorio y en celular (el nombre de la referencia lleva el
+ * proyecto). Se usa Histórico porque su contenido no se rediseña y sus datos
+ * no cambian entre corridas. No se tapa `main` con `mask`: la mascara se pinta
+ * encima de todo su rectangulo y ocultaria el menu desplegable y la barra
+ * inferior, que son justo lo que se quiere comparar.
+ */
+test.describe('Regresión visual — marco global', { tag: '@movil' }, () => {
+  test('marco sin sesión', async ({ page }) => {
+    await page.goto('/historico')
+    await page.locator('[data-testid="grafico-serie"] svg').first().waitFor()
+
+    await expect(page).toHaveScreenshot('marco-sin-sesion.png')
+  })
+
+  test('marco con sesión, avisos sin leer y el menú abierto', async ({ page }) => {
+    await simularSesion(page, { rol: 'admin', sinLeer: 2 })
+    await page.goto('/historico')
+    await page.locator('[data-testid="grafico-serie"] svg').first().waitFor()
+    await botonCuenta(page).click()
+    await page.getByTestId('sesion-actual').waitFor()
+
+    await expect(page).toHaveScreenshot('marco-menu-abierto.png')
+  })
+
+  test('pie de página', async ({ page }) => {
+    await page.goto('/entrar')
+    await expect(page.getByRole('contentinfo')).toHaveScreenshot('pie.png')
+  })
+})
+
 test.describe('Regresión visual — contenido de las pantallas', () => {
   for (const { nombre, ruta, preparar, lista } of PANTALLAS) {
     test(`${nombre}: el contenido se ve igual que la referencia`, async ({ page }) => {
@@ -68,7 +102,9 @@ test.describe('Regresión visual — contenido de las pantallas', () => {
       await page.goto(ruta)
       await lista(page)
 
-      await expect(page.locator('main')).toHaveScreenshot(`${nombre}.png`)
+      await expect(page.locator('main')).toHaveScreenshot(`${nombre}.png`, {
+        stylePath: OCULTAR_MARCO,
+      })
     })
   }
 })

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test'
+import { botonCuenta, esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -15,7 +16,7 @@ async function registrarse(page: Page, email: string) {
   await page.getByLabel('Correo electrónico').fill(email)
   await page.getByLabel('Contraseña').fill(CLAVE)
   await page.getByRole('button', { name: 'Registrarme' }).click()
-  await expect(page.getByTestId('sesion-actual')).toContainText(email)
+  await esperarSesion(page, email)
 }
 
 async function seguirZona(page: Page, nombre: string) {
@@ -122,9 +123,13 @@ test.describe('Fase 7 — avisos por correo (RF-03)', () => {
 
     await page.goto('/avisos')
     await expect(page.getByTestId('sin-leer')).toBeVisible()
+    // El marco anuncia los avisos sin leer en el boton de cuenta.
+    await expect(botonCuenta(page)).toHaveAccessibleName(/avisos? sin leer/)
 
     await page.getByRole('button', { name: 'Marcar todos como leídos' }).click()
     await expect(page.getByTestId('sin-leer')).toHaveCount(0)
+    // Y deja de anunciarlos en cuanto se marcan, sin recargar la pagina.
+    await expect(botonCuenta(page)).toHaveAccessibleName('Menú de cuenta')
   })
 
   test('cada usuario ve solo sus propios avisos', async ({ page, browser }) => {

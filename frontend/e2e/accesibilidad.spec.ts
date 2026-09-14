@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
-import { bloquearMosaicos, revisarAccesibilidad } from './utilidades'
+import {
+  bloquearMosaicos,
+  botonCuenta,
+  esperarSesion,
+  revisarAccesibilidad,
+  simularSesion,
+} from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -85,8 +91,34 @@ async function entrarComoAdmin(page: Page) {
   await page.getByLabel('Correo electrónico').fill(ADMIN_EMAIL)
   await page.getByLabel('Contraseña').fill(ADMIN_PASSWORD)
   await page.getByRole('button', { name: 'Entrar' }).click()
-  await expect(page.getByTestId('sesion-actual')).toContainText('Administrador')
+  await esperarSesion(page, 'Administrador')
 }
+
+/** Partes del marco global, presentes en todas las pantallas. */
+const MARCO = ['header', 'footer', '[data-testid="barra-inferior"]']
+
+// El marco ya esta redisenado: aqui una violacion seria SI hace fallar la
+// prueba. Corre en escritorio y en celular, porque cada uno muestra una
+// navegacion distinta.
+test.describe('Accesibilidad — marco global', { tag: '@movil' }, () => {
+  test('marco sin sesión: sin violaciones serias', async ({ page }, testInfo) => {
+    await page.goto('/historico')
+    await page.getByRole('banner').getByRole('link', { name: 'Entrar' }).waitFor()
+
+    expect(await revisarAccesibilidad(page, testInfo, MARCO)).toEqual([])
+  })
+
+  test('marco con el menú de cuenta abierto: sin violaciones serias', async ({
+    page,
+  }, testInfo) => {
+    await simularSesion(page, { rol: 'admin', sinLeer: 2 })
+    await page.goto('/historico')
+    await botonCuenta(page).click()
+    await page.getByTestId('sesion-actual').waitFor()
+
+    expect(await revisarAccesibilidad(page, testInfo, MARCO)).toEqual([])
+  })
+})
 
 test.describe('Accesibilidad — axe WCAG 2.2 AA', () => {
   // Sin esta comprobacion, un analisis mal configurado que nunca encuentra

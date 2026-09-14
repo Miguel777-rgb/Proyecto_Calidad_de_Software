@@ -1,11 +1,33 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
+  HOY_FIJO,
   bloquearMosaicos,
   botonCuenta,
   esperarSesion,
+  fijarEstado,
   revisarAccesibilidad,
   simularSesion,
 } from './utilidades'
+
+// Inicio ya esta redisenado: una violacion seria hace fallar la prueba. Se
+// revisa con datos fijos (alertas, zona sin datos) y con la tabla abierta en
+// celular, para que axe vea todo lo que Inicio puede mostrar.
+test.describe('Accesibilidad — Inicio', { tag: '@movil' }, () => {
+  test('Inicio con alertas y todos los datos a la vista: sin violaciones serias', async ({
+    page,
+    isMobile,
+  }, testInfo) => {
+    await bloquearMosaicos(page)
+    await page.clock.setFixedTime(HOY_FIJO)
+    await fijarEstado(page)
+    await page.goto('/')
+    await page.getByTestId('fecha-referencia').waitFor()
+    if (isMobile) await page.getByText('Ver todos los datos').click()
+    await page.getByTestId('tabla-estado').waitFor()
+
+    expect(await revisarAccesibilidad(page, testInfo)).toEqual([])
+  })
+})
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -27,12 +49,6 @@ interface Revision {
 }
 
 const REVISIONES: Revision[] = [
-  {
-    nombre: 'Inicio',
-    ruta: '/',
-    bloquea: false,
-    lista: (page) => page.getByTestId('tabla-estado').waitFor(),
-  },
   {
     nombre: 'Entrar',
     ruta: '/entrar',

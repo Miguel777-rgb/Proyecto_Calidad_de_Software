@@ -96,26 +96,56 @@ export const textos = {
     archivoRequerido: 'Selecciona un archivo CSV antes de importar.',
   },
   estado: {
-    titulo: 'Estado térmico del litoral',
+    titulo: 'Estado del mar en la costa',
+    resumen: 'Resumen del estado del mar',
     warm: 'Cálido',
     neutral: 'Neutro',
     cold: 'Frío',
     no_data: 'Sin datos recientes',
-    leyenda: 'Leyenda',
-    zona: 'Zona',
-    situacion: 'Situación',
+    // Concuerdan con «zona», que es femenino: se usan en el resumen y el conteo.
+    singular: { warm: 'cálida', neutral: 'neutra', cold: 'fría', no_data: 'sin datos' },
+    plural: { warm: 'cálidas', neutral: 'neutras', cold: 'frías', no_data: 'sin datos' },
+    respectoNormal: {
+      warm: 'sobre lo normal',
+      neutral: 'dentro de lo normal',
+      cold: 'bajo lo normal',
+      no_data: '',
+    },
     promedio: 'Promedio',
     ultimaMedicion: 'Última medición',
-    alerta: 'Alerta sostenida',
     sinAlerta: 'Sin alerta',
-    desde: 'desde',
-    registros: 'registros',
     diasSinDato: (dias: number) => `hace ${dias} ${dias === 1 ? 'día' : 'días'}`,
-    actualizado: (fecha: string) => `Datos actualizados al ${fecha}`,
-    sinDatosCargados:
-      'Todavía no hay mediciones cargadas. Un administrador debe importar el dataset de IMARPE.',
+    ultimoDatoImarpe: 'Último dato de IMARPE',
+    antiguedad: (dias: number) =>
+      dias <= 0 ? 'Dato de hoy' : `hace ${dias} ${dias === 1 ? 'día' : 'días'}`,
+    etiquetaAlertas: 'Alertas',
+    etiquetaConteo: 'Zonas por estado',
+    zonasEnAlerta: (cantidad: number, zonas: string) =>
+      `${cantidad} ${cantidad === 1 ? 'zona' : 'zonas'} en alerta: ${zonas}`,
+    ningunaAlerta: 'Ninguna zona en alerta',
+    ultimoDato: (fecha: string) => `Último dato: ${fecha}`,
+    sinMedicionesDesde: (fecha: string) => `Sin mediciones desde ${fecha}`,
+    enAlertaDesde: (fecha: string, mediciones: number) =>
+      `En alerta desde ${fecha} · ${mediciones} mediciones seguidas`,
+    alertaDesde: (fecha: string, mediciones: number) => `Desde ${fecha} · ${mediciones} mediciones`,
+    todasLasZonas: 'Todas las zonas',
+    verTodosLosDatos: 'Ver todos los datos',
+    columnas: {
+      zona: 'Zona',
+      situacion: 'Situación',
+      promedio: (dias: number | null) =>
+        dias === null ? 'Promedio' : `Promedio ${dias} ${dias === 1 ? 'día' : 'días'}`,
+      ultimoDato: 'Último dato',
+      alerta: 'Alerta',
+    },
+    cargando: 'Cargando el estado del mar',
+    errorCarga: 'No pudimos cargar el estado del mar.',
+    errorCargaAyuda: 'Revisa tu conexión.',
+    reintentar: 'Reintentar',
+    sinDatosCargados: 'Aún no hay datos del mar.',
+    sinDatosCargadosAyuda: 'El equipo de OLA debe cargar los datos de IMARPE.',
     explicacionPromedio: (dias: number) =>
-      `La situación de cada zona se calcula con el promedio de los últimos ${dias} días, para que un solo día atípico no cambie el color.`,
+      `El color de cada zona sale del promedio de los últimos ${dias} días, para que un solo día raro no lo cambie.`,
   },
   graficos: {
     historico: 'Histórico por zona',
@@ -227,7 +257,6 @@ export const textos = {
     detalleAlerta: (desde: string, registros: number, pico: string) =>
       `Sostenida desde el ${desde}, con ${registros} mediciones seguidas fuera del rango normal. Valor más extremo: ${pico} °C.`,
     sinAlertaExplicacion: 'Esta zona no presenta una tendencia sostenida.',
-    verTabla: 'Detalle de todas las zonas',
     atribucionMapa: 'Mapa base de OpenStreetMap.',
   },
   configuracion: {

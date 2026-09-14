@@ -51,6 +51,23 @@
   --color-marea-fondo: #e3eef0;
   --color-realce: #edf3f2;
 
+  /* Inicio (Fase 2): dato atrasado y simbolo de alerta. El icono de alerta
+     supera 3:1 sobre blanco y sobre los tintes de estado. */
+  --color-atencion-fondo: #fbf1d9;
+  --color-atencion-borde: #e2c378;
+  --color-alerta: #b4531f;
+
+  /* Brillo del esqueleto de carga. */
+  --animate-brillo: brillo 1.4s ease-in-out infinite;
+  @keyframes brillo {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+
   --font-*: initial;
   --font-titulo: 'Space Grotesk Variable', system-ui, sans-serif;
   --font-cuerpo: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

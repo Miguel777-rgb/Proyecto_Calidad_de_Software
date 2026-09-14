@@ -1,5 +1,18 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { CONFIGURACION_FIJA, ESTADO_FIJO } from './datos/estadoFijo'
+
+/** Fecha y hora fijas para lo que depende del reloj, como «hace 45 días». */
+export const HOY_FIJO = new Date('2026-09-14T12:00:00-05:00')
+
+/**
+ * Responde el estado de las zonas y la configuracion con datos fijos: el
+ * estado real cambia con cada importacion y cada reevaluacion de alertas.
+ */
+export async function fijarEstado(page: Page, estado: unknown = ESTADO_FIJO): Promise<void> {
+  await page.route('**/api/status', (ruta) => ruta.fulfill({ json: estado }))
+  await page.route('**/api/settings', (ruta) => ruta.fulfill({ json: CONFIGURACION_FIJA }))
+}
 
 /** Boton que abre el menu de cuenta. Solo existe con la sesion iniciada. */
 export const botonCuenta = (page: Page): Locator =>

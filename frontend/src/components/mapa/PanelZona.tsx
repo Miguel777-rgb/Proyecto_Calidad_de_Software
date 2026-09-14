@@ -1,6 +1,7 @@
 import type { EstadoZona } from '../../api/client'
 import { textos } from '../../i18n/textos'
 import { PuntoEstado } from '../PuntoEstado'
+import { fechaCorta } from '../inicio/datos'
 
 const grados = (valor: string | null): string =>
   valor === null ? '—' : `${Number(valor).toFixed(2)} °C`
@@ -49,7 +50,7 @@ export function PanelZona({ zona, alCerrar }: Props) {
 
         <dt>{textos.estado.ultimaMedicion}</dt>
         <dd data-testid="panel-ultima-medicion">
-          {zona.last_measured_on ?? '—'}
+          {zona.last_measured_on === null ? '—' : fechaCorta(zona.last_measured_on)}
           {zona.days_since_last !== null && zona.days_since_last > 0 && (
             <span className="tenue"> ({textos.estado.diasSinDato(zona.days_since_last)})</span>
           )}
@@ -67,7 +68,7 @@ export function PanelZona({ zona, alCerrar }: Props) {
           <strong>{textos.mapa.enAlerta(textos.estado[alerta.state])}</strong>
           <p>
             {textos.mapa.detalleAlerta(
-              alerta.started_on,
+              fechaCorta(alerta.started_on),
               alerta.streak_length,
               Number(alerta.peak_anomaly_c).toFixed(2),
             )}

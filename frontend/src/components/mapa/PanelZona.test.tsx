@@ -24,13 +24,13 @@ describe('PanelZona', () => {
   it('muestra el promedio y la fecha del ultimo dato', () => {
     render(<PanelZona zona={buscar('CALLAO')} alCerrar={vi.fn()} />)
     expect(screen.getByTestId('panel-promedio')).toHaveTextContent('1.20 °C')
-    expect(screen.getByTestId('panel-ultima-medicion')).toHaveTextContent('2026-07-31')
+    expect(screen.getByTestId('panel-ultima-medicion')).toHaveTextContent('31/07/2026')
   })
 
   it('detalla la alerta vigente en lenguaje sencillo', () => {
     render(<PanelZona zona={buscar('CALLAO')} alCerrar={vi.fn()} />)
     const alerta = screen.getByTestId('panel-alerta')
-    expect(alerta).toHaveTextContent('2026-07-26')
+    expect(alerta).toHaveTextContent('26/07/2026')
     expect(alerta).toHaveTextContent('6 mediciones seguidas')
   })
 
@@ -43,7 +43,7 @@ describe('PanelZona', () => {
   it('avisa cuando la zona no tiene datos recientes', () => {
     render(<PanelZona zona={buscar('MATARANI')} alCerrar={vi.fn()} />)
     expect(screen.getByTestId('panel-obsoleta')).toBeInTheDocument()
-    expect(screen.getByTestId('panel-ultima-medicion')).toHaveTextContent('2016-12-31')
+    expect(screen.getByTestId('panel-ultima-medicion')).toHaveTextContent('31/12/2016')
   })
 
   it('una zona sin datos recientes no muestra alerta ni explicacion de racha', () => {

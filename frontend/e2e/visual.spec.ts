@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
-import { CONFIGURACION_FIJA, ESTADO_FIJO } from './datos/estadoFijo'
-import { bloquearMosaicos, botonCuenta, simularSesion } from './utilidades'
+import { HOY_FIJO, bloquearMosaicos, botonCuenta, fijarEstado, simularSesion } from './utilidades'
 
 /**
  * Regresion visual del contenido de cada pantalla.
@@ -28,8 +27,9 @@ const PANTALLAS: Pantalla[] = [
     nombre: 'inicio',
     ruta: '/',
     preparar: async (page) => {
-      await page.route('**/api/status', (ruta) => ruta.fulfill({ json: ESTADO_FIJO }))
-      await page.route('**/api/settings', (ruta) => ruta.fulfill({ json: CONFIGURACION_FIJA }))
+      // Reloj fijo: la antiguedad del dato («hace 45 días») cambia cada dia.
+      await page.clock.setFixedTime(HOY_FIJO)
+      await fijarEstado(page)
     },
     lista: async (page) => {
       await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(10)
@@ -91,6 +91,24 @@ test.describe('Regresión visual — marco global', { tag: '@movil' }, () => {
   test('pie de página', async ({ page }) => {
     await page.goto('/entrar')
     await expect(page.getByRole('contentinfo')).toHaveScreenshot('pie.png')
+  })
+})
+
+test.describe('Regresión visual — Inicio en celular', { tag: '@movil' }, () => {
+  test.skip(({ isMobile }) => !isMobile, 'Solo en celular')
+
+  test('inicio con tarjetas y la tabla desplegada', async ({ page }) => {
+    await bloquearMosaicos(page)
+    await page.clock.setFixedTime(HOY_FIJO)
+    await fijarEstado(page)
+    await page.goto('/')
+    await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(10)
+    await page.getByText('Ver todos los datos').click()
+
+    await expect(page).toHaveScreenshot('inicio-celular.png', {
+      fullPage: true,
+      stylePath: OCULTAR_MARCO,
+    })
   })
 })
 

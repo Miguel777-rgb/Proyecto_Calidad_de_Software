@@ -28,7 +28,7 @@ async function entrar(page: Page, email: string, clave: string) {
 test.describe('Fase 1 — autenticación (RF-07)', () => {
   test('la página principal se puede ver sin iniciar sesión', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Estado del mar en la costa' })).toBeVisible()
     await expect(page.getByRole('banner').getByRole('link', { name: 'Entrar' })).toBeVisible()
   })
 
@@ -56,7 +56,7 @@ test.describe('Fase 1 — autenticación (RF-07)', () => {
     await expect(page.getByRole('banner').getByRole('link', { name: 'Entrar' })).toBeVisible()
     // El estado de las zonas sigue siendo visible.
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Estado del mar en la costa' })).toBeVisible()
   })
 
   test('un correo ya registrado no puede volver a registrarse', async ({ page }) => {

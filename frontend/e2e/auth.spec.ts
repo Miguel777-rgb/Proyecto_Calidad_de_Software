@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { botonCuenta, cerrarSesion, esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -27,42 +28,41 @@ async function entrar(page: Page, email: string, clave: string) {
 test.describe('Fase 1 — autenticación (RF-07)', () => {
   test('la página principal se puede ver sin iniciar sesión', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Estado del mar en la costa' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Entrar' })).toBeVisible()
   })
 
   test('un usuario nuevo se registra y queda con la sesión iniciada', async ({ page }) => {
     const email = correoUnico()
     await registrarse(page, email)
 
-    await expect(page.getByTestId('sesion-actual')).toContainText(email)
-    await expect(page.getByTestId('sesion-actual')).toContainText('Usuario')
-    await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible()
+    await esperarSesion(page, email, 'Usuario')
   })
 
   test('la sesión sobrevive a una recarga de la página', async ({ page }) => {
     const email = correoUnico()
     await registrarse(page, email)
-    await expect(page.getByTestId('sesion-actual')).toContainText(email)
+    await esperarSesion(page, email)
 
     await page.reload()
-    await expect(page.getByTestId('sesion-actual')).toContainText(email)
+    await esperarSesion(page, email)
   })
 
   test('al cerrar sesión se pierde la sesión pero no el acceso público', async ({ page }) => {
     await registrarse(page, correoUnico())
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await cerrarSesion(page)
 
-    await expect(page.getByTestId('sesion-actual')).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toBeVisible()
+    await expect(botonCuenta(page)).toHaveCount(0)
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Entrar' })).toBeVisible()
     // El estado de las zonas sigue siendo visible.
-    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'Estado del mar en la costa' })).toBeVisible()
   })
 
   test('un correo ya registrado no puede volver a registrarse', async ({ page }) => {
     const email = correoUnico()
     await registrarse(page, email)
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await cerrarSesion(page)
 
     await registrarse(page, email)
     await expect(page.getByRole('alert')).toContainText('Ya existe una cuenta')
@@ -76,7 +76,7 @@ test.describe('Fase 1 — autenticación (RF-07)', () => {
   test('una contraseña incorrecta no inicia sesión', async ({ page }) => {
     const email = correoUnico()
     await registrarse(page, email)
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await cerrarSesion(page)
 
     await entrar(page, email, 'claveequivocada')
     await expect(page.getByRole('alert')).toContainText('incorrectos')
@@ -85,17 +85,16 @@ test.describe('Fase 1 — autenticación (RF-07)', () => {
   test('el usuario puede volver a entrar con sus credenciales', async ({ page }) => {
     const email = correoUnico()
     await registrarse(page, email)
-    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await cerrarSesion(page)
 
     await entrar(page, email, 'miclave123')
-    await expect(page.getByTestId('sesion-actual')).toContainText(email)
+    await esperarSesion(page, email)
   })
 
   test('el administrador creado al arrancar puede iniciar sesión', async ({ page }) => {
     test.skip(ADMIN_PASSWORD === '', 'E2E_ADMIN_PASSWORD no está definida')
 
     await entrar(page, ADMIN_EMAIL, ADMIN_PASSWORD)
-    await expect(page.getByTestId('sesion-actual')).toContainText(ADMIN_EMAIL)
-    await expect(page.getByTestId('sesion-actual')).toContainText('Administrador')
+    await esperarSesion(page, ADMIN_EMAIL, 'Administrador')
   })
 })

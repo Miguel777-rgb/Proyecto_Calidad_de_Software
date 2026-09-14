@@ -1,16 +1,39 @@
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 // defineConfig se toma de vitest/config, no de vite: es la que conoce el
 // bloque `test` de la configuracion.
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     host: '0.0.0.0',
     port: 5173,
     // Vite responde 403 a los hosts que no conoce. Dentro de Docker las
     // pruebas E2E piden http://web:5173, asi que hay que permitirlo.
     allowedHosts: ['web', 'localhost'],
+    // Con el codigo montado desde Windows o macOS, el contenedor no recibe
+    // avisos de cambios en los archivos y Vite sigue sirviendo la version
+    // anterior. compose.yml activa el sondeo solo dentro de Docker.
+    //
+    // El sondeo revisa cada archivo vigilado en cada vuelta, asi que hay que
+    // excluir lo generado: el almacen de pnpm que crea el contenedor de E2E
+    // (unos 15 000 archivos) dejaba a Vite tardando mas de 30 s en servir la
+    // pagina.
+    watch:
+      process.env.VITE_WATCH_POLLING === 'true'
+        ? {
+            usePolling: true,
+            interval: 300,
+            ignored: [
+              '**/.pnpm-store/**',
+              '**/dist/**',
+              '**/playwright-report/**',
+              '**/test-results/**',
+              '**/capturas/**',
+            ],
+          }
+        : undefined,
     // Dentro de Docker, `api` es el nombre del servicio en compose.yml.
     proxy: {
       '/api': {

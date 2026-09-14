@@ -24,7 +24,16 @@ export function PanelConfiguracion() {
   const [aviso, setAviso] = useState<string | null>(null)
 
   useEffect(() => {
-    obtenerConfiguracion().then(setConfig).catch(() => setConfig(null))
+    // Sin esta guarda, una respuesta anterior que llegue tarde pisa lo que el
+    // administrador ya empezo a escribir. En desarrollo pasa siempre: React
+    // monta el efecto dos veces y hace dos peticiones.
+    let vigente = true
+    obtenerConfiguracion()
+      .then((datos) => vigente && setConfig(datos))
+      .catch(() => vigente && setConfig(null))
+    return () => {
+      vigente = false
+    }
   }, [])
 
   if (config === null) return <p role="status">{textos.comun.cargando}</p>

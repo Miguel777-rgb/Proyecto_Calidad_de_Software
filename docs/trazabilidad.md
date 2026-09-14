@@ -6,7 +6,7 @@ Este documento conecta cada requisito funcional de la [SRS](requisitos.md) con e
 implementa y con las pruebas que demuestran que funciona. Complementa la matriz de la sección 4
 de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
-**Fecha:** 2026-09-10 · **Versión de la SRS:** 1.6
+**Fecha:** 2026-09-13 · **Versión de la SRS:** 1.6
 
 ---
 
@@ -14,13 +14,17 @@ de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
 | Suite | Pruebas | Qué cubre |
 |---|---|---|
-| Backend — unitarias | 209 | Lógica de dominio pura, sin base de datos |
+| Backend — unitarias | 212 | Lógica de dominio pura, sin base de datos |
 | Backend — integración | 230 | Endpoints, persistencia y permisos |
-| Frontend — Vitest | 166 | Componentes y páginas con dobles de prueba |
-| Extremo a extremo — Playwright | 83 | Navegador real contra el sistema completo |
-| **Total** | **688** | |
+| Frontend — Vitest | 332 | Componentes, páginas y lógica de la interfaz; axe en cada componente nuevo |
+| Extremo a extremo — Playwright | 167 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
+| Rendimiento — Playwright | 2 | Build de producción con 4G normal |
+| **Total** | **943** | |
 
 Cobertura del backend: **95%** de las sentencias.
+
+Playwright lista 189 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
+omiten a propósito porque son de escritorio o de celular y no aplican en el otro.
 
 Las suites se ejecutan con:
 
@@ -28,6 +32,7 @@ Las suites se ejecutan con:
 docker compose exec api pytest --cov=ola     # backend
 docker compose exec web pnpm test            # frontend
 docker compose --profile e2e run --rm e2e    # extremo a extremo
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm test:rendimiento"   # rendimiento
 ```
 
 ---
@@ -95,24 +100,36 @@ medida de incertidumbre, y está fijada en una prueba.
 |---|---|---|
 | `tests/unit/test_messages.py` | 15 | El texto evita la jerga técnica, lleva la atribución a IMARPE y no menciona SMS |
 | `tests/integration/test_notifications.py` | 34 | Un aviso por episodio; los fallos se reintentan; suscribirse a una alerta vigente avisa; subir el umbral no genera avisos falsos de cierre |
-| `src/pages/Avisos.test.tsx` | 8 | Centro de avisos y marcado de leídos |
+| `src/pages/Avisos.test.tsx` | 10 | Centro de avisos, marcado de leídos y actualización del contador del marco |
+| `src/avisos/AvisosProvider.test.tsx` | 5 | El número de avisos sin leer se pide con sesión y se refresca al cambiar de pantalla |
 | `src/components/PanelEnvioAvisos.test.tsx` | 6 | Resumen del envío y aviso de reintento |
-| `e2e/notificaciones.spec.ts` | 8 | **Correo entregado y verificado contra Mailpit**, no contra un simulacro |
+| `e2e/notificaciones.spec.ts` | 8 | **Correo entregado y verificado contra Mailpit**, no contra un simulacro; el marco deja de anunciar los avisos al marcarlos |
 
 ---
 
 ## RF-04 — Mapa interactivo de estado por zona
 
 **Implementación:** `backend/src/ola/services/status_service.py`,
-`frontend/src/components/mapa/`
+`frontend/src/pages/Inicio.tsx`, `frontend/src/components/mapa/`, `frontend/src/components/inicio/`
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
 | `tests/integration/test_status.py` | 18 | Las 10 zonas con coordenadas; MATARANI sin datos recientes y sin alerta |
-| `src/pages/Inicio.test.tsx` | 19 | Un círculo por zona, coloreado por estado; las zonas en alerta se agrandan |
-| `src/components/mapa/PanelZona.test.tsx` | 8 | Detalle en lenguaje sencillo |
-| `src/components/mapa/paleta.test.ts` | 7 | El encuadre se calcula de las coordenadas |
-| `e2e/mapa.spec.ts` | 13 | Leaflet real con 10 zonas; atribución de OpenStreetMap; el panel no tapa el mapa en celular |
+| `src/pages/Inicio.test.tsx` | 33 | Resumen, tarjetas con las alertas primero, tabla, hoja o panel según el ancho, zona leída de la dirección, carga, error y ausencia de datos |
+| `src/components/inicio/ResumenEstado.test.tsx` | 10 | Fecha y antigüedad del dato, resaltada si supera la vigencia; zonas en alerta; conteo que incluye estados vacíos |
+| `src/components/inicio/datos.test.ts` | 21 | Fechas sin desfase horario en Perú, orden de las zonas, grados con signo, «y» / «e» |
+| `src/components/inicio/TarjetasZonas.test.tsx` | 11 | Promedio respecto a lo normal, zona sin datos y línea de alerta |
+| `src/components/inicio/Estado.test.tsx` | 7 | Una forma distinta por estado, además del color |
+| `src/components/TablaEstado.test.tsx` | 8 | La tabla accesible con fechas, alertas y selección |
+| `src/components/mapa/DetalleZona.test.tsx` | 14 | Detalle en lenguaje sencillo; recibir y dejar de recibir avisos |
+| `src/components/mapa/HojaInferior.test.tsx` | 11 | Diálogo modal: foco atrapado y devuelto, Escape, fondo y deslizamiento |
+| `src/components/mapa/PanelZona.test.tsx` | 5 | Invitación y accesos directos a las zonas en alerta |
+| `src/components/mapa/marcador.test.ts` | 8 | Símbolo por estado, anillo de alerta y nombre accesible escapado |
+| `src/components/mapa/paleta.test.ts` | 26 | Contraste medido de cada color de estado; encuadre calculado de las coordenadas |
+| `e2e/mapa.spec.ts` | 12 | Leaflet real con 10 zonas; atribución de OpenStreetMap; elección con ratón y teclado |
+| `e2e/inicio.spec.ts` | 20 | Resumen, tabla y tarjetas en escritorio y celular; «Reintentar» tras un fallo |
+| `e2e/detalle.spec.ts` | 23 | Hoja inferior, gestos del mapa, panel lateral y avisos reales desde el detalle |
+| `e2e/rendimiento.spec.ts` | 2 | **El mapa muestra las 10 zonas en 1.07 s (mediana) con 4G normal**; la portada pesa 170 kB comprimidos |
 
 ---
 
@@ -127,7 +144,7 @@ medida de incertidumbre, y está fijada en una prueba.
 | `tests/integration/test_series.py` | 24 | 56 años caben en menos de 1,000 puntos; máximo de 4 zonas comparables |
 | `src/components/graficos/datos.test.ts` | 20 | El eje vertical incluye el cero sin desperdiciar espacio |
 | `src/components/graficos/paletaSeries.test.ts` | 15 | Cada serie usa color, forma y trazo distintos |
-| `src/pages/Historico.test.tsx` | 10 | Selección de zona y rango |
+| `src/pages/Historico.test.tsx` | 12 | Selección de zona y rango; abre la zona indicada en la dirección |
 | `src/pages/Comparacion.test.tsx` | 11 | Límite de zonas y leyenda obligatoria |
 | `e2e/graficos.spec.ts` | 17 | **La línea se corta en los huecos**, comprobado sobre el trazado SVG real |
 
@@ -140,12 +157,16 @@ medida de incertidumbre, y está fijada en una prueba.
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
-| `tests/unit/test_security.py` | 12 | La contraseña nunca se guarda en claro; se rechazan las que bcrypt truncaría |
+| `tests/unit/test_security.py` | 15 | La contraseña nunca se guarda en claro; se rechazan las que bcrypt truncaría; un reloj que retrocede unos segundos no invalida una sesión recién iniciada |
 | `tests/integration/test_auth.py` | 22 | Registro, sesión, token vencido y cuenta desactivada |
 | `tests/integration/test_auth_service.py` | 11 | El administrador se crea al arrancar y **dos procesos simultáneos no chocan** |
 | `tests/integration/test_subscriptions.py` | 13 | Varias zonas por usuario, aisladas entre usuarios |
 | `src/pages/MisZonas.test.tsx` | 7 | Seguir y abandonar zonas |
+| `src/components/marco/MenuCuenta.test.tsx` | 12 | Sesión, rol y opciones por rol; cierre con Escape o al pulsar fuera |
+| `src/components/marco/Cabecera.test.tsx` | 6 | Entrar sin sesión, menú con sesión y nada mientras se revalida |
+| `src/App.test.tsx` | 9 | Iniciar y cerrar sesión desde el marco; carga diferida de las pantallas |
 | `e2e/auth.spec.ts` | 9 | Registro, sesión persistente y cierre en el navegador |
+| `e2e/marco.spec.ts` | 28 | Menú de cuenta, barra inferior y banda en escritorio y celular |
 
 ---
 
@@ -171,12 +192,13 @@ verificado también sobre las imágenes de producción. La prueba
 
 | Atributo (ISO 25010) | Evidencia |
 |---|---|
-| Usabilidad | Todos los textos en español, centralizados en `src/i18n/textos.ts`. Tabla accesible junto a cada gráfico y al mapa |
+| Usabilidad | Todos los textos en español, centralizados en `src/i18n/textos.ts`. Interfaz móvil primero con barra inferior; cada estado con color, símbolo y nombre; tabla accesible junto a cada gráfico y al mapa. Guía en [diseno.md](diseno.md) |
+| Accesibilidad | axe (WCAG 2.2 AA) **bloqueante** en todas las pantallas, en escritorio y celular, y en las pruebas de cada componente nuevo. Excepción documentada: tamaño de objetivo de los marcadores del mapa (WCAG 2.5.8, «equivalente») |
 | Confiabilidad | La fecha del dato se muestra siempre; una zona sin mediciones recientes se marca y no se clasifica |
 | Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`) |
-| Mantenibilidad | 688 pruebas, 95% de cobertura, ruff y mypy en modo estricto sin observaciones |
+| Mantenibilidad | 943 pruebas, 95% de cobertura del backend, ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
 | Portabilidad | Todo en contenedores; el stack de producción se verificó completo en local |
-| Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3 |
+| Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 1.07 s con 4G normal (límite: 3 s) y la portada descarga 170 kB comprimidos (`e2e/rendimiento.spec.ts`) |
 
 ---
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Avisos from './Avisos'
 import type { Aviso } from '../api/client'
+import { AvisosContext } from '../avisos/contexto'
 import { textos } from '../i18n/textos'
 import { USUARIO, conSesionIniciada, renderConProveedores, respuesta } from '../test-utils'
 
@@ -102,6 +103,36 @@ describe('Avisos', () => {
     await waitFor(() => {
       expect(mock.mock.calls.some((c) => String(c[0]).includes('/read-all'))).toBe(true)
     })
+  })
+
+  it('al marcar un aviso actualiza el contador del marco', async () => {
+    simularApi([aviso()])
+    const refrescar = vi.fn()
+    const user = userEvent.setup()
+    renderConProveedores(
+      <AvisosContext.Provider value={{ sinLeer: 1, refrescar }}>
+        <Avisos />
+      </AvisosContext.Provider>,
+    )
+
+    await screen.findByTestId('aviso-1')
+    await user.click(screen.getByRole('button', { name: textos.avisos.nuevo }))
+    await waitFor(() => expect(refrescar).toHaveBeenCalled())
+  })
+
+  it('al marcar todos actualiza el contador del marco', async () => {
+    simularApi([aviso({ id: 1 }), aviso({ id: 2 })])
+    const refrescar = vi.fn()
+    const user = userEvent.setup()
+    renderConProveedores(
+      <AvisosContext.Provider value={{ sinLeer: 2, refrescar }}>
+        <Avisos />
+      </AvisosContext.Provider>,
+    )
+
+    await screen.findByTestId('sin-leer')
+    await user.click(screen.getByRole('button', { name: textos.avisos.marcarTodos }))
+    await waitFor(() => expect(refrescar).toHaveBeenCalled())
   })
 
   it('sin avisos sin leer no ofrece marcar todos', async () => {

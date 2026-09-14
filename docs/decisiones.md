@@ -226,8 +226,62 @@ tipos que llevaban semanas ocultos.
 
 ---
 
+## 16. Rediseño del frontend (septiembre de 2026)
+
+El frontend funcionaba, pero con un diseño básico: una sola hoja de estilos, navegación que en
+celular solo se envolvía y un mapa colorido que competía con los colores de estado. El rediseño
+se hizo en cuatro fases, cada una con preguntas, maqueta aprobada, pruebas y commit propio. La
+guía resultante está en [diseno.md](diseno.md).
+
+**Alcance:** marco global (banda, navegación, menú de cuenta, pie) en todas las pantallas y
+rediseño completo de Inicio. Histórico, Comparar, Próximos días, cuenta y Administración
+conservan su contenido y su estilo anterior.
+
+| Decisión | Motivo | Se descartó |
+|---|---|---|
+| Móvil primero, barra inferior en celular y navegación en la banda desde 768 px | El usuario principal de la SRS entra desde el celular; la barra queda al alcance del pulgar | Menú hamburguesa, que oculta la navegación |
+| Solo tema claro con la identidad de la presentación | Legibilidad al sol y coherencia con lo presentado en el Hito 1 | Modo oscuro |
+| Tailwind v4 **sin su reset global** y con utilidades `!important` | Tenía que convivir con la hoja antigua y con la de Leaflet sin romper las pantallas no rediseñadas | Envolver la hoja antigua en una capa CSS: la de Leaflet, fuera de capa, le habría ganado y el mapa habría tapado la navegación |
+| Colores de estado derivados de la presentación, oscurecidos hasta 3:1 | WCAG 1.4.11; una prueba mide el contraste de cada color | Los colores originales, demasiado claros sobre fondo claro |
+| Cada estado con color, símbolo y nombre | La situación no puede depender de distinguir colores | Solo color |
+| Tarjetas en celular y tabla en escritorio, sin renderizar ambas | Un lector de pantalla leería dos veces lo mismo | Ocultar una de las dos con CSS |
+| La zona elegida en la dirección (`/?zona=CALLAO`) | Sobrevive a una recarga y permite volver a la zona tras iniciar sesión | Estado solo en memoria |
+| Detalle en hoja inferior modal en celular y en panel lateral en escritorio | En celular el panel quedaba lejos, bajo el mapa | Ventana modal centrada |
+| Mapa base de OpenStreetMap pasado a gris claro con CSS | CARTO Positron, la opción aprobada en la maqueta, pasó a exigir clave de API | CARTO con clave expuesta en el navegador |
+| Mover el mapa con dos dedos en celular | Con un dedo el mapa atrapaba el desplazamiento de la página | Mapa fijo sin zoom |
+| Excepción «equivalente» de WCAG 2.5.8 para los marcadores | Con toda la costa a la vista, zonas vecinas se solapan; la misma selección está en tarjetas y tabla | Separar artificialmente marcadores cercanos |
+| Carga diferida de cada pantalla | La portada pasó de 272 a 170 kB comprimidos: ya no descarga Recharts | Un único archivo de 923 kB |
+| Accesibilidad con axe bloqueante en todas las pantallas | Al cerrar ninguna tenía violaciones serias; así ninguna nueva se cuela | Solo informe |
+
+**Rendimiento medido (SRS, sección 3.3):** con la build de producción, en un celular emulado con
+4G normal (9 Mbps, 40 ms) y la CPU al doble de lenta, el mapa muestra sus 10 zonas en una mediana
+de **1.07 s** sobre tres cargas en frío. El límite es de 3 s.
+
+### 16.1 Errores que el rediseño destapó
+
+| Error | Cómo apareció |
+|---|---|
+| **Vite dentro de Docker servía código antiguo**: las pruebas visuales validaban una interfaz que ya no existía | La captura de una prueba fallida mostraba la cabecera anterior. En Windows los cambios de archivos no llegan al contenedor; se activó el sondeo |
+| Con el sondeo, cada página tardaba más de 30 s | Medición con y sin sondeo: el almacén de pnpm (15,000 archivos) estaba dentro de la carpeta vigilada |
+| **Sesiones recién iniciadas rechazadas con 401** de forma intermitente | La traza mostró el mismo token aceptado y, dos segundos después, rechazado: el reloj de la máquina virtual retrocedía y PyJWT rechaza sin tolerancia un token emitido «en el futuro». Ahora se aceptan 30 s de desajuste |
+| Una carga duplicada de la configuración podía pisar lo que el administrador escribía | Prueba E2E del umbral fuera de rango |
+| La tabla abierta ensanchaba toda la página en celular | Prueba E2E de desbordamiento horizontal |
+| La columna de alerta quedaba recortada en escritorio por una regla antigua que impedía partir líneas | Revisión de la captura de referencia |
+| «°C» quedaba solo en la línea siguiente al valor | Revisión de la captura; se usa un espacio duro |
+| **La tolerancia visual relativa (0.5 %) dejaba pasar cambios reales de texto** | Al fijarla en 20 píxeles absolutos, tres capturas que habían cambiado sin avisar fallaron |
+| Con la carga diferida, el menú de cuenta abierto justo después de entrar se cerraba solo | Cinco pruebas E2E: el botón de cuenta aparece antes de que la pantalla de destino termine de descargarse, y el menú se cierra al completarse el cambio de ruta. En producción el intervalo es de milisegundos; las pruebas esperan a la pantalla de destino |
+| CARTO mostraba «API KEY REQUIRED» sobre el mapa | Una captura con mosaicos reales; las pruebas visuales los bloquean y no podían verlo |
+
+**Lección:** una prueba verde solo vale si verifica lo que se cree. Dos de estos errores (el
+servidor desactualizado y la tolerancia visual) hacían que las pruebas pasaran sin estar
+comprobando nada.
+
+---
+
 ## Lo que quedó fuera
 
+- **Rediseño de Histórico, Comparar, Próximos días, cuenta y Administración**: conservan el
+  estilo anterior dentro del marco nuevo; la guía de diseño permite continuarlo.
 - **SMS** (RF-03): la pasarela quedaba «a definir» y tiene costo por mensaje en Perú.
 - **Importación programada** (RF-08): exigiría un planificador sin aportar nada demostrable.
 - **Modo oscuro** y **aplicación móvil nativa**: fuera del alcance que declara la SRS.

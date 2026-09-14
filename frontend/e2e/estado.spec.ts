@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -9,13 +10,13 @@ async function entrarComoAdmin(page: Page) {
   await page.getByLabel('Correo electrónico').fill(ADMIN_EMAIL)
   await page.getByLabel('Contraseña').fill(ADMIN_PASSWORD)
   await page.getByRole('button', { name: 'Entrar' }).click()
-  await expect(page.getByTestId('sesion-actual')).toContainText('Administrador')
+  await esperarSesion(page, 'Administrador')
 }
 
 test.describe('Fase 3 — estado térmico y rachas (RF-01)', () => {
   test('el estado de las zonas es público', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Estado térmico del litoral' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Estado del mar en la costa' })).toBeVisible()
   })
 
   test('la API de estado devuelve las 10 zonas y una fecha de referencia', async ({ request }) => {
@@ -31,13 +32,15 @@ test.describe('Fase 3 — estado térmico y rachas (RF-01)', () => {
 
   test('la fecha del dato se muestra siempre, como exige la SRS', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByTestId('fecha-referencia')).toContainText('Datos actualizados al')
+    await expect(page.getByTestId('fecha-referencia')).toContainText('Último dato de IMARPE')
+    await expect(page.getByTestId('fecha-referencia')).toContainText(/\d{2}\/\d{2}\/\d{4}/)
   })
 
-  test('la leyenda explica los cuatro estados', async ({ page }) => {
+  test('el conteo por estado nombra los cuatro estados', async ({ page }) => {
     await page.goto('/')
     const leyenda = page.getByTestId('leyenda')
-    for (const estado of ['Cálido', 'Neutro', 'Frío', 'Sin datos recientes']) {
+    // Singular o plural segun el dia: «cálida» esta contenida en «cálidas».
+    for (const estado of ['cálida', 'neutra', 'fría', 'sin datos']) {
       await expect(leyenda).toContainText(estado)
     }
   })

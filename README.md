@@ -2,8 +2,9 @@
 
 Proyecto académico del curso **Calidad de Software**. OLA es una aplicación web que transforma el dataset público de anomalía de la temperatura superficial del mar (ATSM), publicado por IMARPE/PRODUCE, en información sencilla para consultar el estado térmico de los laboratorios costeros del litoral peruano.
 
-> Sistema completo y verificado: 688 pruebas automatizadas, 95% de cobertura en el backend y
-> el stack de producción probado de extremo a extremo. Ver
+> Sistema completo y verificado: 943 pruebas automatizadas, 95% de cobertura en el backend,
+> accesibilidad WCAG 2.2 AA comprobada en cada pantalla y el stack probado de extremo a extremo
+> en escritorio y celular. Ver
 > [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito.
 
 ## Objetivo
@@ -35,8 +36,8 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 
 - **Backend:** Python 3.13 con FastAPI, SQLAlchemy y Alembic.
 - **Base de datos:** PostgreSQL 17.
-- **Frontend:** React con Vite y TypeScript; Leaflet para el mapa y Recharts para los gráficos.
-- **Pruebas:** pytest, Vitest y Playwright.
+- **Frontend:** React con Vite y TypeScript; Tailwind CSS; Leaflet para el mapa y Recharts para los gráficos; fuentes autoalojadas (Inter, Space Grotesk, JetBrains Mono) e iconos lucide.
+- **Pruebas:** pytest, Vitest y Playwright, con axe para accesibilidad y capturas para regresión visual.
 - **Despliegue:** Docker sobre un VPS Linux administrado con Dokploy.
 - **Comunicación:** API REST propia mediante HTTPS.
 - **Fuente de datos:** dataset abierto de IMARPE/PRODUCE.
@@ -58,6 +59,7 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 │   ├── requisitos.md                # Especificación de Requisitos de Software
 │   ├── trazabilidad.md              # Matriz de trazabilidad y evidencia de pruebas
 │   ├── decisiones.md                # Registro de decisiones de diseño
+│   ├── diseno.md                    # Guía de diseño de la interfaz
 │   └── presentacion-ola.html        # Presentación del proyecto
 ├── compose.yml                      # Entorno de desarrollo
 ├── compose.prod.yml                 # Despliegue en el VPS con Dokploy
@@ -104,6 +106,7 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [Especificación de Requisitos de Software](docs/requisitos.md)
 - [Matriz de trazabilidad y evidencia de pruebas](docs/trazabilidad.md)
 - [Registro de decisiones de diseño](docs/decisiones.md)
+- [Guía de diseño de la interfaz](docs/diseno.md)
 - [Presentación del proyecto OLA](docs/presentacion-ola.html)
 
 ## Desarrollo local
@@ -139,8 +142,24 @@ definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicaci
 ```bash
 docker compose exec api pytest --cov=ola      # unitarias e integración del backend
 docker compose exec web pnpm test             # unitarias del frontend
-docker compose --profile e2e run --rm e2e     # extremo a extremo con Playwright
+docker compose --profile e2e run --rm e2e     # extremo a extremo: escritorio, celular, axe y capturas
 ```
+
+La medición de rendimiento compila la build de producción y comprueba que el mapa carga en
+menos de 3 s con 4G normal (SRS, sección 3.3). Va aparte porque tarda más:
+
+```bash
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm test:rendimiento"
+```
+
+Las capturas de regresión visual se generan y comparan **dentro del contenedor de Playwright**.
+Si un cambio visual es intencionado, se regeneran con `pnpm exec playwright test visual.spec.ts
+--update-snapshots` en ese mismo contenedor y se revisan antes de confirmarlas. Ver
+[la guía de diseño](docs/diseno.md), sección 11.
+
+> **Docker en Windows o macOS:** los contenedores no reciben avisos de cambios en los archivos.
+> Vite usa sondeo (`VITE_WATCH_POLLING` en `compose.yml`); el backend no, así que tras cambiar su
+> código hay que ejecutar `docker compose restart api`.
 
 No se deben incluir credenciales reales en el repositorio: `.env` está en `.gitignore` y solo
 se versiona `.env.example`.

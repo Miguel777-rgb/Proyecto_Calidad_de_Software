@@ -1,13 +1,21 @@
 :root {
   --texto: #12232e;
-  --fondo: #f7f9fb;
+  --fondo: #f3f7f5;
   --borde: #d8e0e6;
   --ok: #1b7f4b;
   --error: #b3261e;
   --espera: #8a6d1f;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-cuerpo);
   color: var(--texto);
   background: var(--fondo);
+}
+
+/* Tipografia del marco aplicada a todas las pantallas: solo cambia la familia
+   de los titulos, no su tamano ni la maquetacion. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-titulo);
 }
 
 * {
@@ -22,18 +30,6 @@ body {
   max-width: 60rem;
   margin: 0 auto;
   padding: 2rem 1rem;
-}
-
-h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.75rem;
-}
-
-.subtitulo {
-  display: block;
-  font-size: 1rem;
-  font-weight: 400;
-  color: #4a5a66;
 }
 
 .conexion {
@@ -57,34 +53,12 @@ h1 {
   color: var(--espera);
 }
 
-footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--borde);
-  font-size: 0.8125rem;
-  color: #4a5a66;
-}
-
-nav {
-  display: flex;
-  /* Sin ajuste de linea, los enlaces desbordan la pantalla de un celular en
-     cuanto el menu crece. */
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--borde);
-}
-
-nav a,
 .enlace {
   color: #1a5e8a;
   text-decoration: none;
   font-weight: 600;
 }
 
-nav a:hover,
 .enlace:hover {
   text-decoration: underline;
 }
@@ -234,15 +208,6 @@ input[type='file'] {
   background: #fff;
 }
 
-.banner-actualizacion {
-  display: inline-block;
-  padding: 0.4rem 0.75rem;
-  background: #eef2f5;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
 .aviso {
   margin: 0.75rem 0 0;
   padding: 0.6rem 0.75rem;
@@ -269,15 +234,6 @@ input[type='file'] {
   gap: 0.4rem;
 }
 
-.punto {
-  display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  margin-right: 0.4rem;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 50%;
-  vertical-align: middle;
-}
 
 
 .campo {
@@ -301,122 +257,10 @@ button.secundario:disabled {
   cursor: progress;
 }
 
-/* --- Mapa y panel de detalle ------------------------------------------- */
-
-.mapa-y-panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-
-/* A partir de tablet el panel se coloca al costado; en celular queda debajo
-   del mapa para no taparlo. */
-@media (min-width: 48rem) {
-  .mapa-y-panel {
-    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
-  }
-}
-
-.mapa {
-  height: 26rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-@media (min-width: 48rem) {
-  .mapa {
-    height: 32rem;
-  }
-}
-
-/* Leaflet fija z-index altos que se montan sobre la navegacion. */
-.mapa .leaflet-pane,
-.mapa .leaflet-top,
-.mapa .leaflet-bottom {
-  z-index: 1;
-}
-
-.panel-zona {
-  padding: 1rem;
-  background: #fff;
-  border: 1px solid var(--borde);
-  border-radius: 0.5rem;
-}
-
-.panel-zona--vacio {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.panel-zona__cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.panel-zona__cabecera h3 {
-  margin: 0;
-}
-
-.panel-zona__situacion {
-  display: flex;
-  align-items: center;
-  margin: 0.5rem 0 1rem;
-  font-weight: 600;
-}
-
-.panel-zona__datos {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.35rem 1rem;
-  margin: 0;
-  font-size: 0.9375rem;
-}
-
-.panel-zona__datos dt {
-  color: #4a5a66;
-}
-
-.panel-zona__datos dd {
-  margin: 0;
-  font-weight: 600;
-}
-
-.panel-zona__alerta {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fdecea;
-  border-left: 4px solid var(--error);
-  border-radius: 0.375rem;
-  font-size: 0.9375rem;
-}
-
-.panel-zona__alerta p {
-  margin: 0.35rem 0 0;
-}
-
 .aviso--atencion {
   background: #fdf6e3;
   border-color: var(--espera);
   color: #6b4f0e;
-}
-
-/* Leaflet dibuja las zonas como SVG. Al pulsarlas con el raton el navegador
-   añade un recuadro de foco cuadrado alrededor del circulo, que parece un
-   defecto de dibujo. Se conserva solo para el foco por teclado, donde si
-   hace falta; la seleccion con raton ya se distingue por el borde oscuro. */
-.leaflet-interactive:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.leaflet-interactive:focus-visible {
-  outline: 2px solid var(--texto);
-  outline-offset: 2px;
 }
 
 /* --- Graficos ----------------------------------------------------------- */

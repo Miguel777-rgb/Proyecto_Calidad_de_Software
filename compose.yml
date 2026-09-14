@@ -56,6 +56,9 @@ services:
       # proxy hacia `api`. Es el mismo comportamiento que Nginx en
       # produccion, y ademas funciona desde el contenedor de pruebas E2E.
       VITE_API_URL: /api
+      # Sin sondeo, los cambios hechos en el equipo no llegan a Vite dentro
+      # del contenedor y el navegador (y las E2E) ven codigo desactualizado.
+      VITE_WATCH_POLLING: "true"
     ports:
       - "${WEB_PORT}:5173"
     volumes:

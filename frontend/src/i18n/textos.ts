@@ -4,8 +4,9 @@ export const textos = {
   app: {
     nombre: 'OLA',
     titulo: 'Observatorio Litoral de Anomalías térmicas',
-    descripcion:
-      'Estado térmico del litoral peruano a partir del dataset abierto de IMARPE.',
+    descripcion: 'El estado del mar en la costa peruana, con datos abiertos del IMARPE.',
+    avisoAlcance:
+      'OLA es una herramienta complementaria: no reemplaza los boletines del IMARPE ni del ENFEN.',
   },
   comun: {
     cargando: 'Cargando…',
@@ -15,16 +16,21 @@ export const textos = {
     opcional: 'opcional',
   },
   navegacion: {
-    inicio: 'Inicio',
-    entrar: 'Iniciar sesión',
+    inicio: 'Mapa',
+    entrar: 'Entrar',
     registrarse: 'Crear cuenta',
     salir: 'Cerrar sesión',
     administracion: 'Administración',
     historico: 'Histórico',
     comparacion: 'Comparar',
-    proyeccion: 'Proyección',
+    proyeccion: 'Próximos días',
     misZonas: 'Mis zonas',
     avisos: 'Avisos',
+    principal: 'Navegación principal',
+    saltar: 'Saltar al contenido',
+    menuCuenta: 'Menú de cuenta',
+    menuCuentaConAvisos: (n: number) =>
+      `Menú de cuenta, ${n} ${n === 1 ? 'aviso sin leer' : 'avisos sin leer'}`,
   },
   entrar: {
     titulo: 'Iniciar sesión',
@@ -43,7 +49,7 @@ export const textos = {
   },
   inicio: {
     bienvenida: 'Bienvenido a OLA',
-    sesionComo: 'Sesión iniciada como',
+    sesionComo: 'Conectado como',
     administrador: 'Administrador',
     usuario: 'Usuario',
     proximamente:
@@ -90,26 +96,56 @@ export const textos = {
     archivoRequerido: 'Selecciona un archivo CSV antes de importar.',
   },
   estado: {
-    titulo: 'Estado térmico del litoral',
+    titulo: 'Estado del mar en la costa',
+    resumen: 'Resumen del estado del mar',
     warm: 'Cálido',
     neutral: 'Neutro',
     cold: 'Frío',
     no_data: 'Sin datos recientes',
-    leyenda: 'Leyenda',
-    zona: 'Zona',
-    situacion: 'Situación',
+    // Concuerdan con «zona», que es femenino: se usan en el resumen y el conteo.
+    singular: { warm: 'cálida', neutral: 'neutra', cold: 'fría', no_data: 'sin datos' },
+    plural: { warm: 'cálidas', neutral: 'neutras', cold: 'frías', no_data: 'sin datos' },
+    respectoNormal: {
+      warm: 'sobre lo normal',
+      neutral: 'dentro de lo normal',
+      cold: 'bajo lo normal',
+      no_data: '',
+    },
     promedio: 'Promedio',
     ultimaMedicion: 'Última medición',
-    alerta: 'Alerta sostenida',
     sinAlerta: 'Sin alerta',
-    desde: 'desde',
-    registros: 'registros',
     diasSinDato: (dias: number) => `hace ${dias} ${dias === 1 ? 'día' : 'días'}`,
-    actualizado: (fecha: string) => `Datos actualizados al ${fecha}`,
-    sinDatosCargados:
-      'Todavía no hay mediciones cargadas. Un administrador debe importar el dataset de IMARPE.',
+    ultimoDatoImarpe: 'Último dato de IMARPE',
+    antiguedad: (dias: number) =>
+      dias <= 0 ? 'Dato de hoy' : `hace ${dias} ${dias === 1 ? 'día' : 'días'}`,
+    etiquetaAlertas: 'Alertas',
+    etiquetaConteo: 'Zonas por estado',
+    zonasEnAlerta: (cantidad: number, zonas: string) =>
+      `${cantidad} ${cantidad === 1 ? 'zona' : 'zonas'} en alerta: ${zonas}`,
+    ningunaAlerta: 'Ninguna zona en alerta',
+    ultimoDato: (fecha: string) => `Último dato: ${fecha}`,
+    sinMedicionesDesde: (fecha: string) => `Sin mediciones desde ${fecha}`,
+    enAlertaDesde: (fecha: string, mediciones: number) =>
+      `En alerta desde ${fecha} · ${mediciones} mediciones seguidas`,
+    alertaDesde: (fecha: string, mediciones: number) => `Desde ${fecha} · ${mediciones} mediciones`,
+    todasLasZonas: 'Todas las zonas',
+    verTodosLosDatos: 'Ver todos los datos',
+    columnas: {
+      zona: 'Zona',
+      situacion: 'Situación',
+      promedio: (dias: number | null) =>
+        dias === null ? 'Promedio' : `Promedio ${dias} ${dias === 1 ? 'día' : 'días'}`,
+      ultimoDato: 'Último dato',
+      alerta: 'Alerta',
+    },
+    cargando: 'Cargando el estado del mar',
+    errorCarga: 'No pudimos cargar el estado del mar.',
+    errorCargaAyuda: 'Revisa tu conexión.',
+    reintentar: 'Reintentar',
+    sinDatosCargados: 'Aún no hay datos del mar.',
+    sinDatosCargadosAyuda: 'El equipo de OLA debe cargar los datos de IMARPE.',
     explicacionPromedio: (dias: number) =>
-      `La situación de cada zona se calcula con el promedio de los últimos ${dias} días, para que un solo día atípico no cambie el color.`,
+      `El color de cada zona sale del promedio de los últimos ${dias} días, para que un solo día raro no lo cambie.`,
   },
   graficos: {
     historico: 'Histórico por zona',
@@ -212,17 +248,34 @@ export const textos = {
   },
   mapa: {
     titulo: 'Mapa de zonas costeras',
-    sinSeleccion: 'Pulsa una zona del mapa para ver su detalle.',
+    sinSeleccion: 'Elige una zona en el mapa o en la tabla para ver su detalle.',
+    zonasEnAlerta: 'Zonas en alerta:',
     cerrarPanel: 'Cerrar el detalle de la zona',
-    ultimoValor: 'Último valor',
-    avisoObsoleta:
-      'Esta zona no registra mediciones recientes, así que no se muestra su situación térmica.',
-    enAlerta: (situacion: string) => `Alerta ${situacion.toLowerCase()} en curso`,
-    detalleAlerta: (desde: string, registros: number, pico: string) =>
-      `Sostenida desde el ${desde}, con ${registros} mediciones seguidas fuera del rango normal. Valor más extremo: ${pico} °C.`,
-    sinAlertaExplicacion: 'Esta zona no presenta una tendencia sostenida.',
-    verTabla: 'Detalle de todas las zonas',
-    atribucionMapa: 'Mapa base de OpenStreetMap.',
+    detalleDe: (zona: string) => `Detalle de ${zona}`,
+    marcador: (zona: string, estado: string, enAlerta: boolean) =>
+      `${zona}: ${estado.toLowerCase()}${enAlerta ? ', en alerta' : ''}`,
+    promedioDeDias: (dias: number | null) =>
+      dias === null
+        ? 'Promedio de los últimos días'
+        : `Promedio de los últimos ${dias} ${dias === 1 ? 'día' : 'días'}`,
+    valorMedido: (fecha: string) => `Valor medido el ${fecha}:`,
+    enAlerta: (situacion: string, desde: string) => `En alerta ${situacion} desde el ${desde}`,
+    detalleAlerta: (mediciones: number, pico: string) =>
+      `${mediciones} mediciones seguidas fuera de lo normal · valor más extremo ${pico}`,
+    sinAlertaExplicacion: 'Sin alerta: el mar no se mantiene fuera de lo normal.',
+    avisoObsoleta: (fecha: string | null) =>
+      fecha === null
+        ? 'No hay mediciones recientes: no se puede saber cómo está el mar aquí.'
+        : `No hay mediciones desde el ${fecha}: no se puede saber cómo está el mar aquí.`,
+    verHistorico: (zona: string) => `Ver histórico de ${zona}`,
+    recibirAvisos: (zona: string) => `Recibir avisos de ${zona}`,
+    recibesAvisos: (zona: string) => `Recibes avisos de ${zona}`,
+    dejarDeRecibir: 'Dejar de recibir',
+    entraParaAvisos: 'Entra para recibir avisos',
+    gestoTactil: 'Usa dos dedos para mover el mapa',
+    gestoRueda: 'Mantén Ctrl y gira la rueda para acercar el mapa',
+    gestoRuedaMac: 'Mantén ⌘ y gira la rueda para acercar el mapa',
+    atribucionMapa: 'Mapa base: © colaboradores de OpenStreetMap.',
   },
   configuracion: {
     titulo: 'Parámetros de detección',

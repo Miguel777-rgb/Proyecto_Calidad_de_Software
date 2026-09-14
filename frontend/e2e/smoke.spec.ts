@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8000'
 
-test.describe('Fase 0 — andamiaje', () => {
+test.describe('Fase 0 — andamiaje', { tag: '@movil' }, () => {
   test('la API responde en el endpoint de salud', async ({ request }) => {
     const respuesta = await request.get(`${API_URL}/api/health/ready`)
     expect(respuesta.status()).toBe(200)

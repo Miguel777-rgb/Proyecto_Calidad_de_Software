@@ -88,6 +88,26 @@ class TestTokens:
         with pytest.raises(jwt.ExpiredSignatureError):
             decode_access_token(vencido, secret=SECRETO, algorithm=ALGORITMO)
 
+    def test_tolera_un_reloj_que_retrocede_unos_segundos(self):
+        # Si la hora del servidor retrocede justo despues de emitir el token
+        # (NTP, la VM de Docker), su iat queda unos segundos "en el futuro".
+        # Sin tolerancia, la sesion recien iniciada se rechazaba con 401.
+        adelantado = self._token(now=datetime.now(UTC) + timedelta(seconds=5))
+        datos = decode_access_token(adelantado, secret=SECRETO, algorithm=ALGORITMO)
+        assert datos["sub"] == "42"
+
+    def test_un_token_emitido_muy_en_el_futuro_se_rechaza(self):
+        # La tolerancia cubre desajustes de reloj, no tokens fabricados con
+        # una fecha de emision posterior.
+        futuro = self._token(now=datetime.now(UTC) + timedelta(minutes=5))
+        with pytest.raises(jwt.ImmatureSignatureError):
+            decode_access_token(futuro, secret=SECRETO, algorithm=ALGORITMO)
+
+    def test_un_token_vencido_hace_unos_segundos_sigue_valido_dentro_de_la_tolerancia(self):
+        recien_vencido = self._token(now=datetime.now(UTC) - timedelta(minutes=60, seconds=10))
+        datos = decode_access_token(recien_vencido, secret=SECRETO, algorithm=ALGORITMO)
+        assert datos["sub"] == "42"
+
     def test_un_texto_cualquiera_no_es_un_token(self):
         with pytest.raises(jwt.PyJWTError):
             decode_access_token("no.es.un.token", secret=SECRETO, algorithm=ALGORITMO)

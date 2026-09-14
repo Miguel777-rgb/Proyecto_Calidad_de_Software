@@ -1,0 +1,17 @@
+/*
+ * Solo para las capturas del contenido de cada pantalla (visual.spec.ts).
+ *
+ * La banda es fija: al capturar un <main> mas alto que la ventana, Playwright
+ * desplaza la pagina y la banda queda pintada encima del titulo. El marco
+ * tiene sus propias capturas, asi que aqui se retira.
+ *
+ * Se usa `visibility` y no `display`: las utilidades de Tailwind llevan
+ * !important dentro de una capa y ganan a cualquier !important fuera de ella,
+ * asi que `display: none` no puede con el `grid` de la barra inferior. Ninguna
+ * utilidad fija `visibility`, y los dos elementos son fijos: ocultarlos no
+ * mueve nada.
+ */
+header,
+[data-testid='barra-inferior'] {
+  visibility: hidden !important;
+}

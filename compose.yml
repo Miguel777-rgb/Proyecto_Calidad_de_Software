@@ -122,6 +122,40 @@ services:
              pnpm install --frozen-lockfile --filter ola-frontend... &&
              pnpm exec playwright test"
 
+  # Disponibilidad del backend (metrica del plan de calidad, docs/calidad.md).
+  # Consulta /api/health/ready cada minuto mientras el entorno esta levantado.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.16
+    restart: unless-stopped
+    ports:
+      - "${UPTIME_KUMA_PORT:-3001}:3001"
+    volumes:
+      - uptime_kuma:/app/data
+    depends_on:
+      - api
+
+  # Scripts del plan de calidad: configurar Uptime Kuma y sacar el informe de
+  # disponibilidad. No arranca con `up`:
+  #   docker compose --profile calidad run --rm calidad configurar.py
+  #   docker compose --profile calidad run --rm calidad reporte.py --horas 168
+  #   docker compose --profile calidad run --rm calidad -m pytest
+  calidad:
+    profiles: ["calidad"]
+    image: python:3.13-slim
+    working_dir: /herramienta
+    environment:
+      UPTIME_KUMA_URL: http://uptime-kuma:3001
+      UPTIME_KUMA_USUARIO: ${UPTIME_KUMA_USUARIO}
+      UPTIME_KUMA_CLAVE: ${UPTIME_KUMA_CLAVE}
+      OLA_SALUD_URL: http://api:8000/api/health/ready
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./tools/uptime-kuma:/herramienta
+      - calidad_pip:/root/.cache/pip
+    depends_on:
+      - uptime-kuma
+    entrypoint: ["sh", "-c", "pip install -q --root-user-action=ignore -r requirements.txt && exec python \"$$@\"", "--"]
+
 volumes:
   pgdata:
   web_node_modules:
@@ -131,3 +165,5 @@ volumes:
   e2e_node_modules_frontend:
   e2e_node_modules_compartido:
   e2e_pnpm_store:
+  uptime_kuma:
+  calidad_pip:

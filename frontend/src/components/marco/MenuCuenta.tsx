@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import type { Usuario } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
 import { useAvisosSinLeer } from '../../avisos/useAvisosSinLeer'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 const OPCION =
   'flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 text-left font-cuerpo text-[17px] font-medium text-abisal no-underline hover:bg-realce focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-marea md:text-base'

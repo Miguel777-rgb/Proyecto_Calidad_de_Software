@@ -11,8 +11,8 @@ import { LeyendaSeries } from '../components/graficos/LeyendaSeries'
 import { MarcadorSerie } from '../components/graficos/MarcadorSerie'
 import { SelectorRango } from '../components/graficos/SelectorRango'
 import { TablaSerie } from '../components/graficos/TablaSerie'
-import { MAX_SERIES, estiloDe } from '../components/graficos/paletaSeries'
-import { textos } from '../i18n/textos'
+import { MAX_SERIES, estiloDe } from '@ola/compartido/graficos/paletaSeries'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function Comparacion() {
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([])

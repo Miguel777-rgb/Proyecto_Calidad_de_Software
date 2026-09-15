@@ -1,0 +1,16 @@
+# El contexto de la imagen web es la raiz del repositorio. Se excluye todo y
+# se deja entrar solo lo que la web necesita para compilar.
+**
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!frontend/**
+!packages/**
+
+**/node_modules
+**/dist
+**/coverage
+**/*.md
+frontend/test-results
+frontend/playwright-report
+frontend/capturas

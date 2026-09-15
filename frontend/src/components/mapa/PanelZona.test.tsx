@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PanelZona } from './PanelZona'
 import type { EstadoZona } from '../../api/client'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { ESTADO_MUESTRA, renderConProveedores, violacionesAxe } from '../../test-utils'
 
 const buscar = (code: string): EstadoZona =>

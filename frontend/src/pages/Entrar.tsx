@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function Entrar() {
   const { usuario, entrar } = useAuth()

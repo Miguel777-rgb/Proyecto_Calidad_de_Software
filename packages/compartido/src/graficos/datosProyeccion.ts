@@ -1,4 +1,4 @@
-import type { Proyeccion } from '../../api/client'
+import type { Proyeccion } from '../api/tipos'
 
 export interface FilaProyeccion {
   fecha: string

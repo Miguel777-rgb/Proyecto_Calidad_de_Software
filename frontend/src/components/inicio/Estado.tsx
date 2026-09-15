@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, CircleDashed, Minus, type LucideIcon } from 'lucide-react'
 import type { EstadoTermico } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { COLORES, TINTES } from '../mapa/paleta'
+import { textos } from '@ola/compartido/i18n/textos'
+import { COLORES, TINTES } from '@ola/compartido/mapa/paleta'
 
 // Una forma por estado, para que la situacion no dependa solo del color.
 const ICONOS: Record<EstadoTermico, LucideIcon> = {

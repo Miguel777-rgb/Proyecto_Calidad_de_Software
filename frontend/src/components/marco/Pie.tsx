@@ -1,4 +1,4 @@
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export function Pie() {
   return (

@@ -8,7 +8,7 @@ import {
   type Laboratorio,
 } from '../api/client'
 import { useAuth } from '../auth/useAuth'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function MisZonas() {
   const { usuario } = useAuth()

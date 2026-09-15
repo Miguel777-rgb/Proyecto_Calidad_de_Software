@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.6 |
+| Versión | 1.7 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -23,13 +23,13 @@ Este documento especifica los requisitos funcionales y no funcionales del sistem
 ### 1.2 Alcance
 **Nombre del producto:** OLA (Observatorio Litoral de Anomalías térmicas).
 
-**Qué hace:** una aplicación web que toma el dataset abierto de Anomalía de la Temperatura Superficial del Mar (ATSM) publicado por IMARPE/PRODUCE, lo clasifica en estados simples (cálido/neutro/frío) por zona costera, lo visualiza en un mapa interactivo y genera alertas cuando una zona muestra una tendencia térmica sostenida.
+**Qué hace:** una aplicación web que toma el dataset abierto de Anomalía de la Temperatura Superficial del Mar (ATSM) publicado por IMARPE/PRODUCE, lo clasifica en estados simples (cálido/neutro/frío) por zona costera, lo visualiza en un mapa interactivo y genera alertas cuando una zona muestra una tendencia térmica sostenida. También tiene una aplicación para Android con las funciones del usuario final y avisos push.
 
 **Qué NO hace (fuera de alcance en esta versión):**
 - No predice con certeza científica eventos El Niño/La Niña (eso es función oficial de ENFEN, que usa más variables que solo temperatura).
 - No reemplaza los boletines técnicos de IMARPE, los complementa.
-- No incluye aplicación móvil nativa (solo web responsiva).
-- No envía mensajes de texto (SMS); las alertas llegan por correo electrónico y dentro de la aplicación.
+- No incluye aplicación para iOS. La aplicación móvil es solo para Android 10 o superior.
+- No envía mensajes de texto (SMS); las alertas llegan por correo electrónico, dentro de la aplicación y como notificación push en la aplicación móvil.
 - No procesa pagos ni tiene modelo de monetización en esta fase.
 
 **Beneficios esperados:** dar visibilidad accesible, en un formato simple, a un dato público que hoy solo llega a especialistas — dirigido principalmente a pescadores artesanales del litoral peruano.
@@ -48,6 +48,8 @@ Este documento especifica los requisitos funcionales y no funcionales del sistem
 | SM | Scrum Master |
 | VPS | Virtual Private Server |
 | API | Application Programming Interface |
+| APK | Paquete de instalación de Android |
+| FCM | Firebase Cloud Messaging, servicio de Google para enviar notificaciones push |
 
 ### 1.4 Referencias
 - IEEE Std 830-1998, *IEEE Recommended Practice for Software Requirements Specifications*.
@@ -74,6 +76,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 5. Mostrar históricos y comparaciones entre zonas (RF-05, RF-06).
 6. Permitir registro y suscripción de usuarios (RF-07).
 7. Mantener actualizado el dataset base (RF-08).
+8. Ofrecer una aplicación para Android con avisos push (RF-09).
 
 ### 2.3 Características de los usuarios
 | Tipo de usuario | Perfil | Necesidad principal |
@@ -82,7 +85,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 | Administrador | Miembro del equipo del proyecto | Mantener el catálogo de laboratorios, configurar umbrales y supervisar la importación del dataset |
 
 ### 2.4 Restricciones
-- **Tecnológicas (decisión final del equipo):** backend en **Python** con el framework **FastAPI**; base de datos **PostgreSQL**; contenedores **Docker**; despliegue en **VPS Linux** administrado con Dokploy.
+- **Tecnológicas (decisión final del equipo):** backend en **Python** con el framework **FastAPI**; base de datos **PostgreSQL**; contenedores **Docker**; despliegue en **VPS Linux** administrado con Dokploy; aplicación móvil con **Expo** (React Native) y notificaciones push con **Firebase Cloud Messaging**.
 - **De tiempo:** el proyecto debe completarse dentro del cronograma del curso — Hito 1 (semana del 12 al 17 de octubre de 2026) e Hito 2 (primera semana de diciembre de 2026), coherente con las fechas de Evidencia 2 (12/10/2026) y Evidencia 4 (7/12/2026) del sílabo.
 - **De equipo:** 5 integrantes, esfuerzo mínimo de 4 horas por persona por día de trabajo, según exige el enunciado.
 - **De datos:** el sistema depende enteramente de la disponibilidad y el formato del dataset público de IMARPE; cualquier cambio en su estructura (columnas, frecuencia) puede requerir ajustes al importador (RF-08).
@@ -99,7 +102,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 
 ### 3.1 Requisitos funcionales
 
-> Complejidad: 3 Alta · 3 Media · 2 Baja (máximo 8, según exige el enunciado del curso).
+> Complejidad: 4 Alta · 3 Media · 2 Baja. El enunciado fija un máximo de 8; RF-09 lo excede por el cambio de alcance de la versión 1.7.
 
 #### RF-01 — Detección de anomalía térmica sostenida
 | Campo | Detalle |
@@ -122,10 +125,10 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 #### RF-03 — Notificación automática
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** enviar una notificación por **correo electrónico** y registrar un aviso dentro de la aplicación para los usuarios suscritos a una zona cuando dicha zona entre en estado de alerta (evento del RF-01), y también cuando el episodio termine. Cada episodio genera un único aviso por usuario y momento, sin importar cuántas veces se reevalúe. |
+| Descripción | El sistema **deberá** enviar una notificación por **correo electrónico**, registrar un aviso dentro de la aplicación y enviar una **notificación push** a los dispositivos con la aplicación móvil y la sesión iniciada, para los usuarios suscritos a una zona cuando dicha zona entre en estado de alerta (evento del RF-01), y también cuando el episodio termine. Cada episodio genera un único aviso por usuario y momento, sin importar cuántas veces se reevalúe. |
 | Entradas | Evento de tendencia sostenida (RF-01), lista de usuarios suscritos por zona. |
-| Proceso | La evaluación de alertas **registra** los avisos pendientes; el envío por SMTP se dispara en un paso posterior, de modo que un servidor de correo lento o caído no bloquee la evaluación. Un envío fallido queda marcado con su motivo y se reintenta en el siguiente intento. |
-| Salidas | Correo entregado, aviso visible en la aplicación y registro auditable del envío con su estado. |
+| Proceso | La evaluación de alertas **registra** los avisos pendientes; el envío por SMTP se dispara en un paso posterior, de modo que un servidor de correo lento o caído no bloquee la evaluación. Un envío fallido queda marcado con su motivo y se reintenta en el siguiente intento. El push se envía en el mismo paso posterior que el correo. Si FCM falla, el aviso queda marcado con su motivo y se reintenta. Si FCM rechaza un token por inválido, ese token se borra. |
+| Salidas | Correo entregado, aviso visible en la aplicación, notificación push en el celular y registro auditable del envío con su estado. |
 | Complejidad | Alta |
 
 #### RF-04 — Mapa interactivo de estado por zona
@@ -160,9 +163,18 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 | Descripción | El sistema **deberá** permitir que un administrador cargue manualmente el CSV publicado por IMARPE desde la aplicación, validando el formato de las 3 columnas del dataset. La importación es parcial y tolerante: las filas válidas se registran y las inválidas se rechazan con su motivo. Reimportar el archivo actualiza los valores corregidos por IMARPE sin duplicar mediciones. |
 | Complejidad | Baja |
 
+#### RF-09 — Aplicación móvil Android
+| Campo | Detalle |
+|---|---|
+| Descripción | El sistema **deberá** ofrecer una aplicación para Android 10 o superior con las funciones del usuario final: estado y mapa de las zonas (RF-04), histórico (RF-05), comparación (RF-06), proyección (RF-02), cuenta y zonas de interés (RF-07) y avisos (RF-03). Los avisos llegan también como notificación push, aunque la aplicación esté cerrada. |
+| Entradas | La API REST de OLA y el token que Firebase Cloud Messaging (FCM) asigna a cada dispositivo. |
+| Proceso | Usa los mismos endpoints que la web; no calcula clasificaciones ni alertas por su cuenta. Guarda el último estado y los avisos recibidos. Sin conexión, los muestra con la fecha y la hora en que se descargaron. Registra el token del dispositivo al iniciar sesión y lo borra al cerrarla. |
+| Salidas | Pantallas nativas de Android y una notificación push cuando empieza o termina un episodio en una zona suscrita. |
+| Complejidad | Alta |
+
 ### 3.2 Requisitos de interfaces externas
 
-**3.2.1 Interfaces de usuario:** interfaz web responsiva, accesible desde navegador de escritorio o móvil, sin necesidad de instalación. Prioriza simplicidad visual sobre densidad de información (ver 2.3 — perfil del pescador artesanal).
+**3.2.1 Interfaces de usuario:** interfaz web responsiva, accesible desde navegador de escritorio o móvil, sin necesidad de instalación. Prioriza simplicidad visual sobre densidad de información (ver 2.3 — perfil del pescador artesanal). La aplicación móvil es nativa para Android, con navegación en una barra inferior, y respeta el tamaño de letra que la persona configuró en su celular.
 
 **3.2.2 Interfaces de hardware:** ninguna específica; el sistema no interactúa con sensores propios, solo consume el dataset ya procesado por IMARPE.
 
@@ -170,6 +182,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 - API REST propia (FastAPI) como capa de comunicación entre frontend y base de datos.
 - Consumo del archivo CSV público de datosabiertos.gob.pe (IMARPE/ATSM) como fuente de datos externa.
 - Servicio SMTP externo para envío de correos (RF-03).
+- Firebase Cloud Messaging (FCM) para las notificaciones push (RF-03, RF-09).
 
 **3.2.4 Interfaces de comunicación:** HTTPS para todo el tráfico entre cliente y servidor.
 
@@ -177,23 +190,25 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 - El mapa interactivo (RF-04) deberá cargar en no más de 3 segundos bajo condiciones normales de red.
 - La importación del dataset (RF-08) no deberá tardar más de 2 minutos para un archivo de hasta 1 año de histórico (~3,650 filas).
 - El sistema deberá soportar, de forma referencial para efectos del curso, al menos 50 usuarios concurrentes sin degradación perceptible.
+- La aplicación móvil deberá mostrar el estado de las 10 zonas en no más de 5 segundos desde que se abre en frío, medido en un emulador Android de gama media. El tamaño del APK no tiene límite y se reporta en cada entrega.
 
 ### 3.4 Restricciones de diseño
 - Backend: Python + FastAPI.
 - Base de datos: PostgreSQL.
 - Contenedores: Docker, orquestados con Dokploy sobre un VPS Linux.
-- Frontend: aplicación web responsiva (sin framework fijado aún por el equipo a la fecha de este documento).
+- Frontend web: React con Vite y TypeScript.
+- Aplicación móvil: Expo (React Native) con TypeScript, para Android 10 (API 29) o superior.
 - El sistema debe mostrar siempre la fecha de la última actualización del dato (transparencia ante posibles retrasos de IMARPE).
 
 ### 3.5 Atributos de calidad del sistema (ISO/IEC 25010 — SQuaRE)
 | Característica | Cómo se aplica en OLA |
 |---|---|
 | Usabilidad | Interfaz comprensible sin capacitación previa para el perfil "pescador artesanal". |
-| Confiabilidad | El sistema indica explícitamente cuándo el dato mostrado no corresponde al día actual. |
+| Confiabilidad | El sistema indica explícitamente cuándo el dato mostrado no corresponde al día actual. Sin conexión, la aplicación móvil muestra el último estado guardado con la fecha y la hora en que se descargó. |
 | Disponibilidad | Objetivo referencial de 95% de tiempo activo durante el periodo de evaluación del curso (no se exige SLA productivo). |
-| Seguridad | Contraseñas almacenadas con hash (nunca en texto plano); conexión exclusivamente HTTPS. |
+| Seguridad | Contraseñas almacenadas con hash (nunca en texto plano); conexión exclusivamente HTTPS. En la aplicación móvil, el token de sesión se guarda cifrado por el sistema (Android Keystore), nunca en texto plano. |
 | Mantenibilidad | Código versionado en Git, con historial de commits legible y README actualizado. |
-| Portabilidad | Contenedorización vía Docker, para facilitar el despliegue en cualquier VPS compatible. |
+| Portabilidad | Contenedorización vía Docker, para facilitar el despliegue en cualquier VPS compatible, y la aplicación móvil funciona en Android 10 o superior. |
 
 ### 3.6 Otros requisitos
 - El sistema deberá atribuir la fuente de datos (IMARPE/PRODUCE) de forma visible en la interfaz.
@@ -215,6 +230,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 | RF-05 | Gráficos históricos | Sprint 5 (27 oct–09 nov) | Frederick Mares Graos (Dev) |
 | RF-06 | Comparación entre laboratorios | Sprint 5 (27 oct–09 nov) | Jhordan Huamani Huamani (Dev) |
 | RF-03 | Notificaciones automáticas | Sprint 5 (27 oct–09 nov) | Piero Adrian Delgado Chipana (Dev) + Jorge Ortiz Castañeda (SM, QA) |
+| RF-09 | Aplicación móvil Android | Sprints 2–7 (15 sep–07 dic) | Jhordan Huamani Huamani (Dev) + Jorge Ortiz Castañeda (SM, QA) |
 
 **Hitos de control:**
 - **Hito 1** (semana del 12 al 17 de octubre de 2026 · cierre de Sprint 3): tema, cronograma, catálogo de requisitos (este documento) y avance del producto.
@@ -237,6 +253,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 | 1.4 | 2026-09-10 | RF-05, RF-06 | Se precisa el agrupado automático de las series según el rango, el tratamiento de los periodos sin medición y el máximo de cuatro laboratorios comparables, cada uno distinguido además por forma y trazo. | Una serie de 56 años tiene hasta 16,678 puntos y el navegador no puede dibujarlos sin incumplir el límite de 3 segundos de la sección 3.3. La redacción original decía «dos o más» sin fijar un techo, y con más de cuatro líneas superpuestas el gráfico deja de leerse. Distinguir las series solo por color excluiría a las personas que no lo perciben, en contra del atributo de Usabilidad de la sección 3.5. | Miguel Angel Flores Leon (PO) |
 | 1.5 | 2026-09-10 | RF-02 | Se implementan los dos modelos en lugar de uno, se fija el horizonte por defecto en 5 días, se define la ventana y los pesos, y se añade un indicador de confianza junto a tres señales visuales que marcan el tramo estimado. | La redacción original ofrecía «regresión lineal o media móvil ponderada» sin decidir cuál. Mostrar ambas es más informativo: la regresión detecta un cambio de tendencia antes que el promedio, y su discrepancia es en sí una medida de incertidumbre. El indicador de confianza responde al atributo de Confiabilidad de la sección 3.5, porque una estimación calculada sobre datos antiguos tiene la misma apariencia de validez que una fiable. | Miguel Angel Flores Leon (PO) |
 | 1.6 | 2026-09-10 | RF-03 | Se elimina el envío por SMS. El requisito queda en correo electrónico más aviso dentro de la aplicación. Se añade el aviso de fin de episodio, se separa el registro del envío y se define el comportamiento ante fallos. Se actualizan en consecuencia el alcance (sección 2.3) y las interfaces de software (sección 3.2.3). | La pasarela de SMS quedaba «a definir» y su envío tiene costo por mensaje en Perú, sin aportar nada demostrable dentro del alcance del curso. Separar el registro del envío evita que un servidor de correo caído haga fallar la evaluación de alertas, que es una operación independiente. | Miguel Angel Flores Leon (PO) |
+| 1.7 | 2026-09-14 | RF-09 (nuevo), RF-03 | Se añade RF-09, una aplicación para Android 10 o superior, y RF-03 incorpora la notificación push como tercer canal. Se actualizan el alcance (1.2), las funciones (2.2), las restricciones (2.4 y 3.4), las interfaces (3.2), el rendimiento (3.3), los atributos de calidad (3.5) y la matriz (4). | El pescador artesanal consulta mayormente desde el celular (sección 2.3) y, en el mar, un correo no le avisa a tiempo; una notificación push llega aunque la aplicación esté cerrada. La aplicación no cabe como ajuste de un RF existente: tiene una entrada propia (el token del dispositivo) y funciona sin conexión. Con RF-09 el catálogo pasa a 9 requisitos (4 alta, 3 media, 2 baja) y supera el máximo de 8 del enunciado; el equipo decidió excederlo y lo deja registrado aquí. | Miguel Angel Flores Leon (PO) |
 
 ---
 

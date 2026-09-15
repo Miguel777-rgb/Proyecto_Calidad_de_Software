@@ -8,9 +8,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('react-leaflet', async () => await import('../test-mocks/react-leaflet'))
 import Inicio from './Inicio'
 import type { EstadoSistema } from '../api/client'
-import { COLORES } from '../components/mapa/paleta'
+import { COLORES } from '@ola/compartido/mapa/paleta'
 import { ESCRITORIO } from '../hooks/useMediaQuery'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { ESTADO_MUESTRA, ESTADO_VACIO, renderConProveedores, respuesta } from '../test-utils'
 
 function simularApi(estado: unknown) {

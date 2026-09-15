@@ -278,11 +278,35 @@ comprobando nada.
 
 ---
 
+## 17. Un paquete compartido para la web y la app móvil (septiembre de 2026)
+
+La app Android (RF-09, SRS 1.7) necesita los mismos tipos de la API, las mismas reglas de
+presentación y los mismos textos que la web. Copiarlos habría creado dos fuentes que se
+separan con el primer cambio del backend.
+
+| Decisión | Motivo | Se descartó |
+|---|---|---|
+| Workspace de pnpm en la raíz con un solo `pnpm-lock.yaml` | La web, el paquete y la app resuelven las mismas versiones; un cambio de dependencia se revisa en un solo archivo | Un lockfile por proyecto enlazado con `link:` |
+| `@ola/compartido` se publica como TypeScript sin compilar, con una ruta de importación por módulo | Vite y Metro compilan TypeScript por su cuenta; sin paso de construcción no hay una versión compilada que se quede atrás | Compilar el paquete a JavaScript |
+| El cliente recibe dónde guardar el token | La web usa localStorage (síncrono) y la app el almacenamiento cifrado de Android (asíncrono). Con un almacén síncrono la petición sale en el mismo instante, así que el comportamiento de la web no cambió | Un cliente distinto por plataforma |
+| Los datos de ejemplo de las pruebas viven en el paquete | La web y la app prueban contra las mismas respuestas | Repetirlos en cada proyecto |
+| La imagen web se construye desde la raíz, con `frontend/Dockerfile.dockerignore` | El paquete vive fuera de `frontend/`; el archivo de exclusión deja entrar solo lo que la web necesita | Copiar el paquete dentro de `frontend/` |
+| Los contenedores instalan con `--filter ola-frontend...` | El workspace incluirá la app, que no se instala dentro de los contenedores de la web | Instalar todo el workspace |
+
+Resultado de la migración: las 91 pruebas de lógica que se movieron y las 241 que quedaron en
+la web siguieron en verde sin cambiar una aserción. Se añadieron 33 pruebas del contrato con la
+API, que ahora cubren las dos interfaces a la vez.
+
+---
+
 ## Lo que quedó fuera
 
 - **Rediseño de Histórico, Comparar, Próximos días, cuenta y Administración**: conservan el
   estilo anterior dentro del marco nuevo; la guía de diseño permite continuarlo.
+- **SonarQube y TestLink**: evaluados y no adoptados por ahora; ver [calidad.md](calidad.md),
+  sección 6.1.
 - **SMS** (RF-03): la pasarela quedaba «a definir» y tiene costo por mensaje en Perú.
 - **Importación programada** (RF-08): exigiría un planificador sin aportar nada demostrable.
-- **Modo oscuro** y **aplicación móvil nativa**: fuera del alcance que declara la SRS.
+- **Modo oscuro**: fuera del alcance que declara la SRS. La aplicación móvil, que también
+  estaba fuera, entró como RF-09 en la versión 1.7.
 - **Integración continua**: se decidió ejecutar las pruebas en local.

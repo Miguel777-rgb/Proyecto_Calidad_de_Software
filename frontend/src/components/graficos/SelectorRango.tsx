@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 interface Props {
   desde: string

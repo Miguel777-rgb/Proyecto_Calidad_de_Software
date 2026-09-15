@@ -1,4 +1,4 @@
-import type { SerieLaboratorio } from '../../api/client'
+import type { SerieLaboratorio } from '../api/tipos'
 
 export interface FilaGrafico {
   period: string

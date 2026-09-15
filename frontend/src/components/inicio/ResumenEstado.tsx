@@ -1,10 +1,10 @@
 import { CircleCheck, Clock, TriangleAlert } from 'lucide-react'
 import { useId } from 'react'
 import type { EstadoZona } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { TINTES } from '../mapa/paleta'
+import { textos } from '@ola/compartido/i18n/textos'
+import { TINTES } from '@ola/compartido/mapa/paleta'
 import { SimboloEstado } from './Estado'
-import { ESTADOS, conteoPorEstado, diasDesde, fechaCorta, unirNombres } from './datos'
+import { ESTADOS, conteoPorEstado, diasDesde, fechaCorta, unirNombres } from '@ola/compartido/inicio/datos'
 
 interface Props {
   /** Fecha del dato mas reciente del sistema (AAAA-MM-DD). */

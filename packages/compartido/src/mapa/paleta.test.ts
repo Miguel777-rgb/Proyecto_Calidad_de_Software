@@ -4,7 +4,7 @@ import { COLORES, TINTES, contrasteEntre, limitesDe, radioDe } from './paleta'
 const ESPUMA = '#f3f7f5'
 const BLANCO = '#ffffff'
 const ABISAL = '#0a2530'
-import type { EstadoZona } from '../../api/client'
+import type { EstadoZona } from '../api/tipos'
 
 const zona = (lat: string, lon: string, conAlerta = false): EstadoZona =>
   ({

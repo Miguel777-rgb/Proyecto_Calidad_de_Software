@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, darseDeBaja, listarSuscripciones, suscribirse } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
 import { useAvisosSinLeer } from '../../avisos/useAvisosSinLeer'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export type EstadoSuscripcion = 'cargando' | 'suscrito' | 'no-suscrito'
 

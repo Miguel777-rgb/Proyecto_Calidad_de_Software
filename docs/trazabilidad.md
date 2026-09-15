@@ -6,7 +6,7 @@ Este documento conecta cada requisito funcional de la [SRS](requisitos.md) con e
 implementa y con las pruebas que demuestran que funciona. Complementa la matriz de la sección 4
 de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
-**Fecha:** 2026-09-13 · **Versión de la SRS:** 1.6
+**Fecha:** 2026-09-14 · **Versión de la SRS:** 1.7
 
 ---
 
@@ -16,12 +16,15 @@ de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 |---|---|---|
 | Backend — unitarias | 212 | Lógica de dominio pura, sin base de datos |
 | Backend — integración | 230 | Endpoints, persistencia y permisos |
-| Frontend — Vitest | 332 | Componentes, páginas y lógica de la interfaz; axe en cada componente nuevo |
+| Paquete compartido — Vitest | 124 | Lógica de presentación y contrato con la API, que usan la web y la app móvil |
+| Web — Vitest | 241 | Componentes y páginas; axe en cada componente nuevo |
 | Extremo a extremo — Playwright | 167 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
 | Rendimiento — Playwright | 2 | Build de producción con 4G normal |
-| **Total** | **943** | |
+| Herramientas de calidad — pytest | 8 | Cálculo de la disponibilidad a partir de los chequeos de Uptime Kuma |
+| **Total** | **984** | |
 
-Cobertura del backend: **95%** de las sentencias.
+Cobertura de sentencias: **95 %** en el backend, **97.3 %** en el paquete compartido y **89.9 %**
+en la web. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
 
 Playwright lista 189 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
 omiten a propósito porque son de escritorio o de celular y no aplican en el otro.
@@ -30,7 +33,8 @@ Las suites se ejecutan con:
 
 ```bash
 docker compose exec api pytest --cov=ola     # backend
-docker compose exec web pnpm test            # frontend
+docker compose exec -w /repo/packages/compartido web pnpm test   # paquete compartido
+docker compose exec web pnpm test            # web
 docker compose --profile e2e run --rm e2e    # extremo a extremo
 docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm test:rendimiento"   # rendimiento
 ```
@@ -82,7 +86,7 @@ los cuales 8 siguen vigentes.
 | `tests/unit/test_projection.py` | 32 | La regresión sigue una pendiente conocida; la media ponderada resiste un día atípico; ante una serie plana ambos coinciden; los huecos pesan en la pendiente |
 | `tests/integration/test_projection.py` | 32 | Los dos métodos se devuelven juntos; todo el rango de 3 a 7 días; la confianza baja en zonas con datos antiguos |
 | `src/pages/Proyeccion.test.tsx` | 13 | Las tres señales de advertencia están presentes |
-| `src/components/graficos/datosProyeccion.test.ts` | 9 | El tramo estimado engancha con el último valor medido |
+| `packages/compartido/src/graficos/datosProyeccion.test.ts` | 9 | El tramo estimado engancha con el último valor medido |
 | `e2e/proyeccion.spec.ts` | 11 | Trazo punteado y fondo sombreado en el navegador real |
 
 **Caso que justifica mostrar ambos modelos:** con seis registros fríos tras semanas neutras, la
@@ -117,7 +121,7 @@ medida de incertidumbre, y está fijada en una prueba.
 | `tests/integration/test_status.py` | 18 | Las 10 zonas con coordenadas; MATARANI sin datos recientes y sin alerta |
 | `src/pages/Inicio.test.tsx` | 33 | Resumen, tarjetas con las alertas primero, tabla, hoja o panel según el ancho, zona leída de la dirección, carga, error y ausencia de datos |
 | `src/components/inicio/ResumenEstado.test.tsx` | 10 | Fecha y antigüedad del dato, resaltada si supera la vigencia; zonas en alerta; conteo que incluye estados vacíos |
-| `src/components/inicio/datos.test.ts` | 21 | Fechas sin desfase horario en Perú, orden de las zonas, grados con signo, «y» / «e» |
+| `packages/compartido/src/inicio/datos.test.ts` | 21 | Fechas sin desfase horario en Perú, orden de las zonas, grados con signo, «y» / «e» |
 | `src/components/inicio/TarjetasZonas.test.tsx` | 11 | Promedio respecto a lo normal, zona sin datos y línea de alerta |
 | `src/components/inicio/Estado.test.tsx` | 7 | Una forma distinta por estado, además del color |
 | `src/components/TablaEstado.test.tsx` | 8 | La tabla accesible con fechas, alertas y selección |
@@ -125,7 +129,7 @@ medida de incertidumbre, y está fijada en una prueba.
 | `src/components/mapa/HojaInferior.test.tsx` | 11 | Diálogo modal: foco atrapado y devuelto, Escape, fondo y deslizamiento |
 | `src/components/mapa/PanelZona.test.tsx` | 5 | Invitación y accesos directos a las zonas en alerta |
 | `src/components/mapa/marcador.test.ts` | 8 | Símbolo por estado, anillo de alerta y nombre accesible escapado |
-| `src/components/mapa/paleta.test.ts` | 26 | Contraste medido de cada color de estado; encuadre calculado de las coordenadas |
+| `packages/compartido/src/mapa/paleta.test.ts` | 26 | Contraste medido de cada color de estado; encuadre calculado de las coordenadas |
 | `e2e/mapa.spec.ts` | 12 | Leaflet real con 10 zonas; atribución de OpenStreetMap; elección con ratón y teclado |
 | `e2e/inicio.spec.ts` | 20 | Resumen, tabla y tarjetas en escritorio y celular; «Reintentar» tras un fallo |
 | `e2e/detalle.spec.ts` | 23 | Hoja inferior, gestos del mapa, panel lateral y avisos reales desde el detalle |
@@ -142,8 +146,8 @@ medida de incertidumbre, y está fijada en una prueba.
 |---|---|---|
 | `tests/unit/test_series.py` | 26 | El agrupado según el rango; los periodos sin dato quedan marcados |
 | `tests/integration/test_series.py` | 24 | 56 años caben en menos de 1,000 puntos; máximo de 4 zonas comparables |
-| `src/components/graficos/datos.test.ts` | 20 | El eje vertical incluye el cero sin desperdiciar espacio |
-| `src/components/graficos/paletaSeries.test.ts` | 15 | Cada serie usa color, forma y trazo distintos |
+| `packages/compartido/src/graficos/datos.test.ts` | 20 | El eje vertical incluye el cero sin desperdiciar espacio |
+| `packages/compartido/src/graficos/paletaSeries.test.ts` | 15 | Cada serie usa color, forma y trazo distintos |
 | `src/pages/Historico.test.tsx` | 12 | Selección de zona y rango; abre la zona indicada en la dirección |
 | `src/pages/Comparacion.test.tsx` | 11 | Límite de zonas y leyenda obligatoria |
 | `e2e/graficos.spec.ts` | 17 | **La línea se corta en los huecos**, comprobado sobre el trazado SVG real |
@@ -188,6 +192,22 @@ verificado también sobre las imágenes de producción. La prueba
 
 ---
 
+## RF-09 — Aplicación móvil Android
+
+**Estado:** en construcción por fases (plan en [calidad.md](calidad.md), sección 13).
+
+**Implementación hasta ahora:** `packages/compartido/`, el paquete que la app compartirá con la
+web: tipos y cliente de la API, lógica de presentación y textos.
+
+| Prueba | Nº | Qué demuestra |
+|---|---|---|
+| `packages/compartido/src/api/cliente.test.ts` | 33 | El cliente acepta un almacén de token síncrono (web) o asíncrono (app); cada función pide la ruta y el método que espera FastAPI; los errores de FastAPI y Pydantic llegan como mensajes legibles |
+
+Las pruebas de las pantallas nativas (Jest) y los flujos en Android (Maestro) se añaden desde
+la fase 1.
+
+---
+
 ## Requisitos no funcionales
 
 | Atributo (ISO 25010) | Evidencia |
@@ -196,7 +216,8 @@ verificado también sobre las imágenes de producción. La prueba
 | Accesibilidad | axe (WCAG 2.2 AA) **bloqueante** en todas las pantallas, en escritorio y celular, y en las pruebas de cada componente nuevo. Excepción documentada: tamaño de objetivo de los marcadores del mapa (WCAG 2.5.8, «equivalente») |
 | Confiabilidad | La fecha del dato se muestra siempre; una zona sin mediciones recientes se marca y no se clasifica |
 | Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`) |
-| Mantenibilidad | 943 pruebas, 95% de cobertura del backend, ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
+| Mantenibilidad | 984 pruebas; cobertura del 95 % en el backend, 97.3 % en el paquete compartido y 89.9 % en la web; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` cada minuto desde el 2026-09-14; el informe y la meta (95 % objetivo, 90 % mínimo) están en [calidad.md](calidad.md), sección 7 |
 | Portabilidad | Todo en contenedores; el stack de producción se verificó completo en local |
 | Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 1.07 s con 4G normal (límite: 3 s) y la portada descarga 170 kB comprimidos (`e2e/rendimiento.spec.ts`) |
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aFilasDeProyeccion, inicioDelTramoEstimado } from './datosProyeccion'
-import { proyeccionDe } from '../../test-utils'
+import { proyeccionDe } from '../pruebas/datos'
 
 describe('aFilasDeProyeccion', () => {
   it('coloca el historico antes de las estimaciones', () => {

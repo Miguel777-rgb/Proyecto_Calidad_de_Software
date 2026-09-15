@@ -1,5 +1,5 @@
 import { Clock, RotateCw, WifiOff } from 'lucide-react'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 // Siluetas grises con un brillo que recorre; sin animacion si se pide menos
 // movimiento. Los colores son tonos de la espuma, no del sistema.

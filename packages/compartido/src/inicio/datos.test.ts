@@ -7,8 +7,8 @@ import {
   ordenarZonas,
   unirNombres,
 } from './datos'
-import type { EstadoZona } from '../../api/client'
-import { ESTADO_MUESTRA } from '../../test-utils'
+import type { EstadoZona } from '../api/tipos'
+import { ESTADO_MUESTRA } from '../pruebas/datos'
 
 const codigos = (zonas: EstadoZona[]) => zonas.map((z) => z.laboratory.code)
 

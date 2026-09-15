@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import type { EstadoZona } from '../../api/client'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { SimboloEstado } from '../inicio/Estado'
 import { DetalleZona } from './DetalleZona'
 

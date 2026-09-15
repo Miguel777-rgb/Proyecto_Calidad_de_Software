@@ -1,4 +1,4 @@
-import type { EstadoTermico, EstadoZona } from '../../api/client'
+import type { EstadoTermico, EstadoZona } from '../api/tipos'
 
 /**
  * Colores del estado termico. Unica fuente de verdad: la usan el mapa, el

@@ -9,9 +9,9 @@ import {
   YAxis,
 } from 'recharts'
 import type { SerieLaboratorio } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { aFilasDeGrafico, dominioVertical, etiquetaPeriodo, marcasVerticales } from './datos'
-import { estiloDe, pasoDeMarcadores, trazadoForma } from './paletaSeries'
+import { textos } from '@ola/compartido/i18n/textos'
+import { aFilasDeGrafico, dominioVertical, etiquetaPeriodo, marcasVerticales } from '@ola/compartido/graficos/datos'
+import { estiloDe, pasoDeMarcadores, trazadoForma } from '@ola/compartido/graficos/paletaSeries'
 
 // Umbral de clasificacion. Dibujarlo da contexto: sin la referencia, el
 // usuario no sabe a partir de que valor la anomalia deja de ser normal.

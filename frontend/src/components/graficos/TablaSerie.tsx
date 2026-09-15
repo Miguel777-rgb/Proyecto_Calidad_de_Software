@@ -1,5 +1,5 @@
 import type { SerieLaboratorio } from '../../api/client'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 /** Vista de tabla del grafico. Es la alternativa accesible: un SVG con lineas
  *  no es utilizable con lector de pantalla. Muestra solo los periodos con

@@ -170,14 +170,15 @@ El sistema se despliega con [`compose.prod.yml`](compose.prod.yml), que se difer
 entorno de desarrollo en que no monta el código, no publica puertos (Traefik enruta por
 dominio), no incluye Mailpit y construye las imágenes en su etapa de producción.
 
-### 1. Preparar los dominios
+### 1. Preparar el dominio
 
-Se usan dos subdominios apuntando al VPS:
+La web y la API comparten un mismo dominio, apuntado al VPS con un registro DNS tipo A.
+Traefik las separa por ruta:
 
-| Dominio | Servicio |
-|---|---|
-| `ola.tudominio.pe` | Aplicación web |
-| `api.ola.tudominio.pe` | API |
+| Dirección | Servicio | Puerto |
+|---|---|---|
+| `ola.tudominio.pe/api` | API | 8000 |
+| `ola.tudominio.pe` (el resto) | Aplicación web | 80 |
 
 ### 2. Crear el servicio en Dokploy
 
@@ -185,6 +186,13 @@ Crea un proyecto de tipo **Compose**, apunta al repositorio y a `compose.prod.ym
 las variables en su interfaz. **No subas un archivo `.env` al servidor:** los secretos se
 cargan desde Dokploy. Las variables necesarias están listadas en
 [`.env.example`](.env.example), sección de producción.
+
+Los dominios no están en `compose.prod.yml`: se agregan en la pestaña **Domains** del servicio,
+que inyecta las etiquetas de Traefik al desplegar. Crea dos con el mismo host, ambos con HTTPS
+y Let's Encrypt:
+
+- servicio `web`: Path `/`, puerto 80;
+- servicio `api`: Path `/api`, puerto 8000, Internal Path `/` y Strip Path apagado.
 
 Genera los secretos antes de empezar:
 
@@ -201,11 +209,11 @@ openssl rand -hex 12   # OLA_ADMIN_PASSWORD
 ### 3. Dos detalles que suelen causar problemas
 
 - **`OLA_API_URL` se aplica al construir, no al arrancar.** Vite escribe las variables `VITE_*`
-  dentro del JavaScript compilado. Si cambias el dominio de la API hay que **reconstruir** la
-  imagen del frontend; reiniciar el contenedor no basta.
-- **`OLA_WEB_ORIGIN` debe coincidir exactamente** con el dominio de la web, con su esquema y
-  sin barra final. Como la API vive en otro subdominio, sin este origen permitido el navegador
-  bloquea todas las llamadas.
+  dentro del JavaScript compilado. Con la ruta relativa `/api` no depende del dominio, pero si
+  la cambias hay que **reconstruir** la imagen del frontend; reiniciar el contenedor no basta.
+- **La ruta `/api` no se recorta.** Las rutas del backend ya incluyen el prefijo `/api`. Si se
+  activa Strip Path, llegan como `/health`; si se pone `/api` como Internal Path, llegan como
+  `/api/api/health`. En ambos casos la API responde 404.
 
 ### 4. Desplegar y verificar
 
@@ -214,8 +222,8 @@ bloqueo de PostgreSQL para que dos réplicas no lo hagan a la vez, y crea la cue
 administrador definida en las variables.
 
 ```bash
-curl https://api.ola.tudominio.pe/api/health/ready    # {"status":"ok","database":"ok"}
-curl https://api.ola.tudominio.pe/api/laboratories    # las 10 zonas
+curl https://ola.tudominio.pe/api/health/ready    # {"status":"ok","database":"ok"}
+curl https://ola.tudominio.pe/api/laboratories    # las 10 zonas
 ```
 
 ### 5. Cargar el dataset

@@ -8,8 +8,11 @@
 # Los dominios se configuran en la pestana Domains del servicio, no aqui:
 # Dokploy inyecta al desplegar las etiquetas de Traefik y la red
 # dokploy-network, sin la cual Traefik no alcanza los contenedores.
-#   - web -> ${OLA_WEB_HOST}, puerto 80
-#   - api -> ${OLA_API_HOST}, puerto 8000
+# Web y API comparten un mismo dominio y se separan por ruta:
+#   - web -> Path /,    puerto 80
+#   - api -> Path /api, puerto 8000, Internal Path / y Strip Path apagado
+# La API ya espera el prefijo /api, por eso no se recorta. Traefik prioriza
+# la regla mas larga, asi que /api gana sobre /.
 #
 #   docker compose -f compose.prod.yml up -d --build   (para probar en local)
 #
@@ -48,8 +51,8 @@ services:
       OLA_ACCESS_TOKEN_MINUTES: ${OLA_ACCESS_TOKEN_MINUTES:-60}
       OLA_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
       OLA_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
-      # La aplicacion vive en otro dominio, asi que su origen debe permitirse
-      # explicitamente. Sin esto el navegador bloquea todas las llamadas.
+      # La web llama a la API en su mismo dominio, asi que el navegador no
+      # aplica CORS. Se mantiene por si otro origen necesita consumir la API.
       OLA_CORS_ORIGINS: ${OLA_WEB_ORIGIN}
       OLA_SMTP_HOST: ${OLA_SMTP_HOST}
       OLA_SMTP_PORT: ${OLA_SMTP_PORT:-587}

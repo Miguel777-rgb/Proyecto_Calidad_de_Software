@@ -207,8 +207,10 @@ Vale la pena registrarlos: son la evidencia de que el proceso de calidad sirvió
 | Concordancia de género: «alerta cálido» | Prueba de la vista de avisos |
 | **La verificación de tipos del frontend no revisaba nada** | Construcción de la imagen de producción |
 | Dos procesos arrancando a la vez chocaban al crear el administrador | Despliegue de producción en local |
+| Las etiquetas de Traefik no unían los servicios a la red de Dokploy, así que los dominios no habrían respondido | Revisión de la documentación de Dokploy durante el despliegue |
+| El chequeo de salud de Nginx consultaba `localhost`, que en Alpine resuelve a IPv6; el contenedor nunca quedaba sano y Traefik respondía 404 | Despliegue en Dokploy, reproducido en local |
 
-El penúltimo es el más significativo: el comando de verificación de tipos usaba el `tsconfig`
+El de la verificación de tipos es el más significativo: el comando usaba el `tsconfig`
 raíz, que no incluye archivos, así que pasaba siempre sin revisar nada. Se descubrió porque la
 construcción de producción sí compila de verdad. Al corregirlo aparecieron tres errores de
 tipos que llevaban semanas ocultos.
@@ -219,7 +221,7 @@ tipos que llevaban semanas ocultos.
 
 | Decisión | Motivo |
 |---|---|
-| Subdominio aparte para la API | Separa los servicios; obliga a declarar el origen permitido |
+| API bajo `/api` en el mismo dominio (reemplazó al subdominio aparte) | Basta un registro DNS y el navegador no aplica CORS. El subdominio se descartó al desplegar, porque exigía un registro DNS más |
 | La dirección de la API se fija al **construir** | Vite escribe las variables `VITE_*` dentro del JavaScript; definirlas al arrancar no tendría efecto |
 | Las migraciones corren en el arranque, con un bloqueo de PostgreSQL | Varias réplicas arrancando a la vez no deben migrar en paralelo |
 | La base de producción arranca vacía | Es el mismo camino de RF-08 y sirve de verificación del despliegue |

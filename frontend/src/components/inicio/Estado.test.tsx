@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { InsigniaEstado, SimboloEstado } from './Estado'
-import { ESTADOS } from './datos'
-import { textos } from '../../i18n/textos'
+import { ESTADOS } from '@ola/compartido/inicio/datos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { violacionesAxe } from '../../test-utils'
 
 describe('SimboloEstado', () => {

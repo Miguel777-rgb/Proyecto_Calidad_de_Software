@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, importarCsv, listarImportaciones, type Importacion } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { PanelConfiguracion } from '../components/PanelConfiguracion'
 import { PanelEnvioAvisos } from '../components/PanelEnvioAvisos'
 import { ResumenImportacion } from '../components/ResumenImportacion'

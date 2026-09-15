@@ -1,0 +1,33 @@
+{
+  "name": "@ola/compartido",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tipos y cliente de la API, lógica pura y textos que usan la web y la app móvil de OLA",
+  "sideEffects": false,
+  "exports": {
+    "./api": "./src/api/index.ts",
+    "./inicio/datos": "./src/inicio/datos.ts",
+    "./graficos/datos": "./src/graficos/datos.ts",
+    "./graficos/datosProyeccion": "./src/graficos/datosProyeccion.ts",
+    "./graficos/paletaSeries": "./src/graficos/paletaSeries.ts",
+    "./mapa/paleta": "./src/mapa/paleta.ts",
+    "./i18n/textos": "./src/i18n/textos.ts",
+    "./pruebas": "./src/pruebas/datos.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:cobertura": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@vitest/coverage-v8": "3.2.7",
+    "eslint": "^9.17.0",
+    "globals": "^16",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2",
+    "vitest": "3.2.7"
+  }
+}

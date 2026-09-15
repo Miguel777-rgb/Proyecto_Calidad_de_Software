@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { listarAvisos, marcarAvisoLeido, marcarTodosLeidos, type ListaAvisos } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { useAvisosSinLeer } from '../avisos/useAvisosSinLeer'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function Avisos() {
   const { usuario } = useAuth()

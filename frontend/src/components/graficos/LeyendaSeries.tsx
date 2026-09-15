@@ -1,6 +1,6 @@
 import type { SerieLaboratorio } from '../../api/client'
 import { MarcadorSerie } from './MarcadorSerie'
-import { estiloDe } from './paletaSeries'
+import { estiloDe } from '@ola/compartido/graficos/paletaSeries'
 
 /** Leyenda del grafico. Con dos o mas series es obligatoria: la identidad de
  *  cada linea nunca puede depender solo del color. */

@@ -68,7 +68,9 @@ services:
 
   web:
     build:
-      context: ./frontend
+      # La web importa packages/compartido, asi que se construye desde la raiz.
+      context: .
+      dockerfile: frontend/Dockerfile
       target: production
       args:
         # Vite escribe esta direccion DENTRO del JavaScript al compilar.

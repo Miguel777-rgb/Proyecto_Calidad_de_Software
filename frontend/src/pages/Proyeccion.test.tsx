@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import Proyeccion from './Proyeccion'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { LABORATORIOS, proyeccionDe, renderConProveedores, respuesta } from '../test-utils'
 import type { Proyeccion as DatosProyeccion } from '../api/client'
 

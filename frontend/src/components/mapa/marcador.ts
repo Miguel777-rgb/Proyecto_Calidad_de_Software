@@ -1,6 +1,6 @@
 import type { EstadoTermico, EstadoZona } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { COLORES } from './paleta'
+import { textos } from '@ola/compartido/i18n/textos'
+import { COLORES } from '@ola/compartido/mapa/paleta'
 
 // Trazos de los simbolos de lucide (arrow-up, minus, arrow-down,
 // circle-dashed). El marcador de Leaflet es HTML creado fuera de React, asi

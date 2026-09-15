@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { textos } from './i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import {
   ESTADO_VACIO,
   USUARIO,

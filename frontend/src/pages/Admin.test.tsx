@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Admin from './Admin'
 import type { Importacion } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { renderConProveedores, respuesta } from '../test-utils'
 
 const IMPORTACION: Importacion = {

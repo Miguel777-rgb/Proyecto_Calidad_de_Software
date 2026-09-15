@@ -1,7 +1,7 @@
 import { LogIn } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { MenuCuenta } from './MenuCuenta'
 import { PESTANAS } from './pestanas'
 

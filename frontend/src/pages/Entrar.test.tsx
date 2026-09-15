@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import Entrar from './Entrar'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { USUARIO, renderConProveedores, respuesta, sesionDe } from '../test-utils'
 
 async function enviarFormulario(correo = 'pescador@ejemplo.pe', clave = 'miclave123') {

@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import Registro from './Registro'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { USUARIO, renderConProveedores, respuesta, sesionDe } from '../test-utils'
 
 async function completar(clave: string, nombre?: string) {

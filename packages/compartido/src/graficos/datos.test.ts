@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aFilasDeGrafico, dominioVertical, etiquetaPeriodo, marcasVerticales } from './datos'
-import type { SerieLaboratorio } from '../../api/client'
+import type { SerieLaboratorio } from '../api/tipos'
 
 const lab = (code: string) => ({
   id: 1,

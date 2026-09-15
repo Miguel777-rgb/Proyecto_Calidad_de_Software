@@ -1,4 +1,4 @@
-import type { EstadoTermico, EstadoZona } from '../../api/client'
+import type { EstadoTermico, EstadoZona } from '../api/tipos'
 
 /** Los cuatro estados en el orden en que se presentan. */
 export const ESTADOS: EstadoTermico[] = ['warm', 'neutral', 'cold', 'no_data']

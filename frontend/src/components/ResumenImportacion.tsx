@@ -1,5 +1,5 @@
 import type { Importacion } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 const numero = (valor: number) => valor.toLocaleString('es-PE')
 

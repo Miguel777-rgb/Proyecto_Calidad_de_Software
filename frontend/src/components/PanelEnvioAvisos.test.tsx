@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PanelEnvioAvisos } from './PanelEnvioAvisos'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { respuesta } from '../test-utils'
 
 function simularEnvio(resultado: unknown, status = 200) {

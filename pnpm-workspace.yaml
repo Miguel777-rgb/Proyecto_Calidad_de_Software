@@ -1,0 +1,4 @@
+# Proyectos JavaScript del repositorio. Comparten un solo pnpm-lock.yaml.
+packages:
+  - frontend
+  - packages/*

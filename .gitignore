@@ -29,6 +29,7 @@ eggs/
 .coverage.*
 htmlcov/
 coverage.xml
+coverage/
 
 # JavaScript / frontend
 node_modules/

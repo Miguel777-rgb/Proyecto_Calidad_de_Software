@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { PESTANAS } from './pestanas'
 
 /**

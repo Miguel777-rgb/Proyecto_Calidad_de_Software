@@ -1,8 +1,15 @@
 # OLA — despliegue en un VPS con Dokploy.
 #
-# Uso en Dokploy: crear un servicio de tipo Compose apuntando a este archivo y
-# definir las variables en su interfaz. NO se usa un archivo .env en el
-# servidor: los secretos se cargan desde Dokploy.
+# Uso en Dokploy: crear un servicio de tipo Compose (NO Application, que
+# intenta construir con Nixpacks y falla) apuntando a este archivo, y definir
+# las variables en su interfaz. NO se usa un archivo .env en el servidor: los
+# secretos se cargan desde Dokploy.
+#
+# Los dominios se configuran en la pestana Domains del servicio, no aqui:
+# Dokploy inyecta al desplegar las etiquetas de Traefik y la red
+# dokploy-network, sin la cual Traefik no alcanza los contenedores.
+#   - web -> ${OLA_WEB_HOST}, puerto 80
+#   - api -> ${OLA_API_HOST}, puerto 8000
 #
 #   docker compose -f compose.prod.yml up -d --build   (para probar en local)
 #
@@ -54,17 +61,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    labels:
-      # Dominio de la API. Dokploy usa Traefik por debajo.
-      - traefik.enable=true
-      - traefik.http.routers.ola-api.rule=Host(`${OLA_API_HOST}`)
-      - traefik.http.routers.ola-api.entrypoints=websecure
-      - traefik.http.routers.ola-api.tls.certresolver=letsencrypt
-      - traefik.http.services.ola-api.loadbalancer.server.port=8000
-      # El CSV de IMARPE pesa unos 3 MB y la importacion puede tardar; sin
-      # este margen Traefik cortaria la subida del RF-08.
-      - traefik.http.middlewares.ola-api-body.buffering.maxRequestBodyBytes=52428800
-      - traefik.http.routers.ola-api.middlewares=ola-api-body
 
   web:
     build:
@@ -77,12 +73,6 @@ services:
     restart: always
     depends_on:
       - api
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.ola-web.rule=Host(`${OLA_WEB_HOST}`)
-      - traefik.http.routers.ola-web.entrypoints=websecure
-      - traefik.http.routers.ola-web.tls.certresolver=letsencrypt
-      - traefik.http.services.ola-web.loadbalancer.server.port=80
 
 volumes:
   pgdata:

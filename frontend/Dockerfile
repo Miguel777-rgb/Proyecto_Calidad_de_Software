@@ -31,5 +31,8 @@ FROM nginx:alpine AS production
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
+# 127.0.0.1 y no localhost: en Alpine localhost resuelve a ::1 y nginx.conf
+# solo escucha IPv4, asi que el chequeo fallaria siempre. Un contenedor que no
+# esta healthy es ignorado por Traefik, que responde 404 en el dominio.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-    CMD wget --spider -q http://localhost/ || exit 1
+    CMD wget --spider -q http://127.0.0.1/ || exit 1

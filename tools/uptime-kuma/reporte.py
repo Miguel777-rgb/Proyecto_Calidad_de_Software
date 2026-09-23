@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import argparse
 
-from comun import NOMBRE_MONITOR, conectar
+from comun import conectar, monitores
 from disponibilidad import Latido, formatear, resumir
 
 
@@ -18,14 +18,16 @@ def main() -> None:
 
     api = conectar()
     try:
-        monitor = next((m for m in api.get_monitors() if m["name"] == NOMBRE_MONITOR), None)
-        if monitor is None:
-            raise SystemExit("No existe el monitor. Ejecuta primero configurar.py.")
-        crudos = api.get_monitor_beats(monitor["id"], horas)
+        ids = {m["name"]: m["id"] for m in api.get_monitors()}
+        for monitor in monitores():
+            print(f"\n### {monitor.nombre}\n")
+            if monitor.nombre not in ids:
+                print("Sin monitor. Ejecuta primero configurar.py.")
+                continue
+            crudos = api.get_monitor_beats(ids[monitor.nombre], horas)
+            print(formatear(resumir(Latido.desde_uptime_kuma(c) for c in crudos), horas=horas))
     finally:
         api.disconnect()
-
-    print(formatear(resumir(Latido.desde_uptime_kuma(c) for c in crudos), horas=horas))
 
 
 if __name__ == "__main__":

@@ -13,7 +13,8 @@
     "./graficos/paletaSeries": "./src/graficos/paletaSeries.ts",
     "./mapa/paleta": "./src/mapa/paleta.ts",
     "./i18n/textos": "./src/i18n/textos.ts",
-    "./pruebas": "./src/pruebas/datos.ts"
+    "./pruebas": "./src/pruebas/datos.ts",
+    "./tema/colores": "./src/tema/colores.ts"
   },
   "scripts": {
     "test": "vitest run",

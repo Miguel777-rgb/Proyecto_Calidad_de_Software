@@ -225,6 +225,9 @@ y `mobile/` (Expo con expo-router).
 **Rendimiento (SRS 3.3):** el estado se ve en una mediana de **0.64 s** desde que se abre la app
 en frío (peor de 5: 1.75 s), en un Galaxy A56 con Android 16. El límite es de 5 s.
 
+**APK de demostración:** instalado en el mismo celular sin conexión al equipo, muestra «Datos del
+mar al 31/07/2026», la fecha que devuelve el VPS por HTTPS (prueba manual del 2026-09-23).
+
 ---
 
 ## Requisitos no funcionales

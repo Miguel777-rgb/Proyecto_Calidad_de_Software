@@ -1,0 +1,4 @@
+# Flujos E2E de la app con Maestro. Los corre scripts/e2e.mjs, que prepara el
+# celular (cable, animaciones, tamano de letra) antes de cada grupo.
+flows:
+  - "marco/*"

@@ -296,6 +296,25 @@ export const textos = {
   },
   atribucion:
     'Fuente: Anomalía de la Temperatura Superficial del Mar (ATSM) de los laboratorios costeros del IMARPE — IMARPE / PRODUCE.',
+  // Solo la app movil. Tabla aprobada con la maqueta de su fase 1.
+  movil: {
+    lema: 'Datos abiertos del IMARPE',
+    fechaDato: 'Datos del mar al',
+    provisional: {
+      mapa: 'El mapa y las 10 zonas llegan en la próxima versión de la app.',
+      historico: 'El histórico de cada zona llega en la próxima versión de la app.',
+      comparacion: 'La comparación entre zonas llega en la próxima versión de la app.',
+      proyeccion: 'Los próximos días de cada zona llegan en la próxima versión de la app.',
+      entrar: 'Iniciar sesión llega en la próxima versión de la app.',
+      misZonas: 'Tus zonas de interés llegan en la próxima versión de la app.',
+      avisos: 'Tus avisos llegan en la próxima versión de la app.',
+    },
+    fase: (n: number) => `Provisional · fase ${n}`,
+    administracionEnLaWeb: 'La administración se hace desde la web.',
+    datosASalvo: 'Tus datos están a salvo.',
+    volverAlMapa: 'Volver al mapa',
+    cerrarCuenta: 'Cerrar el menú de cuenta',
+  },
   conexion: {
     verificando: 'Verificando conexión con el servidor…',
     ok: 'Servidor conectado',

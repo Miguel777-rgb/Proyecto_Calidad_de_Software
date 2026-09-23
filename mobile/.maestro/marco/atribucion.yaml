@@ -1,0 +1,12 @@
+# La atribucion obligatoria a IMARPE (SRS 3.6) cierra cada pantalla.
+appId: pe.ola.app
+name: La atribucion a IMARPE esta al final de la pantalla
+tags: [marco]
+---
+- launchApp
+- scrollUntilVisible:
+    element:
+      id: atribucion
+    direction: DOWN
+- assertVisible: ".*IMARPE / PRODUCE.*"
+- assertVisible: ".*no reemplaza los boletines del IMARPE ni del ENFEN.*"

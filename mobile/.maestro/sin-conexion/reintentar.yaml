@@ -1,0 +1,28 @@
+# Sin API la app lo explica; al volver la API, «Reintentar» recupera el estado.
+# El acceso a la API lo corta y lo devuelve scripts/e2e.mjs, que escucha en
+# CONTROL. evalScript corre en el equipo, no en el celular.
+appId: pe.ola.app
+name: Sin API ofrece reintentar y al volver recupera el estado
+tags: [sin-conexion]
+env:
+  CONTROL: http://127.0.0.1:18999
+---
+- evalScript: "${http.post(CONTROL + '/desconectar-api', { body: '' }).status}"
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: No pudimos cargar el estado del mar.
+    timeout: 20000
+- assertVisible: Revisa tu conexión.
+# La banda y la barra siguen disponibles aunque no haya datos.
+- assertVisible:
+    id: barra-inferior
+- takeScreenshot: informes/capturas/sin-conexion
+- evalScript: "${http.post(CONTROL + '/conectar-api', { body: '' }).status}"
+- tapOn:
+    id: reintentar
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 15000
+- assertNotVisible: No pudimos cargar el estado del mar.

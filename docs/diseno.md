@@ -228,5 +228,51 @@ fijo: `page.clock.setFixedTime(HOY_FIJO)`.
 Para regenerar las referencias visuales **solo tras aprobar un cambio visual**:
 
 ```bash
-docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots"
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile --filter ola-frontend... && pnpm exec playwright test visual.spec.ts --update-snapshots"
 ```
+
+---
+
+## 12. App Android
+
+La app (`mobile/`, RF-09) sigue esta misma guía. Lo que cambia es el material de Android, no la
+identidad. Maqueta aprobada en su fase 1.
+
+**De dónde salen los valores**
+
+- **Colores:** `@ola/compartido/tema/colores` (`PALETA`). La web los declara en `tema.css` y la
+  prueba `frontend/src/tema.test.ts` exige que las dos fuentes digan lo mismo. Los colores de estado
+  siguen viniendo de `mapa/paleta.ts`.
+- **Fuentes:** las mismas tres familias, incrustadas al compilar con `expo-font`. No hay descarga ni
+  carga al abrir la app, así que el primer cuadro ya sale con la tipografía correcta. En los estilos
+  se usan `fontFamily` (`Inter`, `SpaceGrotesk`, `JetBrainsMono`) y `fontWeight`, desde
+  `mobile/src/tema.ts`.
+- **Textos:** `textos` de `@ola/compartido`. Lo que solo existe en la app va en el bloque
+  `textos.movil`.
+
+**Marco**
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Banda | Abisal, 56 dp más la zona de la hora (la app se dibuja de borde a borde). Logotipo como encabezado; «Entrar» en dorado o el botón de cuenta con el número de avisos | `componentes/marco/Banda.tsx` |
+| Barra inferior | Blanca, pestañas de 64 dp con píldora abisal en la activa; se extiende bajo la zona de gestos | `componentes/marco/BarraInferior.tsx` |
+| Cuenta | Hoja que sube desde abajo, en su propia ventana (`Modal`); se cierra deslizando, con «atrás», tocando fuera o al elegir | `componentes/marco/HojaCuenta.tsx` |
+| Pantalla | Título como encabezado, contenido y el pie con la atribución a IMARPE al final de cada pestaña | `componentes/pantalla/Pantalla.tsx` |
+| Errores | Sin conexión: mismo texto que la web y «Reintentar». Fallo inesperado: límite de errores de expo-router con «Volver al mapa» | `componentes/pantalla/` |
+
+**Tamaño de letra.** Los tamaños van en sp y siguen la letra que la persona eligió en su celular. El
+contenido crece sin límite (Android llega al 200 %). La banda se limita al 130 % y las etiquetas de
+la barra al 150 % (`LETRA_MAXIMA`): a 200 % las cuatro pestañas no caben en un cuarto de pantalla.
+Por eso las etiquetas admiten dos líneas.
+
+**Solo vertical y solo tema claro**, igual que la web, aunque el celular esté en modo oscuro.
+
+**Ícono y arranque.** Se generan con `mobile/scripts/generar-recursos.py` desde la fuente del
+logotipo: ícono adaptativo (logotipo en espuma sobre abisal, dentro de la zona segura de 66 dp),
+versión monocroma para los íconos temáticos y arranque abisal con el lema «Datos abiertos del
+IMARPE». En ícono y arranque el espaciado del logotipo se abre a -0.005 em: con el -0.035 em de la
+banda, la L y la A se tocan en cuanto el logotipo pasa de unos 60 px.
+
+**Pruebas.** Jest y Testing Library consultan por rol y nombre accesible, como TalkBack. Maestro
+recorre la app instalada en el celular y además prueba sin conexión y con la letra al 200 %. Ver
+`mobile/.maestro/` y el README.

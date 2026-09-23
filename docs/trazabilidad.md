@@ -6,7 +6,7 @@ Este documento conecta cada requisito funcional de la [SRS](requisitos.md) con e
 implementa y con las pruebas que demuestran que funciona. Complementa la matriz de la sección 4
 de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
-**Fecha:** 2026-09-14 · **Versión de la SRS:** 1.7
+**Fecha:** 2026-09-23 · **Versión de la SRS:** 1.7
 
 ---
 
@@ -14,17 +14,19 @@ de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
 | Suite | Pruebas | Qué cubre |
 |---|---|---|
-| Backend — unitarias | 212 | Lógica de dominio pura, sin base de datos |
+| Backend — unitarias | 213 | Lógica de dominio pura, sin base de datos |
 | Backend — integración | 230 | Endpoints, persistencia y permisos |
-| Paquete compartido — Vitest | 124 | Lógica de presentación y contrato con la API, que usan la web y la app móvil |
-| Web — Vitest | 241 | Componentes y páginas; axe en cada componente nuevo |
+| Paquete compartido — Vitest | 135 | Lógica de presentación, contrato con la API y paleta de colores, que usan la web y la app móvil |
+| Web — Vitest | 243 | Componentes y páginas; axe en cada componente nuevo |
 | Extremo a extremo — Playwright | 167 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
 | Rendimiento — Playwright | 2 | Build de producción con 4G normal |
 | Herramientas de calidad — pytest | 8 | Cálculo de la disponibilidad a partir de los chequeos de Uptime Kuma |
-| **Total** | **984** | |
+| App móvil — Jest | 69 | Configuración por variante, marco, pantallas y navegación con las rutas reales |
+| App móvil — Maestro | 6 | Flujos sobre el APK de release en un celular real |
+| **Total** | **1,073** | |
 
-Cobertura de sentencias: **95 %** en el backend, **97.3 %** en el paquete compartido y **89.9 %**
-en la web. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
+Cobertura de sentencias: **95 %** en el backend, **97.5 %** en el paquete compartido, **89.9 %**
+en la web y **91.1 %** en la app. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
 
 Playwright lista 189 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
 omiten a propósito porque son de escritorio o de celular y no aplican en el otro.
@@ -36,7 +38,7 @@ docker compose exec api pytest --cov=ola     # backend
 docker compose exec -w /repo/packages/compartido web pnpm test   # paquete compartido
 docker compose exec web pnpm test            # web
 docker compose --profile e2e run --rm e2e    # extremo a extremo
-docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm test:rendimiento"   # rendimiento
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile --filter ola-frontend... && pnpm test:rendimiento"   # rendimiento
 ```
 
 ---
@@ -53,6 +55,7 @@ docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack pre
 | RF-06 | Comparación entre laboratorios | Implementado | v1.4 — máximo de 4 zonas, distinguidas por forma |
 | RF-07 | Registro y autenticación | Implementado | — |
 | RF-08 | Importación del dataset | Implementado | v1.2 — **solo manual**, sin tarea programada |
+| RF-09 | Aplicación móvil Android | En construcción: fases 0 y 1 de 6 | v1.7 — requisito nuevo; el catálogo pasa de 8 RF |
 
 ---
 
@@ -194,17 +197,33 @@ verificado también sobre las imágenes de producción. La prueba
 
 ## RF-09 — Aplicación móvil Android
 
-**Estado:** en construcción por fases (plan en [calidad.md](calidad.md), sección 13).
+**Estado:** en construcción por fases (plan en [calidad.md](calidad.md), sección 13). Fases 0
+y 1 cerradas: paquete compartido y marco de la app. La app ya muestra la fecha del dato leída
+de la API real.
 
-**Implementación hasta ahora:** `packages/compartido/`, el paquete que la app compartirá con la
-web: tipos y cliente de la API, lógica de presentación y textos.
+**Implementación:** `packages/compartido/` (tipos y cliente de la API, lógica, textos y paleta)
+y `mobile/` (Expo con expo-router).
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
 | `packages/compartido/src/api/cliente.test.ts` | 33 | El cliente acepta un almacén de token síncrono (web) o asíncrono (app); cada función pide la ruta y el método que espera FastAPI; los errores de FastAPI y Pydantic llegan como mensajes legibles |
+| `packages/compartido/src/tema/colores.test.ts` | 11 | Cada par de texto y fondo que usan la web y la app supera 4.5:1 |
+| `frontend/src/tema.test.ts` | 2 | `tema.css` y la paleta de la app dicen lo mismo; un color cambiado en un solo lado falla |
+| `mobile/pruebas/config.test.ts` | 15 | Cada variante apunta a su API; solo la demo exige HTTPS; Android 10 como mínimo; fuentes, ícono y arranque existen |
+| `mobile/pruebas/compilacion-nativa-windows.test.ts` | 5 | El plugin de compilación usa un CMake con ninja 1.12 y compila fuera de `node_modules/.pnpm` |
+| `mobile/src/componentes/marco/Banda.test.tsx` | 7 | Entrar sin sesión; botón de cuenta con los avisos sin leer, en singular y plural; letra limitada al 130 % |
+| `mobile/src/componentes/marco/BarraInferior.test.tsx` | 6 | Las cuatro pantallas en el orden de la web, la actual seleccionada, 64 dp de alto y letra hasta el 150 % |
+| `mobile/src/componentes/marco/HojaCuenta.test.tsx` | 13 | Sesión y rol; nota de administración en la web; se cierra con «atrás», tocando fuera o al elegir |
+| `mobile/pruebas/mapa.test.tsx` | 9 | Fecha del dato en dd/mm/aaaa, sin datos, error con «Reintentar» y hito de rendimiento |
+| `mobile/pruebas/navegacion.test.tsx` | 7 | Las rutas reales de expo-router: cada pestaña, Entrar y la hoja de cuenta llevan a su pantalla |
+| `mobile/src/useConsulta.test.ts` | 4 | Una respuesta tardía no pisa la del reintento (D-05, D-24) |
+| `mobile/src/componentes/pantalla/ErrorInesperado.test.tsx` | 3 | Un fallo al dibujar no cierra la app ni muestra el mensaje técnico |
+| `mobile/.maestro/marco/` | 4 flujos | En el celular: arranque con la fecha del dato, las pestañas, Entrar y «atrás», atribución a IMARPE |
+| `mobile/.maestro/sin-conexion/reintentar.yaml` | 1 flujo | Sin API la app lo explica; al volver la API, «Reintentar» recupera el estado |
+| `mobile/.maestro/letra/letra-grande.yaml` | 1 flujo | Con la letra del celular al 200 % se ven las cuatro pestañas y todo el contenido |
 
-Las pruebas de las pantallas nativas (Jest) y los flujos en Android (Maestro) se añaden desde
-la fase 1.
+**Rendimiento (SRS 3.3):** el estado se ve en una mediana de **0.64 s** desde que se abre la app
+en frío (peor de 5: 1.75 s), en un Galaxy A56 con Android 16. El límite es de 5 s.
 
 ---
 
@@ -216,8 +235,8 @@ la fase 1.
 | Accesibilidad | axe (WCAG 2.2 AA) **bloqueante** en todas las pantallas, en escritorio y celular, y en las pruebas de cada componente nuevo. Excepción documentada: tamaño de objetivo de los marcadores del mapa (WCAG 2.5.8, «equivalente») |
 | Confiabilidad | La fecha del dato se muestra siempre; una zona sin mediciones recientes se marca y no se clasifica |
 | Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`) |
-| Mantenibilidad | 984 pruebas; cobertura del 95 % en el backend, 97.3 % en el paquete compartido y 89.9 % en la web; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
-| Disponibilidad | Uptime Kuma consulta `/api/health/ready` cada minuto desde el 2026-09-14; el informe y la meta (95 % objetivo, 90 % mínimo) están en [calidad.md](calidad.md), sección 7 |
+| Mantenibilidad | 1,073 pruebas; cobertura del 95 % en el backend, 97.5 % en el paquete compartido, 89.9 % en la web y 91.1 % en la app; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto. Semana al 23 de septiembre: 99.07 % y 96.72 %. Meta: 95 % objetivo, 90 % mínimo ([calidad.md](calidad.md), sección 7) |
 | Portabilidad | Todo en contenedores; el stack de producción se verificó completo en local |
 | Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 1.07 s con 4G normal (límite: 3 s) y la portada descarga 170 kB comprimidos (`e2e/rendimiento.spec.ts`) |
 

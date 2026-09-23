@@ -2,9 +2,10 @@
 
 Proyecto académico del curso **Calidad de Software**. OLA es una aplicación web que transforma el dataset público de anomalía de la temperatura superficial del mar (ATSM), publicado por IMARPE/PRODUCE, en información sencilla para consultar el estado térmico de los laboratorios costeros del litoral peruano.
 
-> Web completa y verificada: 984 pruebas automatizadas, 95 % de cobertura en el backend,
+> Web completa y verificada: 1,073 pruebas automatizadas, 95 % de cobertura en el backend,
 > accesibilidad WCAG 2.2 AA comprobada en cada pantalla y el stack probado de extremo a extremo
-> en escritorio y celular. La aplicación Android (RF-09) está en construcción por fases. Ver
+> en escritorio y celular. La aplicación Android (RF-09) está en construcción por fases; su
+> marco ya funciona en un celular real. Ver
 > [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito y
 > [el plan de calidad](docs/calidad.md) para las metas y las métricas.
 
@@ -58,6 +59,10 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 ├── frontend/                        # Interfaz web (React + Vite + TypeScript)
 │   ├── src/                         # Código fuente
 │   └── e2e/                         # Pruebas de extremo a extremo (Playwright)
+├── mobile/                          # App Android (Expo + React Native + TypeScript)
+│   ├── src/app/                     # Pantallas (rutas de expo-router)
+│   ├── .maestro/                    # Pruebas de extremo a extremo (Maestro)
+│   └── scripts/                     # Compilar, probar en el celular y medir el arranque
 ├── packages/
 │   └── compartido/                  # Tipos y cliente de la API, lógica y textos (web y app)
 ├── tools/
@@ -197,6 +202,48 @@ necesita (`--filter ola-frontend...`); sus `node_modules` viven en volúmenes de
 No se deben incluir credenciales reales en el repositorio: `.env` está en `.gitignore` y solo
 se versiona `.env.example`.
 
+## App Android
+
+La app (`mobile/`) se compila y se prueba en el equipo, no en Docker: necesita el Android SDK y
+un celular. Hoy muestra el marco completo y la fecha del dato. Sus pantallas se completan fase a
+fase (ver [el plan de calidad](docs/calidad.md), sección 13).
+
+**Requisitos:** Node 24, pnpm (Corepack usa la versión 9.15.2 del repositorio), Android SDK con
+`ANDROID_HOME` definida, JDK 17 en `JAVA_HOME`, [Maestro](https://maestro.mobile.dev) y un
+celular con Android 10 o superior, la depuración USB activada y autorizada para este equipo.
+Del SDK hacen falta el NDK 27.1 y CMake 3.31.6; en Windows, además, las rutas largas activadas
+(`LongPathsEnabled`):
+
+```bash
+android sdk install ndk/27.1.12297006 cmake/3.31.6   # el CLI nuevo del SDK; sdkmanager ya no instala
+```
+
+```bash
+cd mobile
+pnpm install --filter ola-mobile...   # dependencias de la app y del paquete compartido
+pnpm test                             # pruebas unitarias (Jest)
+pnpm lint && pnpm typecheck
+```
+
+Con el backend levantado (`docker compose up -d`) y el celular conectado:
+
+```bash
+adb reverse tcp:18000 tcp:8000  # el celular ve la API del equipo en su localhost:18000, por el cable
+pnpm android                    # build de desarrollo con recarga en caliente (paquete pe.ola.app.dev)
+pnpm e2e                        # compila el APK de pruebas, lo instala y corre Maestro
+pnpm medir                      # tiempo hasta ver el estado del mar, mediana de 3 arranques
+pnpm compilar demo              # APK contra el VPS, en mobile/informes/ola-demo.apk
+```
+
+`pnpm e2e` prepara el celular entre flujos: corta el acceso a la API para probar el error de
+conexión y sube la letra al 200 %. Al terminar deja la letra y las animaciones como estaban. Los
+informes y capturas quedan en `mobile/informes/`, que no se versiona.
+
+> **pnpm en Windows** enlaza `node_modules` con uniones de directorio que apuntan a rutas de
+> Windows. Un contenedor Linux no puede seguirlas, así que los scripts de la app corren en el
+> equipo. La primera compilación nativa tarda más de una hora: compila el C++ de React Native.
+> Las siguientes reutilizan `mobile/.cxx/`, que no se versiona.
+
 ## Despliegue en un VPS con Dokploy
 
 El sistema se despliega con [`compose.prod.yml`](compose.prod.yml), que se diferencia del
@@ -293,10 +340,10 @@ retrospectiva por fase.
 
 | Evidencia | Estado |
 |---|---|
-| Pruebas automatizadas | **984** en backend, paquete compartido, web, E2E y herramientas |
-| Cobertura de sentencias | **95 %** backend · **97.3 %** paquete compartido · **89.9 %** web |
-| Defectos | 21 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
-| Disponibilidad | Uptime Kuma consulta la API cada minuto desde el 2026-09-14 |
+| Pruebas automatizadas | **1,073** en backend, paquete compartido, web, app móvil, E2E y herramientas |
+| Cobertura de sentencias | **95 %** backend · **97.5 %** paquete compartido · **89.9 %** web · **91.1 %** app |
+| Defectos | 27 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
+| Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto |
 | Análisis estático | ruff y mypy en modo estricto, sin observaciones |
 | Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |
 | Control de cambios | toda desviación de la SRS registrada con fecha y motivo en su sección 5 |

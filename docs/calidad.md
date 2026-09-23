@@ -4,8 +4,8 @@
 | Campo | Detalle |
 |---|---|
 | Curso | Calidad de Software (3.8.2.21) · 2026-II |
-| Versión | 1.0 (fase 0 de la aplicación móvil) |
-| Fecha | 2026-09-14 |
+| Versión | 1.1 (fase 1 de la aplicación móvil) |
+| Fecha | 2026-09-23 |
 | Responsable de QA | Jorge Ortiz Castañeda (Scrum Master) |
 | Aprobación | Miguel Angel Flores Leon (Product Owner) |
 
@@ -30,10 +30,10 @@ puede cerrar, pero su retrospectiva debe proponer una acción de mejora.
 | Cobertura de sentencias del backend | 80 % | 90 % | pytest-cov |
 | Cobertura del paquete compartido | 80 % | 90 % | Vitest (v8) |
 | Cobertura de la web | 70 % | 80 % | Vitest (v8) |
-| Cobertura de la app móvil | 70 % | 80 % | Jest (desde la fase 1) |
+| Cobertura de la app móvil | 70 % | 80 % | Jest |
 | Accesibilidad WCAG 2.2 AA | 0 violaciones serias o críticas | 0 | axe en Vitest y Playwright |
 | Carga del mapa web (SRS 3.3) | 3 s | 3 s | `e2e/rendimiento.spec.ts` |
-| Estado de las zonas en la app (SRS 3.3) | 5 s | 5 s | Maestro y adb (desde la fase 2) |
+| Estado de las zonas en la app (SRS 3.3) | 5 s | 5 s | `mobile/scripts/medir-arranque.mjs` en el celular: mediana de 5 arranques en frío |
 | Disponibilidad del backend (SRS 3.5) | 90 % | 95 % | Uptime Kuma |
 | Defectos críticos abiertos al cerrar una fase | 0 | 0 | [defectos.md](defectos.md) |
 
@@ -109,7 +109,8 @@ Una fase no se cierra ni abre su Pull Request hasta cumplir todo esto. Si una pu
 una excepción justificada, la excepción se registra con su motivo en la retrospectiva.
 
 1. Todas las pruebas de las capas que la fase toca pasan.
-2. Verificación de tipos y análisis estático sin errores: mypy, ruff, tsc y ESLint.
+2. Verificación de tipos, formato y análisis estático sin errores: mypy, `ruff check`,
+   `ruff format --check`, tsc y ESLint.
 3. La cobertura de cada capa está sobre su mínimo (sección 1).
 4. axe no reporta violaciones serias ni críticas.
 5. No hay defectos críticos abiertos.
@@ -131,18 +132,21 @@ fuera»), así que las puertas se comprueban en local con los comandos de la sec
 | Unitaria de la web | Vitest, Testing Library y axe-core | Componentes y páginas con dobles del mapa y del gráfico |
 | E2E de la web | Playwright y axe | Escritorio y celular emulado (Pixel 7): comportamiento, accesibilidad y capturas |
 | Rendimiento de la web | Playwright | Build de producción con 4G simulado |
-| Unitaria de la app | Jest y React Native Testing Library | Desde la fase 1 |
-| E2E de la app | Maestro | Emulador Android o celular por adb, desde la fase 1 |
+| Unitaria de la app | Jest y React Native Testing Library | Configuración por variante, marco, pantallas y navegación con las rutas reales, consultando por rol y nombre como TalkBack |
+| E2E de la app | Maestro, rodeado por `mobile/scripts/e2e.mjs` | El APK de release en el celular: arranque, navegación, sin conexión y letra al 200 % |
+| Rendimiento de la app | `mobile/scripts/medir-arranque.mjs` | Tiempo desde que se abre en frío hasta ver el estado, en el celular |
 | Análisis estático | ruff, mypy (estricto), tsc y ESLint | Estilo, tipos y errores comunes |
 | Servicios simulados | Mailpit (correo) y FCM simulado (push, fase 4) | Que un aviso se entrega sin salir a internet |
-| Disponibilidad | Uptime Kuma | Chequeo de `/api/health/ready` cada minuto |
+| Disponibilidad | Uptime Kuma | Chequeo de `/api/health/ready` del equipo y del VPS cada minuto |
 
 ```bash
 docker compose exec api pytest --cov=ola                                   # backend
-docker compose exec api ruff check . && docker compose exec api mypy src   # análisis estático
+docker compose exec api sh -c "ruff check . && ruff format --check . && mypy src"   # análisis estático
 docker compose exec -w /repo/packages/compartido web pnpm test:cobertura   # paquete compartido
 docker compose exec web pnpm test:cobertura                                # web, unitarias
 docker compose --profile e2e run --rm e2e                                  # web, E2E
+cd mobile && pnpm test:cobertura && pnpm lint && pnpm typecheck            # app, unitarias
+cd mobile && pnpm e2e && pnpm medir                                        # app, E2E y arranque
 docker compose --profile calidad run --rm calidad reporte.py --horas 168   # disponibilidad
 ```
 
@@ -185,6 +189,25 @@ no hay chequeos y ese tiempo no cuenta como caída; el informe muestra el period
 | Fase | Cierre | Cobertura backend / compartido / web / app | Defectos nuevos (críticos) | Estado en la app | Disponibilidad |
 |---|---|---|---|---|---|
 | 0 | 2026-09-14 | 95 % / 97.3 % / 89.9 % / — | 2 (0) | — | Inicio de la medición |
+| 1 | 2026-09-23 | 95 % / 97.5 % / 89.9 % / 91.1 % | 6 (0) | 0.64 s (peor de 5: 1.75 s) | Equipo 99.07 % · VPS 96.72 % |
+
+Notas de la fase 1:
+
+- **Densidad de defectos:** 27 defectos en 10.7 KLOC de producción, 2.51 por KLOC. Las líneas
+  son 4,286 del backend, 3,550 de la web, 1,099 del paquete compartido y 1,814 de la app
+  (pantallas, configuración, plugin y scripts de compilación y prueba). La web bajó porque su
+  lógica pasó al paquete compartido.
+- **Estado en la app:** tiempo desde que Android recibe la orden de abrir la app, cerrada, hasta
+  que la app escribe su marca `estado-visible` en el registro del sistema. Incluye la consulta a
+  la API. Medido en el Galaxy A56 con Android 16. El primer arranque tras instalar (1.75 s) es
+  el más lento porque Android optimiza la app.
+- **Disponibilidad:** semana del 16 al 23 de septiembre, solo con el equipo encendido: 642
+  chequeos del backend del equipo y 519 del VPS. En el VPS, la caída más larga fue de 39 minutos
+  (22 de septiembre, 22:21 a 23:00 UTC, conexión rechazada). Los tiempos de espera agotados entre
+  las 04:40 y las 06:34 UTC del 23 afectaron a los dos monitores a la vez, mientras la
+  compilación nativa saturaba el equipo que los mide: miden al monitor, no al backend.
+- **APK:** 66.7 MB el de pruebas, solo para arm64. El de demostración, que también incluye
+  armeabi-v7a para celulares de 32 bits, pesa 80.8 MB. El de entrega se mide en la fase 6.
 
 ---
 
@@ -200,16 +223,18 @@ actividad, no un registro de tiempo.
 | Prevención | Maquetas aprobadas antes de las cuatro fases del rediseño web | 4 | S/ 100 |
 | Prevención | Guía de diseño con la paleta validada a contraste 3:1 | 3 | S/ 75 |
 | Prevención | Este plan, la tabla de riesgos y la SRS 1.7 | 6 | S/ 150 |
+| Prevención | Preguntas y maqueta aprobada del marco de la app, antes de programarlo | 3 | S/ 75 |
 | **Evaluación** | Pruebas del backend: unitarias e integración | 20 | S/ 500 |
 | Evaluación | Pruebas de la web y del paquete compartido: unitarias, E2E, accesibilidad, capturas y rendimiento | 20 | S/ 500 |
 | Evaluación | Correr las suites y revisar capturas al cerrar cada fase | 6 | S/ 150 |
-| **Falla interna** | 20 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 22.25 | S/ 556.25 |
+| Evaluación | Pruebas de la app: Jest, flujos de Maestro en el celular y medición del arranque | 10 | S/ 250 |
+| **Falla interna** | 27 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 30.75 | S/ 768.75 |
 | **Falla externa** | Ningún defecto llegó a producción | 0 | S/ 0 |
 
 | Resumen | Horas | Costo |
 |---|---|---|
-| Costo de conformidad (prevención + evaluación) | 65 | S/ 1,625 |
-| Costo de no conformidad (fallas) | 22.25 | S/ 556.25 |
+| Costo de conformidad (prevención + evaluación) | 78 | S/ 1,950 |
+| Costo de no conformidad (fallas) | 30.75 | S/ 768.75 |
 
 **Lectura.** El único defecto crítico (D-01, un decimal con coma que corrompía el valor) se
 atrapó en una prueba unitaria y costó una hora. Si hubiera llegado a producción, un pescador
@@ -218,8 +243,12 @@ puede poner en soles con honestidad: además de corregir el importador y reimpor
 habría que avisar a los usuarios, y la confianza perdida en una herramienta de alertas no se
 recupera con un parche. Por eso la falla externa es la categoría más cara aunque hoy valga cero.
 
-El otro dato que importa: 12 de los 21 defectos se encontraron en E2E o en revisión, que son
+El otro dato que importa: 13 de los 27 defectos se encontraron en E2E o en revisión, que son
 etapas más caras que la unitaria. Varias retrospectivas apuntan a detectar antes (sección 12).
+
+De las 8.5 horas de falla interna sumadas desde la fase 0, un solo defecto (D-26, la
+compilación en Windows) se llevó 4. No era un error del código de la app, sino del entorno
+donde se compila: se paga igual.
 
 ---
 
@@ -284,12 +313,14 @@ cerrar cada fase.
 | R-03 | Una alerta equivocada hace perder la confianza de los pescadores | Baja | Muy alto | OLA y el boletín de ENFEN discrepan sobre una zona | Pruebas de los límites de RF-01. Los dos modelos de proyección se muestran juntos. La fecha del dato y el aviso «no reemplaza los boletines de IMARPE» siempre visibles | Jhordan Huamani Huamani | Abierto |
 | R-04 | La notificación push no llega (FCM o el ahorro de batería del fabricante la retienen) | Media | Alto | Avisos push en estado fallido, o la prueba en celular no muestra la notificación | Correo y aviso en la app como canales redundantes (RF-03). Cada fallo queda registrado y se reintenta. Verificación en un celular real en la fase 4 | Jhordan Huamani Huamani | Abierto |
 | R-05 | Secretos subidos al repositorio (`.env`, credenciales de Firebase, keystore) | Baja | Alto | Uno de esos archivos aparece en `git status` o en el diff de un PR | `.gitignore` y puerta de calidad 6 antes de cada push. Si se filtra uno, se revoca y se genera otro | Jorge Ortiz Castañeda | Abierto |
+| R-06 | La cadena de compilación Android en Windows falla o tarda horas (rutas largas, descargas del SDK que se cortan, C++ de React Native) | Alta | Medio | Una compilación falla por el entorno y no por el código, o tarda más de una hora | Requisitos del SDK en el README; plugin `compilacion-nativa-windows.js`; APK de pruebas solo para arm64; `mobile/.cxx/` conservado entre compilaciones | Jhordan Huamani Huamani | **Materializado** en la fase 1 |
 
 **Revisiones**
 
 | Fase | Fecha | Cambios |
 |---|---|---|
 | 0 | 2026-09-14 | Tabla creada. Ningún riesgo materializado |
+| 1 | 2026-09-23 | Se añade R-06, que se materializó: tres fallas seguidas de la compilación nativa en Windows (sección 12). R-04 y R-05 sin cambios; la cuenta de servicio de Firebase todavía no existe |
 
 ---
 
@@ -350,6 +381,36 @@ si funcionó lo que se cambió la vez anterior.
 - **¿Funcionó la acción anterior?** Sí: la tolerancia absoluta no dejó pasar ningún cambio
   visual en esta fase.
 
+### Fase 1 de la app móvil (2026-09-23)
+
+- **Funcionó:** la maqueta aprobada antes de programar. La app en el celular se ve como la
+  maqueta y no hubo que rehacer pantallas. Los flujos de Maestro pasaron 6 de 6 en el celular,
+  incluido el error de conexión con su «Reintentar» y la letra al 200 %.
+- **Falló:** compilar. La primera compilación nativa en Windows falló tres veces seguidas:
+  - el NDK no terminó de descargarse;
+  - rutas de 295 caracteres para CMake;
+  - rutas de 430 caracteres para ninja (D-26).
+
+  Pasar de la primera compilación a un APK instalado tomó casi un día. Además, el puerto 8000
+  del celular estaba ocupado (D-27), la API de Testing Library 14 había cambiado y un bucle en
+  `useConsulta` agotó la memoria de Jest (D-24).
+- **¿Funcionó la acción anterior?** Sí. Las suites pesadas corrieron una por una y eso dejó ver
+  que la prueba de App fallaba por su propio límite de tiempo, no por la carga del equipo
+  (D-25). La prueba de rendimiento de la importación falló mientras Gradle compilaba y pasó
+  sola: la acción evitó registrarla como defecto por error. La carpeta de cobertura de la app y
+  `mobile/.cxx` quedaron fuera de Git desde el principio.
+
+  Pero correr las suites una por una no basta si el equipo lo comparten otros procesos. En la
+  primera corrida de Playwright fallaron 3 pruebas de Comparar: la API respondía, pero el
+  gráfico seguía en «Cargando…». Coincidió con las pruebas de otro proyecto y con 227 MB de RAM
+  libres. Sola, la suite de gráficos pasó 17 de 17, y la completa, repetida, 167 de 167. No se
+  registra como defecto: el código no cambió y el fallo no se repite con el equipo libre.
+- **Acción para la fase 2:** antes de sumar una librería nativa (el mapa), comprobar primero que
+  compila en Windows con un APK de prueba. La compilación es la etapa más lenta del ciclo.
+  Registrar la hora de inicio y de fin de cada compilación para estimar mejor la fase 3. Antes
+  de correr Playwright o Maestro, detener el daemon de Gradle y comprobar que haya al menos 2 GB
+  de RAM libres.
+
 ---
 
 ## 13. Cronograma
@@ -379,6 +440,7 @@ gantt
   section App móvil (RF-09)
   Fase 0 planificado          :2026-09-15, 14d
   Fase 0 real                 :done, 2026-09-14, 1d
+  Fase 1 real                 :done, 2026-09-22, 2d
   Fase 1 planificado          :2026-09-29, 14d
   Fases 2 y 3 planificado     :2026-10-13, 14d
   Fase 4 planificado          :2026-10-27, 14d

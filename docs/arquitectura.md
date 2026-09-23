@@ -1,10 +1,10 @@
 # Modelo del sistema
 ## Proyecto OLA — Observatorio Litoral de Anomalías térmicas
 
-Diagramas C4 de contexto y de contenedores. Lo marcado como **en construcción** corresponde a
-la aplicación móvil (RF-09), que se desarrolla por fases según el plan de calidad
-([calidad.md](calidad.md)). Este documento se actualiza al cerrar la fase 4 (notificaciones
-push) y la fase 6 (cierre).
+Diagramas C4 de contexto y de contenedores. La aplicación móvil (RF-09) se construye por fases
+según el plan de calidad ([calidad.md](calidad.md)); lo marcado como **en construcción** todavía
+no existe. Este documento se actualiza al cerrar la fase 4 (notificaciones push) y la fase 6
+(cierre).
 
 ---
 
@@ -73,7 +73,7 @@ C4Container
 | API | Toda la lógica de negocio. La web y la app no clasifican ni calculan alertas por su cuenta | [backend/](../backend/) |
 | Base de datos | Única fuente de verdad. Las migraciones las aplica la API al arrancar | [backend/alembic/](../backend/alembic/) |
 | Aplicación web | Interfaz para pescadores y administradores | [frontend/](../frontend/) |
-| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión | `mobile/` (desde la fase 1) |
+| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión | [mobile/](../mobile/) |
 
 ### Código compartido entre la web y la app
 
@@ -98,10 +98,19 @@ cifrado en la app.
 | Correo | Mailpit captura los mensajes sin enviarlos | Servidor SMTP real |
 | Push | FCM simulado en Docker (desde la fase 4) | Firebase Cloud Messaging |
 | Pruebas E2E web | Contenedor de Playwright contra el stack completo | — |
-| Pruebas E2E móvil | Maestro en emulador o celular por adb (desde la fase 1) | — |
-| Disponibilidad | Uptime Kuma consulta `/api/health/ready` cada minuto | Se añade un monitor si se activa el VPS |
-| Entrada | Puertos publicados en el equipo | Traefik de Dokploy, por subdominio y con HTTPS |
+| Pruebas E2E móvil | Maestro en el celular por cable; la app ve la API del equipo con `adb reverse` | — |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto | — |
+| Entrada | Puertos publicados en el equipo | Traefik de Dokploy con HTTPS: web y API en el mismo dominio, la API bajo `/api` (rama `deploy`) |
 
 La aplicación web se compila con la dirección de la API escrita dentro del JavaScript. La app
-Android hace lo mismo: el APK que apunta al Docker local no sirve contra el VPS y hay que
-compilarlo de nuevo.
+Android hace lo mismo, con tres variantes (`mobile/app.config.ts`):
+
+| Variante | Paquete | API | Uso |
+|---|---|---|---|
+| `desarrollo` | `pe.ola.app.dev` | `http://localhost:18000/api` por el cable | Programar con recarga en caliente |
+| `e2e` | `pe.ola.app` | `http://localhost:18000/api` por el cable | APK de release que prueba Maestro |
+| `demo` | `pe.ola.app` | `https://olachilindrina.wayrasimi.tech/api` | Instalar sin cable, contra el VPS |
+
+Solo `demo` prohíbe el tráfico sin cifrar: las otras dos hablan con el Docker del equipo, que no
+tiene HTTPS. `adb reverse` lleva el puerto 18000 del celular al 8000 del equipo; no se usa el
+8000 en el celular porque en el de pruebas ya lo ocupaba otra app.

@@ -148,6 +148,8 @@ services:
       UPTIME_KUMA_USUARIO: ${UPTIME_KUMA_USUARIO}
       UPTIME_KUMA_CLAVE: ${UPTIME_KUMA_CLAVE}
       OLA_SALUD_URL: http://api:8000/api/health/ready
+      # Opcional: el sistema desplegado, para medir tambien su disponibilidad.
+      OLA_VPS_URL: ${OLA_VPS_URL:-}
       PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - ./tools/uptime-kuma:/herramienta

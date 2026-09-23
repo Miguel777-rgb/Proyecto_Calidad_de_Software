@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 
 from uptime_kuma_api import UptimeKumaApi
 
-NOMBRE_MONITOR = "OLA API /health/ready"
 INTERVALO_S = 60
+
+
+@dataclass(frozen=True)
+class Monitor:
+    nombre: str
+    url: str
 
 
 def variable(nombre: str) -> str:
@@ -15,6 +21,15 @@ def variable(nombre: str) -> str:
     if not valor:
         raise SystemExit(f"Falta la variable {nombre}. Revisa tu .env (ver .env.example).")
     return valor
+
+
+def monitores() -> list[Monitor]:
+    """El backend local siempre; el VPS solo si OLA_VPS_URL esta definida."""
+    lista = [Monitor("OLA API /health/ready", variable("OLA_SALUD_URL"))]
+    vps = os.environ.get("OLA_VPS_URL", "").strip().rstrip("/")
+    if vps:
+        lista.append(Monitor("OLA VPS /health/ready", f"{vps}/api/health/ready"))
+    return lista
 
 
 def conectar() -> UptimeKumaApi:

@@ -7,7 +7,7 @@ FROM node:24-slim AS development
 ENV PNPM_HOME=/usr/local/bin
 RUN corepack enable && corepack prepare pnpm@9.15.2 --activate
 WORKDIR /repo
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY frontend/package.json frontend/
 COPY packages/compartido/package.json packages/compartido/
 # Solo la web y lo que necesita: el workspace incluye tambien la app movil,
@@ -31,7 +31,7 @@ WORKDIR /repo
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY frontend/package.json frontend/
 COPY packages/compartido/package.json packages/compartido/
 RUN pnpm install --frozen-lockfile --filter ola-frontend...

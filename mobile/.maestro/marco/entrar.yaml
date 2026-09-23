@@ -1,0 +1,12 @@
+# Sin sesion la banda ofrece entrar; «atras» vuelve al mapa.
+appId: pe.ola.app
+name: Entrar abre su pantalla y atras vuelve
+tags: [marco]
+---
+- launchApp
+- tapOn:
+    id: entrar
+- assertVisible: Iniciar sesión
+- assertVisible: Iniciar sesión llega en la próxima versión de la app.
+- back
+- assertVisible: Estado del mar en la costa

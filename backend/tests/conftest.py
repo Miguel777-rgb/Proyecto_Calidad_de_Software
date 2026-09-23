@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from decimal import Decimal
 from pathlib import Path
@@ -21,13 +22,18 @@ from ola.services.settings_service import EffectiveSettings
 
 
 @pytest.fixture
-def settings_factory():
-    """Crea Settings ignorando el archivo .env real del equipo.
+def settings_factory(monkeypatch: pytest.MonkeyPatch):
+    """Crea Settings ignorando la configuracion real del equipo.
 
-    Sin esto las pruebas dependerian de la maquina donde se ejecutan.
+    Sin esto las pruebas dependerian de la maquina donde se ejecutan. No basta
+    con ignorar el archivo .env: dentro de Docker sus valores llegan como
+    variables de entorno, y una contrasena de plantilla hacia fallar las
+    pruebas de produccion sin que el codigo tuviera ningun error (D-20).
     """
 
     def _make(**overrides: object) -> Settings:
+        for nombre in [n for n in os.environ if n.upper().startswith("OLA_")]:
+            monkeypatch.delenv(nombre)
         return Settings(_env_file=None, **overrides)  # type: ignore[arg-type]
 
     return _make

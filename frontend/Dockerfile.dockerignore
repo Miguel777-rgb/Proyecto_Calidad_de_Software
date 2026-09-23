@@ -4,6 +4,7 @@
 !package.json
 !pnpm-workspace.yaml
 !pnpm-lock.yaml
+!.npmrc
 !frontend/**
 !packages/**
 

@@ -43,8 +43,26 @@ def test_rechaza_parametros_de_dominio_fuera_de_rango(settings_factory, campo, v
 
 
 def test_is_production_solo_es_verdadero_en_produccion(settings_factory):
-    assert settings_factory(env="production").is_production is True
+    # Produccion exige secretos propios, asi que la prueba los declara: antes
+    # los tomaba sin querer del .env del equipo y fallaba segun la maquina (D-20).
+    produccion = settings_factory(
+        env="production", jwt_secret="a" * 64, admin_password="clave-propia-del-equipo"
+    )
+    assert produccion.is_production is True
     assert settings_factory(env="development").is_production is False
+
+
+def test_settings_factory_no_lee_la_configuracion_del_equipo(settings_factory, monkeypatch):
+    """Regresion de D-20: dentro de Docker el .env llega como variables de
+    entorno, y la contrasena de plantilla del equipo hacia fallar pruebas que
+    no tenian nada que ver con ella."""
+    monkeypatch.setenv("OLA_ADMIN_PASSWORD", "cambia_esta_clave_de_admin")
+    monkeypatch.setenv("OLA_FRESHNESS_DAYS", "99")
+
+    s = settings_factory()
+
+    assert s.admin_password == "cambiar"
+    assert s.freshness_days == 7
 
 
 def test_lee_variables_de_entorno_con_prefijo_ola(monkeypatch):

@@ -299,6 +299,45 @@ API, que ahora cubren las dos interfaces a la vez.
 
 ---
 
+## 18. La base de la app Android (septiembre de 2026)
+
+Fase 1 de RF-09: el marco de la app (ícono, arranque, banda, barra inferior, cuenta y errores),
+la fecha del dato leída de la API real y todo lo necesario para probarla en un celular. La
+maqueta se aprobó antes de programar; la guía resultante está en [diseno.md](diseno.md),
+sección 12.
+
+| Decisión | Motivo | Se descartó |
+|---|---|---|
+| Expo SDK 57 con expo-router y las pantallas en `mobile/src/app/` | Rutas por archivo como la web; tocar una notificación push (fase 4) podrá abrir directamente `/zona/CALLAO` | React Navigation configurado a mano |
+| Compilación local con Gradle y el Android SDK del equipo | Sin cuentas externas ni colas; el APK de pruebas y el de entrega salen del mismo lugar | EAS Build en la nube |
+| Tres variantes (`desarrollo`, `e2e`, `demo`) elegidas con `APP_VARIANT` | La dirección de la API y el permiso de tráfico sin cifrar quedan escritos en el APK. Solo `demo` habla con el VPS y solo por HTTPS | Una sola compilación que elija la API al arrancar |
+| El celular ve la API del equipo por el cable (`adb reverse`), en su puerto 18000 | No depende del wifi, de la IP del equipo ni del firewall de Windows. El 8000 del celular lo ocupa otra app (D-27); uno alto y poco común evita el choque | La IP de la red local |
+| Maestro prueba el APK de release, no el de desarrollo | Es lo que se entrega y no depende del servidor de Metro ni de su menú | Maestro sobre el build de desarrollo |
+| Un script de Node (`scripts/e2e.mjs`) rodea a Maestro | Maestro no puede cortar la red ni cambiar el tamaño de letra del celular; el script lo hace entre flujos y devuelve el celular a como estaba | Probar sin conexión y con letra grande solo a mano |
+| Ese script abre un servidor local de control (`127.0.0.1:18999`) que el flujo llama con `evalScript` | El flujo sin conexión corta la API, comprueba el error, la devuelve y toca «Reintentar» sin salir de la app. Partido en dos corridas, la segunda empezaba con la app reiniciada y no probaba nada | Dos flujos separados con el corte entre ellos |
+| El arranque se mide con una marca en el registro del sistema | La pantalla de estado escribe `[ola:hito] estado-visible` cuando ya muestra la fecha del dato; `scripts/medir-arranque.mjs` la busca en `logcat` y la resta del inicio que anota Android. Mide lo que ve el usuario, consulta a la API incluida | `am start -W`, que termina en el primer cuadro, antes de tener datos |
+| Fuentes incrustadas al compilar con `expo-font` | El primer cuadro ya sale con la tipografía de OLA, sin descargas | Cargarlas al abrir la app |
+| Ícono y arranque generados por un script desde la fuente del logotipo | Reproducibles: cambiar un color es cambiar una constante | Exportarlos a mano desde un editor |
+| Paleta de identidad en `@ola/compartido`, verificada contra `tema.css` | La app no puede leer el CSS de la web; una prueba impide que las dos fuentes se separen | Copiar los colores en la app |
+| Límite de letra: 130 % en la banda y 150 % en la barra | El contenido sigue el 200 % del celular; a ese tamaño las cuatro pestañas no caben | Limitar toda la app o no limitar nada |
+| La hoja de cuenta en un `Modal` propio | En Android es otra ventana, así que TalkBack no sale de ella mientras está abierta | `accessibilityViewIsModal`, que solo funciona en iOS |
+| Accesibilidad verificada con consultas por rol y nombre en las pruebas, más Maestro con letra al 200 % | El plugin de ESLint de accesibilidad para React Native no es compatible con ESLint 9 | Un plugin de lint sin mantenimiento |
+
+### 18.1 Lo que costó más de lo previsto
+
+| Problema | Qué pasó |
+|---|---|
+| **Testing Library 14 cambió de API** | `render`, `fireEvent` y `act` pasaron a ser asíncronos; `UNSAFE_getByType` y `toHaveAccessibilityState` desaparecieron. Las pruebas se escribieron con la API anterior y hubo que adaptarlas |
+| lucide publica su versión para React Native en `.mjs` | Jest no la transforma. Las pruebas usan su versión CommonJS, idéntica, resuelta en `jest.config.js` |
+| Un proceso de Jest agotaba 4 GB de memoria | No era la configuración: `useConsulta` repetía la consulta sin fin (D-24). La prueba lo encontró antes de que una pantalla lo usara |
+| El primer APK no compiló | Gradle intentó descargar el NDK 27.1 que pide React Native 0.86 y la conexión se cortó; quedó una carpeta vacía. Se instaló con el nuevo CLI `android sdk`, que reemplaza a `sdkmanager` |
+| **Rutas de más de 260 caracteres** en la compilación C++ | Tres capas, una tras otra. CMake no podía ejecutar sus `.bat` (295 caracteres): se acortaron los nombres de `node_modules/.pnpm` (`.npmrc`). Después, el `ninja` de CMake 3.22.1 (versión 1.10) daba los archivos por inexistentes y regeneraba sin fin, y el codegen de la app llegó a rutas de 430 caracteres. Se resolvió con el plugin `plugins/compilacion-nativa-windows.js`: CMake 3.31.6, cuyo ninja 1.12 admite rutas largas, y la compilación en `mobile/.cxx/`. Acortar más no bastaba: solo el tramo relativo del codegen mide 340 |
+| La primera compilación nativa tardó 1 h 17 min | Compila el C++ de React Native, Reanimated y los módulos de Expo. El APK de pruebas se compila solo para arm64, la arquitectura del celular, y `mobile/.cxx/` se conserva entre compilaciones. El de demostración suma armeabi-v7a y su primera compilación tardó 4 h 36 min, con el equipo corriendo otras pruebas a ratos |
+| El puerto 8000 del celular estaba ocupado | `adb reverse tcp:8000` falló con «Address already in use»: otra app del celular escucha ahí (D-27). La app de pruebas usa el 18000 |
+| pnpm en Windows es lento y enlaza con rutas de Windows | Cada instalación tardó de 4 a 9 minutos, y los contenedores no pueden seguir sus enlaces: los scripts de la app corren en el equipo |
+
+---
+
 ## Lo que quedó fuera
 
 - **Rediseño de Histórico, Comparar, Próximos días, cuenta y Administración**: conservan el

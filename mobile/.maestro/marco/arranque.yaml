@@ -1,0 +1,18 @@
+# La app abre en el mapa y ya trae la fecha del dato desde la API real.
+appId: pe.ola.app
+name: Arranca en el mapa con la fecha del dato
+tags: [marco]
+---
+- launchApp:
+    clearState: true
+- assertVisible: Estado del mar en la costa
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 15000
+- assertVisible: "Datos del mar al [0-9]{2}/[0-9]{2}/[0-9]{4}"
+- assertVisible:
+    id: pestana-index
+    selected: true
+- assertVisible: El mapa y las 10 zonas llegan en la próxima versión de la app.
+- takeScreenshot: informes/capturas/arranque

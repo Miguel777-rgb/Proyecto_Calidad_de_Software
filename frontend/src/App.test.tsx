@@ -32,6 +32,14 @@ function apiSimulada({ sinLeer = 0 }: { sinLeer?: number } = {}) {
 
 const botonCuenta = () => screen.findByRole('button', { name: new RegExp(`^${navegacion.menuCuenta}`) })
 
+/**
+ * Las pruebas que esperan una pantalla de carga diferida esperan hasta 10 s a
+ * que llegue; la prueba entera necesita mas margen que los 5 s por defecto de
+ * Vitest. Sin esto, con la cobertura activa la prueba se cortaba antes de que
+ * vencieran sus propias esperas (D-23).
+ */
+const CON_CARGA_DIFERIDA = 20_000
+
 describe('App', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', apiSimulada())
@@ -70,7 +78,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: textos.entrar.titulo }, { timeout: 10_000 }),
     ).toBeInTheDocument()
-  })
+  }, CON_CARGA_DIFERIDA)
 
   it('ofrece saltar directamente al contenido principal', () => {
     renderConProveedores(<App />, { ruta: '/entrar' })
@@ -98,7 +106,10 @@ describe('App', () => {
     const user = userEvent.setup()
     renderConProveedores(<App />, { ruta: '/entrar' })
     // La pantalla se descarga al abrirla: se espera a que aparezca.
-    await user.type(await screen.findByLabelText(textos.comun.correo), USUARIO.email)
+    await user.type(
+      await screen.findByLabelText(textos.comun.correo, undefined, { timeout: 10_000 }),
+      USUARIO.email,
+    )
     await user.type(screen.getByLabelText(textos.comun.contrasena), 'miclave123')
     await user.click(screen.getByRole('button', { name: textos.entrar.boton }))
 
@@ -114,7 +125,7 @@ describe('App', () => {
       expect(screen.queryByRole('button', { name: /Menú de cuenta/ })).not.toBeInTheDocument()
     })
     expect(localStorage.getItem('ola.token')).toBeNull()
-  })
+  }, CON_CARGA_DIFERIDA)
 
   it('el menu de cuenta anuncia los avisos sin leer', async () => {
     vi.stubGlobal('fetch', apiSimulada({ sinLeer: 2 }))

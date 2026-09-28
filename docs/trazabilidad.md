@@ -6,7 +6,7 @@ Este documento conecta cada requisito funcional de la [SRS](requisitos.md) con e
 implementa y con las pruebas que demuestran que funciona. Complementa la matriz de la sección 4
 de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
-**Fecha:** 2026-09-23 · **Versión de la SRS:** 1.7
+**Fecha:** 2026-09-27 · **Versión de la SRS:** 1.7
 
 ---
 
@@ -16,17 +16,17 @@ de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 |---|---|---|
 | Backend — unitarias | 213 | Lógica de dominio pura, sin base de datos |
 | Backend — integración | 230 | Endpoints, persistencia y permisos |
-| Paquete compartido — Vitest | 135 | Lógica de presentación, contrato con la API y paleta de colores, que usan la web y la app móvil |
+| Paquete compartido — Vitest | 138 | Lógica de presentación, contrato con la API y paleta de colores, que usan la web y la app móvil |
 | Web — Vitest | 243 | Componentes y páginas; axe en cada componente nuevo |
 | Extremo a extremo — Playwright | 167 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
 | Rendimiento — Playwright | 2 | Build de producción con 4G normal |
 | Herramientas de calidad — pytest | 8 | Cálculo de la disponibilidad a partir de los chequeos de Uptime Kuma |
-| App móvil — Jest | 69 | Configuración por variante, marco, pantallas y navegación con las rutas reales |
-| App móvil — Maestro | 6 | Flujos sobre el APK de release en un celular real |
-| **Total** | **1,073** | |
+| App móvil — Jest | 155 | Configuración por variante, marco, estado guardado, mapa, detalle y navegación con las rutas reales |
+| App móvil — Maestro | 12 | Flujos sobre el APK de release en un celular real, con la API cortada y en modo avión |
+| **Total** | **1,168** | |
 
 Cobertura de sentencias: **95 %** en el backend, **97.5 %** en el paquete compartido, **89.9 %**
-en la web y **91.1 %** en la app. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
+en la web y **95.8 %** en la app. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
 
 Playwright lista 189 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
 omiten a propósito porque son de escritorio o de celular y no aplican en el otro.
@@ -55,7 +55,7 @@ docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack pre
 | RF-06 | Comparación entre laboratorios | Implementado | v1.4 — máximo de 4 zonas, distinguidas por forma |
 | RF-07 | Registro y autenticación | Implementado | — |
 | RF-08 | Importación del dataset | Implementado | v1.2 — **solo manual**, sin tarea programada |
-| RF-09 | Aplicación móvil Android | En construcción: fases 0 y 1 de 6 | v1.7 — requisito nuevo; el catálogo pasa de 8 RF |
+| RF-09 | Aplicación móvil Android | En construcción: fases 0 a 2 de 6 | v1.7 — requisito nuevo; el catálogo pasa de 8 RF |
 
 ---
 
@@ -124,7 +124,7 @@ medida de incertidumbre, y está fijada en una prueba.
 | `tests/integration/test_status.py` | 18 | Las 10 zonas con coordenadas; MATARANI sin datos recientes y sin alerta |
 | `src/pages/Inicio.test.tsx` | 33 | Resumen, tarjetas con las alertas primero, tabla, hoja o panel según el ancho, zona leída de la dirección, carga, error y ausencia de datos |
 | `src/components/inicio/ResumenEstado.test.tsx` | 10 | Fecha y antigüedad del dato, resaltada si supera la vigencia; zonas en alerta; conteo que incluye estados vacíos |
-| `packages/compartido/src/inicio/datos.test.ts` | 21 | Fechas sin desfase horario en Perú, orden de las zonas, grados con signo, «y» / «e» |
+| `packages/compartido/src/inicio/datos.test.ts` | 24 | Fechas sin desfase horario en Perú, orden de las zonas, grados con signo, «y» / «e», fecha y hora de los datos guardados en la app |
 | `src/components/inicio/TarjetasZonas.test.tsx` | 11 | Promedio respecto a lo normal, zona sin datos y línea de alerta |
 | `src/components/inicio/Estado.test.tsx` | 7 | Una forma distinta por estado, además del color |
 | `src/components/TablaEstado.test.tsx` | 8 | La tabla accesible con fechas, alertas y selección |
@@ -198,11 +198,13 @@ verificado también sobre las imágenes de producción. La prueba
 ## RF-09 — Aplicación móvil Android
 
 **Estado:** en construcción por fases (plan en [calidad.md](calidad.md), sección 13). Fases 0
-y 1 cerradas: paquete compartido y marco de la app. La app ya muestra la fecha del dato leída
-de la API real.
+a 2 cerradas: paquete compartido, marco de la app y pestaña Mapa, que lleva RF-04 al celular
+con lectura sin conexión.
 
 **Implementación:** `packages/compartido/` (tipos y cliente de la API, lógica, textos y paleta)
-y `mobile/` (Expo con expo-router).
+y `mobile/` (Expo con expo-router y MapLibre). El estado del mar vive en
+`mobile/src/estado/`; la pestaña Mapa en `mobile/src/app/(tabs)/index.tsx` y el detalle en
+`mobile/src/app/zona/[code].tsx`.
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
@@ -214,16 +216,29 @@ y `mobile/` (Expo con expo-router).
 | `mobile/src/componentes/marco/Banda.test.tsx` | 7 | Entrar sin sesión; botón de cuenta con los avisos sin leer, en singular y plural; letra limitada al 130 % |
 | `mobile/src/componentes/marco/BarraInferior.test.tsx` | 6 | Las cuatro pantallas en el orden de la web, la actual seleccionada, 64 dp de alto y letra hasta el 150 % |
 | `mobile/src/componentes/marco/HojaCuenta.test.tsx` | 13 | Sesión y rol; nota de administración en la web; se cierra con «atrás», tocando fuera o al elegir |
-| `mobile/pruebas/mapa.test.tsx` | 9 | Fecha del dato en dd/mm/aaaa, sin datos, error con «Reintentar» y hito de rendimiento |
-| `mobile/pruebas/navegacion.test.tsx` | 7 | Las rutas reales de expo-router: cada pestaña, Entrar y la hoja de cuenta llevan a su pantalla |
+| `mobile/pruebas/navegacion.test.tsx` | 14 | Las rutas reales de expo-router: cada pestaña, Entrar y la hoja de cuenta; una tarjeta o un marcador abren `/zona/CALLAO`; cerrar vuelve al mapa; una zona que no existe lo dice |
 | `mobile/src/useConsulta.test.ts` | 4 | Una respuesta tardía no pisa la del reintento (D-05, D-24) |
 | `mobile/src/componentes/pantalla/ErrorInesperado.test.tsx` | 3 | Un fallo al dibujar no cierra la app ni muestra el mensaje técnico |
+| `mobile/src/estado/guardado.test.ts` | 9 | Lo guardado se lee igual; un contenido roto o de otro formato se ignora; si el almacenamiento falla, la app sigue |
+| `mobile/src/estado/EstadoMar.test.tsx` | 14 | Abre con lo guardado y pone lo de la API; sin conexión se queda con lo guardado y lo dice; sin configuración usa la vigencia por defecto; una respuesta vieja no pisa la nueva; al volver la red actualiza sola |
+| `mobile/pruebas/inicio.test.tsx` | 17 | La pestaña Mapa con la API simulada: esqueleto, resumen, un marcador y una tarjeta por zona, alertas primero, aviso de datos guardados, tirar para actualizar y el hito de arranque solo con datos de la API |
+| `mobile/src/componentes/inicio/ResumenEstado.test.tsx` | 7 | Fecha sin desfase, antigüedad resaltada solo pasada la vigencia, zonas en alerta con nombre, conteo con los estados sin zonas |
+| `mobile/src/componentes/inicio/TarjetasZonas.test.tsx` | 6 | Promedio, último dato, línea de alerta y zona que ya no mide, como la web |
+| `mobile/src/componentes/inicio/AvisoGuardado.test.tsx` | 2 | Dice la fecha y la hora locales del guardado y ofrece reintentar |
+| `mobile/src/componentes/inicio/Esqueleto.test.tsx` | 3 | TalkBack anuncia la carga; quieto si el celular pide menos movimiento |
+| `mobile/src/componentes/mapa/MapaZonas.test.tsx` | 23 | Encuadre de toda la costa; un dedo no mueve el mapa y avisa, dos sí; un botón accesible de 48 dp sobre cada zona, quitado mientras se mueve el mapa; «Ver toda la costa»; atribución del mapa base |
+| `mobile/src/componentes/zona/DetalleZona.test.tsx` | 7 | Promedio, valor medido, alerta completa o por qué no la hay; una zona que ya no mide no ofrece avisos |
 | `mobile/.maestro/marco/` | 4 flujos | En el celular: arranque con la fecha del dato, las pestañas, Entrar y «atrás», atribución a IMARPE |
-| `mobile/.maestro/sin-conexion/reintentar.yaml` | 1 flujo | Sin API la app lo explica; al volver la API, «Reintentar» recupera el estado |
-| `mobile/.maestro/letra/letra-grande.yaml` | 1 flujo | Con la letra del celular al 200 % se ven las cuatro pestañas y todo el contenido |
+| `mobile/.maestro/inicio/` | 4 flujos | Las 10 zonas en el mapa y las tarjetas del dataset real; el detalle abre desde tarjeta y marcador y cierra con «atrás», deslizando o con ✕; sus acciones llevan a Entrar e Histórico; un dedo no mueve el mapa y el doble toque sí |
+| `mobile/.maestro/sin-conexion/` | 3 flujos | Sin API y sin nada guardado ofrece reintentar; con datos guardados los muestra con su fecha y hora; en modo avión, al volver la red se actualiza sola |
+| `mobile/.maestro/letra/letra-grande.yaml` | 1 flujo | Con la letra del celular al 200 % se ven las pestañas, el resumen y las tarjetas |
 
-**Rendimiento (SRS 3.3):** el estado se ve en una mediana de **0.64 s** desde que se abre la app
-en frío (peor de 5: 1.75 s), en un Galaxy A56 con Android 16. El límite es de 5 s.
+**Rendimiento (SRS 3.3):** con el mapa, el estado se ve en una mediana de **0.84 s** desde que
+se abre la app en frío (peor de 5: 1.21 s), en un Galaxy A56 con Android 16. La medida espera
+los datos de la API, las tarjetas y los 10 marcadores en su lugar. El límite es de 5 s.
+
+**Evidencia en el celular:** [la pestaña Mapa](evidencia/app-mapa.png) y
+[el aviso de gestos](evidencia/app-aviso-gestos.png), que dura 1.5 s y Maestro no alcanza a ver.
 
 **APK de demostración:** instalado en el mismo celular sin conexión al equipo, muestra «Datos del
 mar al 31/07/2026», la fecha que devuelve el VPS por HTTPS (prueba manual del 2026-09-23).
@@ -238,8 +253,8 @@ mar al 31/07/2026», la fecha que devuelve el VPS por HTTPS (prueba manual del 2
 | Accesibilidad | axe (WCAG 2.2 AA) **bloqueante** en todas las pantallas, en escritorio y celular, y en las pruebas de cada componente nuevo. Excepción documentada: tamaño de objetivo de los marcadores del mapa (WCAG 2.5.8, «equivalente») |
 | Confiabilidad | La fecha del dato se muestra siempre; una zona sin mediciones recientes se marca y no se clasifica |
 | Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`) |
-| Mantenibilidad | 1,073 pruebas; cobertura del 95 % en el backend, 97.5 % en el paquete compartido, 89.9 % en la web y 91.1 % en la app; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
-| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto. Semana al 23 de septiembre: 99.07 % y 96.72 %. Meta: 95 % objetivo, 90 % mínimo ([calidad.md](calidad.md), sección 7) |
+| Mantenibilidad | 1,168 pruebas; cobertura del 95 % en el backend, 97.5 % en el paquete compartido, 89.9 % en la web y 95.8 % en la app; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto. Semana al 28 de septiembre: 99.56 % y 98.63 %. Meta: 95 % objetivo, 90 % mínimo ([calidad.md](calidad.md), sección 7) |
 | Portabilidad | Todo en contenedores; el stack de producción se verificó completo en local |
 | Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 1.07 s con 4G normal (límite: 3 s) y la portada descarga 170 kB comprimidos (`e2e/rendimiento.spec.ts`) |
 

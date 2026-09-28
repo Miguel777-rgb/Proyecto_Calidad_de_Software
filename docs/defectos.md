@@ -54,24 +54,26 @@ donde se habían documentado antes de existir esta bitácora.
 | D-25 | 2026-09-22 | App, fase 1 | Transversal | Media | Unitaria | Dos pruebas de la web esperaban hasta 10 s a una pantalla de carga diferida, pero Vitest corta cada prueba a los 5 s. Sin cobertura duraban 3 s y pasaban; con cobertura se cortaban. Falló en la fase 0 (se atribuyó a la carga del equipo) y otra vez aquí | Fase 1 de la app (`frontend/src/App.test.tsx`) | 0.5 |
 | D-26 | 2026-09-23 | App, fase 1 | RF-09 | Alta | Construcción/despliegue | La app no compilaba en Windows: la compilación C++ llegaba a rutas de 295 y 430 caracteres, por encima del límite de 260 de CMake y de su ninja 1.10. Sin APK no hay RF-09 | Fase 1 de la app (`.npmrc`, `mobile/plugins/compilacion-nativa-windows.js`) | 4 |
 | D-27 | 2026-09-23 | App, fase 1 | RF-09 | Media | E2E | El puerto 8000 del celular de pruebas lo ocupaba otra app: `adb reverse` no podía llevar la API al celular y las E2E no podían empezar | Fase 1 de la app (puerto 18000 en `app.config.ts` y `scripts/android.mjs`) | 0.5 |
+| D-28 | 2026-09-27 | App, fase 2 | RF-09 | Alta | E2E | Los marcadores del mapa se veían, pero TalkBack no los encontraba y tocarlos no abría la zona. MapLibre los mete en un contenedor nativo que para Android mide 0 × 0, y el toque llega a un evento nativo que la app no escuchaba. Las pruebas de Jest pasaban porque simulan el mapa | Fase 2 de la app: botones accesibles de 48 dp sobre cada marcador, ubicados con `project()` de MapLibre (`MapaZonas.tsx`) | 2.5 |
+| D-29 | 2026-09-27 | App, fase 2 | RF-09 | Media | E2E | Cuatro flujos de Maestro fallaban sin que la app fallara: con la pantalla Mapa, más larga, `scrollUntilVisible` agotaba sus 20 s; un arrastre y un doble toque caían fuera del mapa, y un aviso de 1.5 s desaparecía antes de que Maestro revisara la pantalla | Fase 2 de la app: 60 s para desplazarse, gestos sobre el elemento del mapa y el aviso probado en Jest (`.maestro/`) | 1 |
 
 ## Resumen
 
-Totales al cerrar la fase 1 de la aplicación móvil (2026-09-23).
+Totales al cerrar la fase 2 de la aplicación móvil (2026-09-27).
 
 | Severidad | Defectos |
 |---|---|
 | Crítica | 1 |
-| Alta | 10 |
-| Media | 13 |
+| Alta | 11 |
+| Media | 14 |
 | Baja | 3 |
-| **Total** | **27** (ninguno abierto) |
+| **Total** | **29** (ninguno abierto) |
 
 | Detección | Defectos | Lectura |
 |---|---|---|
 | Unitaria | 5 | Los más baratos: aparecen al escribir o correr el código. D-20 y D-25 son defectos de la propia prueba |
 | Integración | 3 | Todos en la importación, donde el backend toca archivos y base de datos |
-| E2E | 8 | La capa que más encontró: tiempos, sesiones, diseño en celular y el entorno de pruebas |
+| E2E | 10 | La capa que más encontró: tiempos, sesiones, diseño en celular y el entorno de pruebas. D-28 solo podía salir aquí: las pruebas unitarias simulan el mapa nativo |
 | Revisión | 5 | Dos eran verificaciones que no verificaban (D-10, D-17) y otro, un fallo que las pruebas no podían ver (D-19) |
 | Construcción/despliegue | 6 | D-08 es el más grave de su tipo: la puerta de calidad estaba abierta. D-22 y D-23 salieron al desplegar en el VPS; D-26, al compilar la app en Windows |
 | Usuario | 0 | Ningún defecto llegó a producción |
@@ -84,8 +86,8 @@ Totales al cerrar la fase 1 de la aplicación móvil (2026-09-23).
 | RF-04 | 4 |
 | RF-07 | 3 |
 | RF-08 | 3 |
-| RF-09 | 3 |
+| RF-09 | 5 |
 | Transversal (entorno, verificación, navegación, despliegue) | 10 |
 
-Horas estimadas de corrección: **30.75 h**, todos cerrados. Su valor en soles y su lectura como
+Horas estimadas de corrección: **34.25 h**, todos cerrados. Su valor en soles y su lectura como
 costo de falla interna están en [calidad.md](calidad.md), sección 8.

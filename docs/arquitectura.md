@@ -24,6 +24,7 @@ C4Context
   System_Ext(imarpe, "Datos abiertos del Estado", "Publica el CSV de ATSM de IMARPE")
   System_Ext(smtp, "Servidor de correo", "Entrega los avisos por correo")
   System_Ext(fcm, "Firebase Cloud Messaging", "Entrega las notificaciones push (en construcción)")
+  System_Ext(mapas, "Mapa base", "OpenStreetMap para la web, OpenFreeMap para la app")
 
   Rel(pescador, ola, "Consulta y se suscribe", "Web o app Android")
   Rel(admin, imarpe, "Descarga el CSV", "HTTPS")
@@ -31,6 +32,7 @@ C4Context
   Rel(ola, smtp, "Envía avisos", "SMTP")
   Rel(ola, fcm, "Envía notificaciones", "HTTPS")
   Rel(fcm, pescador, "Muestra la notificación en el celular")
+  Rel(ola, mapas, "Pide el mapa de fondo", "HTTPS")
 ```
 
 OLA no descarga el dataset por su cuenta: la importación es manual (RF-08, SRS versión 1.2),
@@ -49,13 +51,15 @@ C4Container
 
   System_Boundary(sistema, "OLA") {
     Container(web, "Aplicación web", "React, Vite, TypeScript. Nginx en producción", "Mapa, históricos, comparación, proyección, cuenta y administración")
-    Container(app, "App Android", "Expo (React Native), TypeScript", "Funciones del usuario final, modo sin conexión y push (en construcción)")
+    Container(app, "App Android", "Expo (React Native), TypeScript, MapLibre", "Funciones del usuario final, modo sin conexión y push (en construcción)")
     Container(api, "API", "Python 3.13, FastAPI", "Clasificación, rachas, proyección, sesiones, suscripciones y avisos")
     ContainerDb(db, "Base de datos", "PostgreSQL 17", "Mediciones, episodios, parámetros, usuarios, suscripciones y avisos")
   }
 
   System_Ext(smtp, "Servidor de correo")
   System_Ext(fcm, "Firebase Cloud Messaging")
+  System_Ext(osm, "OpenStreetMap", "Mosaicos del mapa de la web")
+  System_Ext(ofm, "OpenFreeMap", "Estilo y mosaicos del mapa de la app")
 
   Rel(pescador, web, "Usa", "HTTPS")
   Rel(pescador, app, "Usa")
@@ -66,6 +70,8 @@ C4Container
   Rel(api, smtp, "Envía correos", "SMTP")
   Rel(api, fcm, "Envía notificaciones", "HTTPS")
   Rel(fcm, app, "Entrega la notificación")
+  Rel(web, osm, "Pide mosaicos", "HTTPS")
+  Rel(app, ofm, "Pide estilo y mosaicos", "HTTPS")
 ```
 
 | Contenedor | Responsabilidad | Dónde está |
@@ -73,7 +79,7 @@ C4Container
 | API | Toda la lógica de negocio. La web y la app no clasifican ni calculan alertas por su cuenta | [backend/](../backend/) |
 | Base de datos | Única fuente de verdad. Las migraciones las aplica la API al arrancar | [backend/alembic/](../backend/alembic/) |
 | Aplicación web | Interfaz para pescadores y administradores | [frontend/](../frontend/) |
-| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión | [mobile/](../mobile/) |
+| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión. Guarda el último estado en el celular (AsyncStorage) y lo muestra si la API no responde | [mobile/](../mobile/) |
 
 ### Código compartido entre la web y la app
 

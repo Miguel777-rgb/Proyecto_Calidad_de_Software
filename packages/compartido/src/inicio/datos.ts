@@ -59,6 +59,18 @@ export function gradosConSigno(valor: string | null): string {
 }
 
 /**
+ * Fecha y hora locales de un instante: «23/09/2026» y «08:46». La app las usa
+ * para decir cuándo guardó los datos que muestra sin conexión.
+ */
+export function fechaYHora(instante: Date): { fecha: string; hora: string } {
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return {
+    fecha: `${dos(instante.getDate())}/${dos(instante.getMonth() + 1)}/${instante.getFullYear()}`,
+    hora: `${dos(instante.getHours())}:${dos(instante.getMinutes())}`,
+  }
+}
+
+/**
  * «Callao», «Callao y Pisco», «Callao, Pisco y Tumbes». Antes de una palabra
  * que suena a «i» la conjuncion es «e»: «Pisco e Ilo».
  */

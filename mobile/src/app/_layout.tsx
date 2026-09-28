@@ -2,8 +2,9 @@ import { textos } from '@ola/compartido/i18n/textos'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { ProveedorEstadoMar } from '../estado/EstadoMar'
 import { ProveedorSesion } from '../sesion'
-import { color, fuente } from '../tema'
+import { color, fuente, medida } from '../tema'
 
 // expo-router usa este componente si una pantalla falla al dibujarse.
 export { ErrorInesperado as ErrorBoundary } from '../componentes/pantalla/ErrorInesperado'
@@ -20,6 +21,7 @@ export default function Raiz() {
   return (
     <SafeAreaProvider>
       <ProveedorSesion>
+        <ProveedorEstadoMar>
         {/* Iconos claros: la banda abisal pinta la zona de la hora. */}
         <StatusBar style="light" />
         <Stack
@@ -29,6 +31,18 @@ export default function Raiz() {
           }}
         >
           <Stack.Screen name="(tabs)" />
+          {/* Detalle de una zona: hoja nativa de Android que crece segun su
+              contenido; se cierra con «atras» o deslizando hacia abajo. */}
+          <Stack.Screen
+            name="zona/[code]"
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: 'fitToContents',
+              sheetGrabberVisible: true,
+              sheetCornerRadius: medida.radioHoja,
+              contentStyle: { backgroundColor: color.blanco },
+            }}
+          />
           <Stack.Screen name="entrar" options={{ ...CABECERA, title: textos.entrar.titulo }} />
           <Stack.Screen
             name="mis-zonas"
@@ -36,6 +50,7 @@ export default function Raiz() {
           />
           <Stack.Screen name="avisos" options={{ ...CABECERA, title: textos.avisos.titulo }} />
         </Stack>
+        </ProveedorEstadoMar>
       </ProveedorSesion>
     </SafeAreaProvider>
   )

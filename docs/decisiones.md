@@ -338,6 +338,38 @@ sección 12.
 
 ---
 
+## 19. La pestaña Mapa de la app (septiembre de 2026)
+
+Fase 2 de RF-09: resumen, mapa con las 10 zonas, tarjetas, detalle de cada zona y lectura sin
+conexión. La maqueta se aprobó antes de programar; la guía está en [diseno.md](diseno.md),
+sección 12.
+
+| Decisión | Motivo | Se descartó |
+|---|---|---|
+| MapLibre nativo (`@maplibre/maplibre-react-native` 11) | Mapa nativo, sin clave ni cuenta. La versión 11 ya funciona con la nueva arquitectura de React Native, que Expo 57 exige | Google Maps, que pide una clave con facturación; un WebView con el Leaflet de la web, más lento al abrir y con gestos de página web |
+| Estilo Positron de OpenFreeMap | Gris claro como el mapa de la web, sin clave ni límite de uso. La política de los mosaicos de OpenStreetMap exige que una app se identifique con su propio User-Agent y publique un correo de contacto; MapLibre no deja cambiar el User-Agent con facilidad | Los mismos mosaicos de OpenStreetMap que usa la web |
+| Antes de programar, un APK de prueba con las tres librerías nativas nuevas | Acción de la retrospectiva de la fase 1: la compilación es la etapa más lenta. Compiló a la primera en 18 min 30 s | Descubrir un problema de compilación con las pantallas ya escritas |
+| Un proveedor de estado del mar para toda la app (`src/estado/EstadoMar.tsx`) | La pestaña Mapa y el detalle de cada zona leen lo mismo, sin pedirlo dos veces. Cada consulta lleva un número y la respuesta de una vieja se descarta (D-05) | Que cada pantalla pida el estado por su cuenta |
+| Lo último que llegó de la API se guarda en AsyncStorage, con la hora | Sin conexión se ve el último estado con la fecha y la hora en que se guardó; al abrir, la app lo muestra al instante mientras pide lo nuevo | MMKV, que compila C++ propio (otra vuelta de D-26) para guardar unos 10 KB |
+| NetInfo actualiza al volver la red, solo si lo que se veía era lo guardado o un error | La persona no tiene que tocar «Reintentar». El primer aviso de NetInfo al abrir no cuenta como reconexión | Actualizar con cada cambio de red, aunque los datos ya estén al día |
+| El detalle es la ruta `/zona/[code]`, presentada como hoja nativa (`formSheet`) que crece según su contenido | En la fase 4, tocar una notificación abrirá directamente esa ruta. «Atrás» y deslizar hacia abajo la cierran sin código propio | Una hoja propia con `Modal`, como la de cuenta, donde la zona elegida no tiene dirección |
+| Un dedo sobre el mapa desplaza la pantalla; con dos se acerca (`dragPan` desactivado) | Igual que la web en celular: el mapa está dentro de una pantalla que se desplaza y no debe atrapar el dedo | Dejar que un dedo mueva el mapa, que obliga a esquivarlo para bajar a las tarjetas |
+| MapLibre dibuja los marcadores; encima, una capa de React Native pone un botón transparente de 48 dp sobre cada zona, ubicado con `project()` | MapLibre mete sus marcadores en una vista nativa que Android no expone a TalkBack ni a los toques (D-28). Los botones de la capa sí: TalkBack lee «Callao: cálido, en alerta» y el dedo abre la zona. Mientras la persona mueve el mapa, los botones se quitan y se vuelven a ubicar al terminar | Botones dentro de cada `Marker`, que se veían pero no respondían; una capa de símbolos de MapLibre, sin nombre accesible por marcador |
+| La métrica de arranque espera datos de la API y el primer cuadro del mapa | Mide lo que ve la persona con datos recién llegados. Lo guardado no cuenta, y los mosaicos tampoco, porque dependen de OpenFreeMap | Contar desde lo guardado, que daría un tiempo engañosamente bajo |
+| Los flujos de Maestro usan el dataset real del Docker local | Son los mismos datos que usan las E2E de la web; los flujos comprueban hechos que no cambian mientras no se reimporte el CSV | Un APK con datos fijos, que no prueba la conexión ni lo guardado |
+| El modo avión se activa por adb durante un flujo | Así la app ve que la red se va y vuelve (NetInfo), mientras la API sigue llegando por el cable. El script devuelve el celular a como estaba | Probar la reconexión solo a mano |
+| `scripts/compilar.mjs` rehace el proyecto nativo solo si cambió algo nativo | Guarda en `android/.huella-ola` un resumen de la variante, la configuración, las dependencias, los plugins y los recursos. Si coincide, Gradle solo recompila el JavaScript: 3 min 24 s en lugar de 47 min. `--limpio` fuerza lo de antes | Rehacer `android/` en cada compilación, como en la fase 1 |
+
+### 19.1 Lo que costó más de lo previsto
+
+| Problema | Qué pasó |
+|---|---|
+| **Los marcadores no respondían** (D-28) | En Jest cada marcador era un botón con nombre, porque las pruebas simulan el mapa. En el celular se veían, pero Maestro no los encontraba. El volcado de la jerarquía (`uiautomator dump`) mostró que no estaban en el árbol de accesibilidad. En el código de MapLibre, cada marcador va dentro de un contenedor nativo creado sin medidas: para Android mide 0 × 0, así que el dibujo se ve pero el botón no existe para TalkBack ni para el dedo |
+| Cuatro flujos de Maestro fallaban sin que la app fallara (D-29) | La pantalla Mapa es cinco veces más larga que la de la fase 1, y `scrollUntilVisible` se rendía a los 20 s. Un arrastre y un doble toque, dados en coordenadas de la pantalla, caían fuera del mapa. Y el aviso «Usa dos dedos para mover el mapa» dura 1.5 s, menos de lo que Maestro tarda en revisar la pantalla tras un gesto: esa comprobación quedó en Jest, con una captura en el celular como evidencia |
+| La compilación completa tardó 46 min 54 s | El `prebuild --clean` borra `android/` y, con él, lo que Gradle ya había compilado. Por eso la huella del proyecto nativo |
+
+---
+
 ## Lo que quedó fuera
 
 - **Rediseño de Histórico, Comparar, Próximos días, cuenta y Administración**: conservan el

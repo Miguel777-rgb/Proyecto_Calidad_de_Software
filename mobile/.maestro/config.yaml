@@ -2,3 +2,4 @@
 # celular (cable, animaciones, tamano de letra) antes de cada grupo.
 flows:
   - "marco/*"
+  - "inicio/*"

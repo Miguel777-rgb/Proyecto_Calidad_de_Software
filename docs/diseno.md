@@ -276,3 +276,22 @@ banda, la L y la A se tocan en cuanto el logotipo pasa de unos 60 px.
 **Pruebas.** Jest y Testing Library consultan por rol y nombre accesible, como TalkBack. Maestro
 recorre la app instalada en el celular y además prueba sin conexión y con la letra al 200 %. Ver
 `mobile/.maestro/` y el README.
+
+### 12.1 Pestaña Mapa
+
+Maqueta aprobada en la fase 2. Una sola pantalla que se desplaza, como la web en celular: resumen,
+mapa y tarjetas. Los textos son los de la web (secciones 6, 7 y 9).
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Resumen | El de la web apilado en tres bloques: fecha del dato con su antigüedad (fondo de atención si pasa la vigencia), zonas en alerta con nombre y conteo por estado, que incluye los estados sin zonas | `componentes/inicio/ResumenEstado.tsx` |
+| Mapa | 340 dp de alto, encuadre fijo de toda la costa, estilo Positron de OpenFreeMap. Sin nombres de zonas. Un dedo desplaza la pantalla y muestra 1.5 s «Usa dos dedos para mover el mapa»; con dos dedos se acerca, y entonces aparece «Ver toda la costa» | `componentes/mapa/MapaZonas.tsx` |
+| Marcadores | Círculo del color del estado con su símbolo. En alerta: 32 dp, con anillo del color y encima de los demás. Sin datos: blanco con el círculo punteado. La zona elegida lleva borde abisal. El dibujo lo pinta MapLibre; encima, un botón transparente de 48 dp por zona es lo que se toca y lo que lee TalkBack | `MapaZonas.tsx` |
+| Atribución del mapa | «OpenFreeMap © OpenMapTiles · © OpenStreetMap» en la esquina inferior derecha; TalkBack lee la versión completa | `MapaZonas.tsx` |
+| Tarjetas | Las de la web, en el mismo orden: alertas primero y luego de norte a sur. Son la alternativa accesible al mapa: en un celular vertical la tabla de la web no cabe con la letra al 200 % | `componentes/inicio/TarjetasZonas.tsx` |
+| Detalle | Hoja nativa que crece según su contenido, con asa y esquinas de 22 dp. Mismo contenido que la web; se cierra con «atrás», deslizando o con ✕ | `app/zona/[code].tsx`, `componentes/zona/DetalleZona.tsx` |
+| Sin conexión | Aviso en tono de atención sobre el título: «Sin conexión. Datos guardados el 23/09/2026 a las 08:46.» y «Reintentar». El resto de la pantalla no cambia | `componentes/inicio/AvisoGuardado.tsx` |
+| Primera carga | Esqueleto con la forma del resumen y del mapa. Late despacio, salvo que el celular pida menos movimiento. Después de la primera vez la app abre con lo guardado | `componentes/inicio/Esqueleto.tsx` |
+| Actualizar | Tirar hacia abajo, con el indicador de Android en color marea | `componentes/pantalla/Pantalla.tsx` |
+
+Los colores y símbolos de estado salen de `@ola/compartido/mapa/paleta`, igual que en la web.

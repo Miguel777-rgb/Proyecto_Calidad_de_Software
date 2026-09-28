@@ -8,5 +8,6 @@ tags: [marco]
     element:
       id: atribucion
     direction: DOWN
+    timeout: 60000
 - assertVisible: ".*IMARPE / PRODUCE.*"
 - assertVisible: ".*no reemplaza los boletines del IMARPE ni del ENFEN.*"

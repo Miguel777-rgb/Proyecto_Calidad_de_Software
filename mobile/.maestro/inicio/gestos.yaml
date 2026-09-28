@@ -1,0 +1,45 @@
+# Un dedo sobre el mapa desplaza la pantalla. Maestro no hace gestos con dos
+# dedos: el doble toque acerca el mapa igual, y con eso se prueba «Ver toda la
+# costa».
+appId: pe.ola.app
+name: Los gestos del mapa
+tags: [inicio]
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: mapa-zonas
+    direction: DOWN
+    timeout: 60000
+    centerElement: true
+# Un dedo sobre el mapa no lo mueve: si lo moviera, apareceria «Ver toda la
+# costa». El aviso «Usa dos dedos...» dura 1.5 s, menos de lo que Maestro tarda
+# en revisar la pantalla tras un gesto; lo prueban Jest (MapaZonas.test.tsx) y
+# una captura en el celular (trazabilidad.md, RF-09).
+- swipe:
+    start: "50%, 55%"
+    end: "50%, 50%"
+    duration: 300
+- assertNotVisible:
+    id: ver-toda-la-costa
+- scrollUntilVisible:
+    element:
+      id: mapa-zonas
+    direction: UP
+    timeout: 60000
+    centerElement: true
+# El centro del mapa cae tierra adentro, lejos de los marcadores de la costa.
+- doubleTapOn:
+    id: mapa-zonas
+- extendedWaitUntil:
+    visible:
+      id: ver-toda-la-costa
+    timeout: 5000
+- tapOn:
+    id: ver-toda-la-costa
+- assertNotVisible:
+    id: ver-toda-la-costa

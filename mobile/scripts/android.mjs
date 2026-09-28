@@ -79,4 +79,17 @@ export function desconectarApi() {
   adb('reverse', '--remove', `tcp:${PUERTO_API_CELULAR}`)
 }
 
+/**
+ * Modo avion: corta el wifi y los datos del celular, pero no el cable, asi que
+ * la API del equipo sigue llegando por adb reverse. Sirve para que la app vea
+ * que la red se fue y volvio (NetInfo).
+ */
+export function modoAvion(activo) {
+  adb('shell', 'cmd', 'connectivity', 'airplane-mode', activo ? 'enable' : 'disable')
+}
+
+export function modoAvionActivo() {
+  return adb('shell', 'cmd', 'connectivity', 'airplane-mode') === 'enabled'
+}
+
 export const esperar = (ms) => new Promise((r) => setTimeout(r, ms))

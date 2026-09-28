@@ -131,6 +131,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       ['expo-font', { android: { fonts: FUENTES } }],
+      // Mapa nativo de Inicio (fase 2). Mosaicos de OpenFreeMap, sin clave.
+      '@maplibre/maplibre-react-native',
       [
         'expo-build-properties',
         {

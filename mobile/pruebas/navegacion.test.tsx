@@ -1,41 +1,13 @@
 import { ESTADO_MUESTRA } from '@ola/compartido/pruebas'
 import { Slot } from 'expo-router'
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library'
-import LayoutPestanas from '../src/app/(tabs)/_layout'
-import Comparar from '../src/app/(tabs)/comparar'
-import Historico from '../src/app/(tabs)/historico'
-import Mapa from '../src/app/(tabs)/index'
-import Proyeccion from '../src/app/(tabs)/proyeccion'
-import Avisos from '../src/app/avisos'
-import Entrar from '../src/app/entrar'
-import MisZonas from '../src/app/mis-zonas'
+import { fireEvent, screen, waitFor } from 'expo-router/testing-library'
+import { ProveedorEstadoMar } from '../src/estado/EstadoMar'
 import { ProveedorSesion } from '../src/sesion'
-import { respuesta, sesionDe, simularFetch, USUARIO } from './utilidades'
-
-/** Las rutas reales de la app, con sus layouts y pantallas. */
-const RUTAS = {
-  '(tabs)/_layout': LayoutPestanas,
-  '(tabs)/index': Mapa,
-  '(tabs)/historico': Historico,
-  '(tabs)/comparar': Comparar,
-  '(tabs)/proyeccion': Proyeccion,
-  entrar: Entrar,
-  'mis-zonas': MisZonas,
-  avisos: Avisos,
-}
-
-/**
- * Abre la app en una ruta. Con el render asincrono de Testing Library 14, la
- * ruta actual se lee del resultado de renderRouter y no de `screen`.
- */
-async function abrir(initialUrl: string, rutas: Parameters<typeof renderRouter>[0] = RUTAS) {
-  const app = renderRouter(rutas, { initialUrl })
-  await app
-  return { ruta: () => app.getPathname() }
-}
+import { abrir, RUTAS } from './app'
+import { CONFIGURACION, respuesta, sesionDe, simularApi, USUARIO } from './utilidades'
 
 beforeEach(() => {
-  simularFetch(respuesta(ESTADO_MUESTRA))
+  simularApi({ '/status': respuesta(ESTADO_MUESTRA), '/settings': respuesta(CONFIGURACION) })
 })
 
 describe('navegacion', () => {
@@ -85,7 +57,9 @@ describe('navegacion', () => {
       ...RUTAS,
       _layout: () => (
         <ProveedorSesion valor={sesionDe(USUARIO, 2)}>
-          <Slot />
+          <ProveedorEstadoMar>
+            <Slot />
+          </ProveedorEstadoMar>
         </ProveedorSesion>
       ),
     })
@@ -95,5 +69,78 @@ describe('navegacion', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Avisos, 2 sin leer' }))
 
     expect(app.ruta()).toBe('/avisos')
+  })
+})
+
+describe('detalle de una zona', () => {
+  it('una tarjeta abre /zona/CALLAO y cerrar vuelve al mapa', async () => {
+    const app = await abrir('/')
+    await screen.findByTestId('tarjetas-zonas')
+
+    await fireEvent.press(screen.getByTestId('tarjeta-CALLAO'))
+
+    expect(app.ruta()).toBe('/zona/CALLAO')
+    expect(await screen.findByRole('header', { name: 'Callao' })).toBeOnTheScreen()
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cerrar el detalle de la zona' }))
+
+    await waitFor(() => expect(app.ruta()).toBe('/'))
+    expect(screen.queryByTestId('detalle-zona')).toBeNull()
+  })
+
+  it('un marcador abre el mismo detalle', async () => {
+    const app = await abrir('/')
+    await screen.findByTestId('mapa-zonas')
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Pisco: frío' }))
+
+    expect(app.ruta()).toBe('/zona/PISCO')
+    expect(await screen.findByRole('header', { name: 'Pisco' })).toBeOnTheScreen()
+  })
+
+  it('al volver del detalle ninguna zona queda elegida', async () => {
+    const app = await abrir('/')
+    await screen.findByTestId('mapa-zonas')
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Pisco: frío' }))
+    await screen.findByTestId('detalle-zona')
+    await fireEvent.press(screen.getByRole('button', { name: 'Cerrar el detalle de la zona' }))
+    await waitFor(() => expect(app.ruta()).toBe('/'))
+
+    expect(screen.getByRole('button', { name: 'Pisco: frío' })).not.toBeSelected()
+  })
+
+  it('«Ver histórico» lleva a la pestana Histórico', async () => {
+    const app = await abrir('/zona/HUACHO')
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Ver histórico de Huacho' }))
+
+    await waitFor(() => expect(app.ruta()).toBe('/historico'))
+  })
+
+  it('«Entra para recibir avisos» lleva a Entrar', async () => {
+    const app = await abrir('/zona/CALLAO')
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Entra para recibir avisos' }))
+
+    await waitFor(() => expect(app.ruta()).toBe('/entrar'))
+  })
+
+  it('abierto directamente, como desde una notificacion, cerrar lleva al mapa', async () => {
+    const app = await abrir('/zona/CALLAO')
+    expect(await screen.findByRole('header', { name: 'Callao' })).toBeOnTheScreen()
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cerrar el detalle de la zona' }))
+
+    await waitFor(() => expect(app.ruta()).toBe('/'))
+  })
+
+  it('una zona que no existe lo dice y ofrece volver al mapa', async () => {
+    const app = await abrir('/zona/ATLANTIDA')
+
+    expect(await screen.findByText('No encontramos esa zona.')).toBeOnTheScreen()
+    await fireEvent.press(screen.getByRole('button', { name: 'Volver al mapa' }))
+
+    await waitFor(() => expect(app.ruta()).toBe('/'))
   })
 })

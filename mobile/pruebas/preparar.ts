@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { reiniciarHitos } from '../src/hitos'
+import { reiniciarRed } from './simulaciones/netinfo'
 
 // jest-expo no ejecuta app.config.ts: se le entrega a expo-constants lo que
 // dejaria en `extra` la variante e2e, para que las pruebas usen la misma
@@ -25,8 +27,19 @@ jest.mock('react-native-safe-area-context', () =>
   jest.requireActual('react-native-safe-area-context/jest/mock').default,
 )
 
-beforeEach(() => {
+// Modulos nativos sin version para Jest: el almacenamiento en memoria que
+// publica AsyncStorage y simulaciones propias del mapa y de la red.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+)
+jest.mock('@react-native-community/netinfo', () => jest.requireActual('./simulaciones/netinfo'))
+jest.mock('@maplibre/maplibre-react-native', () => jest.requireActual('./simulaciones/maplibre'))
+
+beforeEach(async () => {
   reiniciarHitos()
+  reiniciarRed()
+  // Cada prueba empieza sin datos guardados, como una instalacion nueva.
+  await AsyncStorage.clear()
   // Los hitos de rendimiento van al registro del sistema; en las pruebas solo
   // ensucian la salida. La prueba que los verifica los espia por su cuenta.
   jest.spyOn(console, 'info').mockImplementation(() => {})

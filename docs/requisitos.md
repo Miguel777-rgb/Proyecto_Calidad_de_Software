@@ -10,7 +10,7 @@
 | Periodo lectivo | 2026-II |
 | Facultad | Facultad de Ingenierías y Arquitectura — Ingeniería de Software |
 | Equipo | Frederick Mares Graos · Jhordan Huamani Huamani · Jorge Ortiz Castañeda · Miguel Angel Flores Leon · Piero Adrian Delgado Chipana |
-| Versión | 1.7 |
+| Versión | 1.8 |
 | Estado | Para revisión — Hito 1 |
 
 ---
@@ -74,7 +74,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 3. Notificar a los usuarios suscritos ante una alerta sostenida (RF-03).
 4. Visualizar el estado de las 10 zonas en un mapa interactivo (RF-04).
 5. Mostrar históricos y comparaciones entre zonas (RF-05, RF-06).
-6. Permitir registro y suscripción de usuarios (RF-07).
+6. Permitir registro, recuperación de contraseña y suscripción de usuarios (RF-07).
 7. Mantener actualizado el dataset base (RF-08).
 8. Ofrecer una aplicación para Android con avisos push (RF-09).
 
@@ -154,7 +154,10 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 #### RF-07 — Registro y autenticación de usuarios
 | Campo | Detalle |
 |---|---|
-| Descripción | El sistema **deberá** permitir que un usuario se registre con correo y contraseña, inicie sesión y seleccione una o más zonas de interés para recibir alertas. |
+| Descripción | El sistema **deberá** permitir que un usuario se registre con correo y contraseña, inicie sesión, recupere su contraseña con un código enviado a su correo y seleccione una o más zonas de interés para recibir alertas. |
+| Entradas | Correo, contraseña de al menos 8 caracteres y nombre opcional; para recuperar la contraseña, el correo, el código recibido y la contraseña nueva. |
+| Proceso | En la web la sesión dura 60 minutos. En la aplicación móvil dura 30 días, para que el pescador no tenga que volver a escribir su contraseña cada vez que la abre. El código de recuperación tiene 6 dígitos, vale 15 minutos y admite 5 intentos; se puede pedir uno por minuto y cada código nuevo anula el anterior. Pedir un código da la misma respuesta exista o no una cuenta con ese correo. Al cambiar la contraseña se cierran las demás sesiones abiertas y la persona entra directamente. |
+| Salidas | Sesión iniciada, correo con el código de recuperación y lista de zonas seguidas. |
 | Complejidad | Baja |
 
 #### RF-08 — Importación y actualización del dataset ATSM
@@ -206,7 +209,7 @@ OLA es un sistema nuevo e independiente. No reemplaza ni se integra formalmente 
 | Usabilidad | Interfaz comprensible sin capacitación previa para el perfil "pescador artesanal". |
 | Confiabilidad | El sistema indica explícitamente cuándo el dato mostrado no corresponde al día actual. Sin conexión, la aplicación móvil muestra el último estado guardado con la fecha y la hora en que se descargó. |
 | Disponibilidad | Objetivo referencial de 95% de tiempo activo durante el periodo de evaluación del curso (no se exige SLA productivo). |
-| Seguridad | Contraseñas almacenadas con hash (nunca en texto plano); conexión exclusivamente HTTPS. En la aplicación móvil, el token de sesión se guarda cifrado por el sistema (Android Keystore), nunca en texto plano. |
+| Seguridad | Contraseñas almacenadas con hash (nunca en texto plano); conexión exclusivamente HTTPS. En la aplicación móvil, el token de sesión se guarda cifrado por el sistema (Android Keystore), nunca en texto plano. El código de recuperación tampoco se guarda tal cual: se almacena su HMAC, y la respuesta al pedirlo no revela qué correos tienen cuenta. |
 | Mantenibilidad | Código versionado en Git, con historial de commits legible y README actualizado. |
 | Portabilidad | Contenedorización vía Docker, para facilitar el despliegue en cualquier VPS compatible, y la aplicación móvil funciona en Android 10 o superior. |
 
@@ -254,6 +257,7 @@ Todos los requisitos pasan por revisión de pruebas (unitarias e integración) d
 | 1.5 | 2026-09-10 | RF-02 | Se implementan los dos modelos en lugar de uno, se fija el horizonte por defecto en 5 días, se define la ventana y los pesos, y se añade un indicador de confianza junto a tres señales visuales que marcan el tramo estimado. | La redacción original ofrecía «regresión lineal o media móvil ponderada» sin decidir cuál. Mostrar ambas es más informativo: la regresión detecta un cambio de tendencia antes que el promedio, y su discrepancia es en sí una medida de incertidumbre. El indicador de confianza responde al atributo de Confiabilidad de la sección 3.5, porque una estimación calculada sobre datos antiguos tiene la misma apariencia de validez que una fiable. | Miguel Angel Flores Leon (PO) |
 | 1.6 | 2026-09-10 | RF-03 | Se elimina el envío por SMS. El requisito queda en correo electrónico más aviso dentro de la aplicación. Se añade el aviso de fin de episodio, se separa el registro del envío y se define el comportamiento ante fallos. Se actualizan en consecuencia el alcance (sección 2.3) y las interfaces de software (sección 3.2.3). | La pasarela de SMS quedaba «a definir» y su envío tiene costo por mensaje en Perú, sin aportar nada demostrable dentro del alcance del curso. Separar el registro del envío evita que un servidor de correo caído haga fallar la evaluación de alertas, que es una operación independiente. | Miguel Angel Flores Leon (PO) |
 | 1.7 | 2026-09-14 | RF-09 (nuevo), RF-03 | Se añade RF-09, una aplicación para Android 10 o superior, y RF-03 incorpora la notificación push como tercer canal. Se actualizan el alcance (1.2), las funciones (2.2), las restricciones (2.4 y 3.4), las interfaces (3.2), el rendimiento (3.3), los atributos de calidad (3.5) y la matriz (4). | El pescador artesanal consulta mayormente desde el celular (sección 2.3) y, en el mar, un correo no le avisa a tiempo; una notificación push llega aunque la aplicación esté cerrada. La aplicación no cabe como ajuste de un RF existente: tiene una entrada propia (el token del dispositivo) y funciona sin conexión. Con RF-09 el catálogo pasa a 9 requisitos (4 alta, 3 media, 2 baja) y supera el máximo de 8 del enunciado; el equipo decidió excederlo y lo deja registrado aquí. | Miguel Angel Flores Leon (PO) |
+| 1.8 | 2026-09-27 | RF-07 | Se añade la recuperación de contraseña con un código de 6 dígitos enviado por correo y se fijan la duración de la sesión (60 minutos en la web y 30 días en la aplicación móvil) y las reglas del código. Se actualizan en consecuencia las funciones (2.2) y el atributo de Seguridad (3.5). | Quien olvidaba su contraseña no tenía cómo volver a entrar: debía crear otra cuenta con otro correo y elegir de nuevo sus zonas. Con una sesión de 30 días la contraseña se escribe pocas veces, y por eso mismo es fácil olvidarla. La sesión larga queda solo en la aplicación, porque la web puede abrirse en una computadora compartida. El requisito sigue siendo de complejidad baja: reutiliza el envío de correo del RF-03. | Miguel Angel Flores Leon (PO) |
 
 ---
 

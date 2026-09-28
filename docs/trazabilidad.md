@@ -6,7 +6,7 @@ Este documento conecta cada requisito funcional de la [SRS](requisitos.md) con e
 implementa y con las pruebas que demuestran que funciona. Complementa la matriz de la sección 4
 de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
-**Fecha:** 2026-09-27 · **Versión de la SRS:** 1.7
+**Fecha:** 2026-09-27 · **Versión de la SRS:** 1.8
 
 ---
 
@@ -14,21 +14,21 @@ de la SRS, que reparte responsables, añadiendo la evidencia de cumplimiento.
 
 | Suite | Pruebas | Qué cubre |
 |---|---|---|
-| Backend — unitarias | 213 | Lógica de dominio pura, sin base de datos |
-| Backend — integración | 230 | Endpoints, persistencia y permisos |
-| Paquete compartido — Vitest | 138 | Lógica de presentación, contrato con la API y paleta de colores, que usan la web y la app móvil |
-| Web — Vitest | 243 | Componentes y páginas; axe en cada componente nuevo |
-| Extremo a extremo — Playwright | 167 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
+| Backend — unitarias | 225 | Lógica de dominio pura, sin base de datos |
+| Backend — integración | 263 | Endpoints, persistencia y permisos |
+| Paquete compartido — Vitest | 165 | Lógica de presentación, contrato con la API y paleta de colores, que usan la web y la app móvil |
+| Web — Vitest | 253 | Componentes y páginas; axe en cada componente nuevo |
+| Extremo a extremo — Playwright | 171 | Navegador real en escritorio y en celular emulado: comportamiento, accesibilidad y regresión visual |
 | Rendimiento — Playwright | 2 | Build de producción con 4G normal |
 | Herramientas de calidad — pytest | 8 | Cálculo de la disponibilidad a partir de los chequeos de Uptime Kuma |
-| App móvil — Jest | 155 | Configuración por variante, marco, estado guardado, mapa, detalle y navegación con las rutas reales |
-| App móvil — Maestro | 12 | Flujos sobre el APK de release en un celular real, con la API cortada y en modo avión |
-| **Total** | **1,168** | |
+| App móvil — Jest | 198 | Configuración por variante, marco, estado guardado, mapa, detalle, sesión, cuenta y zonas, y navegación con las rutas reales |
+| App móvil — Maestro | 17 | Flujos sobre el APK de release en un celular real, con la API cortada, en modo avión y con el correo real de Mailpit |
+| **Total** | **1,302** | |
 
-Cobertura de sentencias: **95 %** en el backend, **97.5 %** en el paquete compartido, **89.9 %**
-en la web y **95.8 %** en la app. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
+Cobertura de sentencias: **95 %** en el backend, **97.7 %** en el paquete compartido, **90.4 %**
+en la web y **95.9 %** en la app. Las metas y su evolución por fase están en [calidad.md](calidad.md), sección 7.
 
-Playwright lista 189 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
+Playwright lista 193 casos entre sus tres proyectos (escritorio, celular y backend en serie); 22 se
 omiten a propósito porque son de escritorio o de celular y no aplican en el otro.
 
 Las suites se ejecutan con:
@@ -53,9 +53,9 @@ docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack pre
 | RF-04 | Mapa interactivo | Implementado | v1.3 — el color sale del promedio de 5 días |
 | RF-05 | Gráficos históricos | Implementado | v1.4 — agrupado automático según el rango |
 | RF-06 | Comparación entre laboratorios | Implementado | v1.4 — máximo de 4 zonas, distinguidas por forma |
-| RF-07 | Registro y autenticación | Implementado | — |
+| RF-07 | Registro y autenticación | Implementado | v1.8 — recuperación de contraseña con un código y sesión de 30 días en la app |
 | RF-08 | Importación del dataset | Implementado | v1.2 — **solo manual**, sin tarea programada |
-| RF-09 | Aplicación móvil Android | En construcción: fases 0 a 2 de 6 | v1.7 — requisito nuevo; el catálogo pasa de 8 RF |
+| RF-09 | Aplicación móvil Android | En construcción: fases 0 a 3 de 6 | v1.7 — requisito nuevo; el catálogo pasa de 8 RF |
 
 ---
 
@@ -105,7 +105,7 @@ medida de incertidumbre, y está fijada en una prueba.
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
-| `tests/unit/test_messages.py` | 15 | El texto evita la jerga técnica, lleva la atribución a IMARPE y no menciona SMS |
+| `tests/unit/test_messages.py` | 18 | El texto evita la jerga técnica, lleva la atribución a IMARPE y no menciona SMS. El correo de recuperación trae el código y su vigencia, y ningún enlace |
 | `tests/integration/test_notifications.py` | 34 | Un aviso por episodio; los fallos se reintentan; suscribirse a una alerta vigente avisa; subir el umbral no genera avisos falsos de cierre |
 | `src/pages/Avisos.test.tsx` | 10 | Centro de avisos, marcado de leídos y actualización del contador del marco |
 | `src/avisos/AvisosProvider.test.tsx` | 5 | El número de avisos sin leer se pide con sesión y se refresca al cambiar de pantalla |
@@ -160,19 +160,28 @@ medida de incertidumbre, y está fijada en una prueba.
 ## RF-07 — Registro y autenticación
 
 **Implementación:** `backend/src/ola/security.py`, `services/auth_service.py`,
-`repositories/subscriptions_repo.py`, `frontend/src/auth/`
+`repositories/subscriptions_repo.py`, `repositories/password_reset_repo.py`, `frontend/src/auth/`,
+`frontend/src/pages/Recuperar.tsx`; en la app, `mobile/src/sesion.tsx`,
+`mobile/src/suscripciones.tsx` y las pantallas de cuenta (sección RF-09)
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
-| `tests/unit/test_security.py` | 15 | La contraseña nunca se guarda en claro; se rechazan las que bcrypt truncaría; un reloj que retrocede unos segundos no invalida una sesión recién iniciada |
+| `tests/unit/test_security.py` | 19 | La contraseña nunca se guarda en claro; se rechazan las que bcrypt truncaría; un reloj que retrocede unos segundos no invalida una sesión recién iniciada. El código de recuperación tiene 6 dígitos y se guarda como HMAC, distinto para cada usuario |
+| `tests/unit/test_sesiones.py` | 5 | Un token emitido antes del cambio de contraseña deja de valer; uno del mismo segundo o posterior sigue valiendo, y uno sin fecha de emisión no |
+| `tests/integration/test_password_reset.py` | 31 | Mismo mensaje exista o no la cuenta y aunque el correo falle; un código por minuto; el nuevo anula al anterior; 15 minutos y 5 intentos; el cambio cierra las demás sesiones y deja la sesión iniciada; sesión de 30 días solo si se pide; mensajes con tildes |
+| `tests/integration/test_migraciones.py` | 2 | Las migraciones sobre una base vacía coinciden con los modelos; la de recuperación baja y vuelve a subir (D-31) |
 | `tests/integration/test_auth.py` | 22 | Registro, sesión, token vencido y cuenta desactivada |
 | `tests/integration/test_auth_service.py` | 11 | El administrador se crea al arrancar y **dos procesos simultáneos no chocan** |
 | `tests/integration/test_subscriptions.py` | 13 | Varias zonas por usuario, aisladas entre usuarios |
 | `src/pages/MisZonas.test.tsx` | 7 | Seguir y abandonar zonas |
+| `src/pages/Recuperar.test.tsx` | 9 | Los dos pasos; correo, código y contraseña se validan antes de llamar a la API; el mismo mensaje exista o no la cuenta; el código vencido; otro código después de un minuto; axe en los dos pasos |
+| `src/pages/Entrar.test.tsx` | 5 | Sesión guardada, credenciales incorrectas, cuenta desactivada y los enlaces a Crear cuenta y a Recuperar |
+| `packages/compartido/src/validacion.test.ts` | 17 | Correo, código de 6 dígitos y largo de la contraseña, las mismas reglas en la web y la app |
 | `src/components/marco/MenuCuenta.test.tsx` | 12 | Sesión, rol y opciones por rol; cierre con Escape o al pulsar fuera |
 | `src/components/marco/Cabecera.test.tsx` | 6 | Entrar sin sesión, menú con sesión y nada mientras se revalida |
 | `src/App.test.tsx` | 9 | Iniciar y cerrar sesión desde el marco; carga diferida de las pantallas |
 | `e2e/auth.spec.ts` | 9 | Registro, sesión persistente y cierre en el navegador |
+| `e2e/recuperar.spec.ts` | 3 | Con el código real que llega a Mailpit se cambia la contraseña y se entra; un correo sin cuenta recibe la misma respuesta y ningún correo; un código equivocado se rechaza |
 | `e2e/marco.spec.ts` | 28 | Menú de cuenta, barra inferior y banda en escritorio y celular |
 
 ---
@@ -198,18 +207,20 @@ verificado también sobre las imágenes de producción. La prueba
 ## RF-09 — Aplicación móvil Android
 
 **Estado:** en construcción por fases (plan en [calidad.md](calidad.md), sección 13). Fases 0
-a 2 cerradas: paquete compartido, marco de la app y pestaña Mapa, que lleva RF-04 al celular
-con lectura sin conexión.
+a 3 cerradas: paquete compartido, marco de la app, pestaña Mapa, que lleva RF-04 al celular
+con lectura sin conexión, y la cuenta con sus zonas de interés (RF-07).
 
 **Implementación:** `packages/compartido/` (tipos y cliente de la API, lógica, textos y paleta)
 y `mobile/` (Expo con expo-router y MapLibre). El estado del mar vive en
 `mobile/src/estado/`; la pestaña Mapa en `mobile/src/app/(tabs)/index.tsx` y el detalle en
-`mobile/src/app/zona/[code].tsx`.
+`mobile/src/app/zona/[code].tsx`. La sesión vive en `mobile/src/sesion.tsx`, las zonas seguidas en
+`mobile/src/suscripciones.tsx` y las pantallas de cuenta en `mobile/src/app/` (`entrar`,
+`registro`, `recuperar` y `mis-zonas`).
 
 | Prueba | Nº | Qué demuestra |
 |---|---|---|
-| `packages/compartido/src/api/cliente.test.ts` | 33 | El cliente acepta un almacén de token síncrono (web) o asíncrono (app); cada función pide la ruta y el método que espera FastAPI; los errores de FastAPI y Pydantic llegan como mensajes legibles |
-| `packages/compartido/src/tema/colores.test.ts` | 11 | Cada par de texto y fondo que usan la web y la app supera 4.5:1 |
+| `packages/compartido/src/api/cliente.test.ts` | 41 | El cliente acepta un almacén de token síncrono (web) o asíncrono (app); cada función pide la ruta y el método que espera FastAPI; los errores de FastAPI y Pydantic llegan como mensajes legibles; un 401 con token avisa que la sesión terminó, uno sin token no |
+| `packages/compartido/src/tema/colores.test.ts` | 13 | Cada par de texto y fondo que usan la web y la app supera 4.5:1 |
 | `frontend/src/tema.test.ts` | 2 | `tema.css` y la paleta de la app dicen lo mismo; un color cambiado en un solo lado falla |
 | `mobile/pruebas/config.test.ts` | 15 | Cada variante apunta a su API; solo la demo exige HTTPS; Android 10 como mínimo; fuentes, ícono y arranque existen |
 | `mobile/pruebas/compilacion-nativa-windows.test.ts` | 5 | El plugin de compilación usa un CMake con ninja 1.12 y compila fuera de `node_modules/.pnpm` |
@@ -228,17 +239,29 @@ y `mobile/` (Expo con expo-router y MapLibre). El estado del mar vive en
 | `mobile/src/componentes/inicio/Esqueleto.test.tsx` | 3 | TalkBack anuncia la carga; quieto si el celular pide menos movimiento |
 | `mobile/src/componentes/mapa/MapaZonas.test.tsx` | 23 | Encuadre de toda la costa; un dedo no mueve el mapa y avisa, dos sí; un botón accesible de 48 dp sobre cada zona, quitado mientras se mueve el mapa; «Ver toda la costa»; atribución del mapa base |
 | `mobile/src/componentes/zona/DetalleZona.test.tsx` | 7 | Promedio, valor medido, alerta completa o por qué no la hay; una zona que ya no mide no ofrece avisos |
+| `mobile/src/sesion.test.tsx` | 11 | Al abrir, la sesión guardada se confirma con la API; sin red se conserva; vencida se cierra sin avisar. Entrar, crear la cuenta y cambiar la contraseña piden la sesión de 30 días y guardan el token cifrado. Un 401 a mitad de uso la cierra y lo avisa. Salir borra lo guardado |
+| `mobile/src/suscripciones.test.tsx` | 6 | Sin sesión no pide nada; seguir y dejar una zona; un error no cambia la zona y se explica; reintentar; al salir se olvidan |
+| `mobile/pruebas/cuenta.test.tsx` | 23 | Entrar, Crear cuenta, Recuperar y Mis zonas con las rutas reales: validación antes de llamar a la API, errores del backend, el ojo de la contraseña, sin autocompletado (se cancela al enfocar cada campo y al dejar la pantalla, D-32), volver adonde se estaba, aviso de sesión terminada y avisos desde el detalle |
+| `mobile/modules/autocompletado/index.test.ts` | 3 | Llama al módulo nativo que cancela el autocompletado; sin el módulo, o si Android rechaza la cancelación, la app sigue |
 | `mobile/.maestro/marco/` | 4 flujos | En el celular: arranque con la fecha del dato, las pestañas, Entrar y «atrás», atribución a IMARPE |
 | `mobile/.maestro/inicio/` | 4 flujos | Las 10 zonas en el mapa y las tarjetas del dataset real; el detalle abre desde tarjeta y marcador y cierra con «atrás», deslizando o con ✕; sus acciones llevan a Entrar e Histórico; un dedo no mueve el mapa y el doble toque sí |
 | `mobile/.maestro/sin-conexion/` | 3 flujos | Sin API y sin nada guardado ofrece reintentar; con datos guardados los muestra con su fecha y hora; en modo avión, al volver la red se actualiza sola |
-| `mobile/.maestro/letra/letra-grande.yaml` | 1 flujo | Con la letra del celular al 200 % se ven las pestañas, el resumen y las tarjetas |
+| `mobile/.maestro/cuenta/` | 5 flujos | En el celular: crear la cuenta, cerrar y abrir la app sin perder la sesión y cerrarla; errores de correo, contraseña y cuenta repetida; seguir una zona desde el detalle y otra desde Mis zonas; volver a la zona después de entrar; recuperar la contraseña con el código real de Mailpit |
+| `mobile/.maestro/letra/letra-grande.yaml` | 1 flujo | Con la letra del celular al 200 % se ven las pestañas, el resumen, las tarjetas y el formulario de Entrar |
 
-**Rendimiento (SRS 3.3):** con el mapa, el estado se ve en una mediana de **0.84 s** desde que
-se abre la app en frío (peor de 5: 1.21 s), en un Galaxy A56 con Android 16. La medida espera
+**Rendimiento (SRS 3.3):** con el mapa, el estado se ve en una mediana de **0.81 s** desde que
+se abre la app en frío (peor de 5: 0.84 s), en un Galaxy A56 con Android 16. Medido al cerrar
+la fase 3. La medida espera
 los datos de la API, las tarjetas y los 10 marcadores en su lugar. El límite es de 5 s.
 
-**Evidencia en el celular:** [la pestaña Mapa](evidencia/app-mapa.png) y
-[el aviso de gestos](evidencia/app-aviso-gestos.png), que dura 1.5 s y Maestro no alcanza a ver.
+**Evidencia en el celular:** [la pestaña Mapa](evidencia/app-mapa.png),
+[el aviso de gestos](evidencia/app-aviso-gestos.png), que dura 1.5 s y Maestro no alcanza a ver,
+[Mis zonas](evidencia/app-mis-zonas.png) con dos zonas seguidas y
+[Entrar con el teclado abierto](evidencia/app-entrar-teclado.png), donde el campo y el botón
+siguen a la vista. Al cerrar la fase 3 se revisó en el celular el árbol de accesibilidad de
+Entrar, Crear cuenta, Recuperar, Mis zonas y el detalle con sesión (`uiautomator dump`): cada
+control tiene nombre y mide al menos 48 dp, salvo el ✕ del detalle (44 dp, con 4 dp de margen
+táctil que llevan el área a 52). La revisión encontró D-33.
 
 **APK de demostración:** instalado en el mismo celular sin conexión al equipo, muestra «Datos del
 mar al 31/07/2026», la fecha que devuelve el VPS por HTTPS (prueba manual del 2026-09-23).
@@ -252,11 +275,11 @@ mar al 31/07/2026», la fecha que devuelve el VPS por HTTPS (prueba manual del 2
 | Usabilidad | Todos los textos en español, centralizados en `src/i18n/textos.ts`. Interfaz móvil primero con barra inferior; cada estado con color, símbolo y nombre; tabla accesible junto a cada gráfico y al mapa. Guía en [diseno.md](diseno.md) |
 | Accesibilidad | axe (WCAG 2.2 AA) **bloqueante** en todas las pantallas, en escritorio y celular, y en las pruebas de cada componente nuevo. Excepción documentada: tamaño de objetivo de los marcadores del mapa (WCAG 2.5.8, «equivalente») |
 | Confiabilidad | La fecha del dato se muestra siempre; una zona sin mediciones recientes se marca y no se clasifica |
-| Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`) |
-| Mantenibilidad | 1,168 pruebas; cobertura del 95 % en el backend, 97.5 % en el paquete compartido, 89.9 % en la web y 95.8 % en la app; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
-| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto. Semana al 28 de septiembre: 99.56 % y 98.63 %. Meta: 95 % objetivo, 90 % mínimo ([calidad.md](calidad.md), sección 7) |
+| Seguridad | Contraseñas con bcrypt; la aplicación **se niega a arrancar** en producción con un secreto débil o de plantilla (`test_config.py`). El código de recuperación se guarda como HMAC y no revela qué correos tienen cuenta (`test_password_reset.py`). En la app, el token va cifrado con el Keystore de Android (`sesion.test.tsx`) |
+| Mantenibilidad | 1,302 pruebas; cobertura del 95 % en el backend, 97.7 % en el paquete compartido, 90.4 % en la web y 95.9 % en la app; ruff y mypy en modo estricto sin observaciones; regresión visual con tolerancia de 20 píxeles |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto. Semana al 28 de septiembre: 99.61 % y 98.80 %. Meta: 95 % objetivo, 90 % mínimo ([calidad.md](calidad.md), sección 7) |
 | Portabilidad | Todo en contenedores; el stack de producción se verificó completo en local |
-| Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 1.07 s con 4G normal (límite: 3 s) y la portada descarga 170 kB comprimidos (`e2e/rendimiento.spec.ts`) |
+| Rendimiento | Importación y agrupado de series medidos contra los límites de la sección 3.3. El mapa muestra las 10 zonas en una mediana de 0.88 s con 4G normal (límite: 3 s) y la portada descarga 171 kB comprimidos (`e2e/rendimiento.spec.ts`) |
 
 ---
 

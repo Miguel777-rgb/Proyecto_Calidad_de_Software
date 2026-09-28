@@ -44,6 +44,7 @@ color fuera del sistema no compila.
 | `realce` | `#edf3f2` | Fondo al pasar el cursor |
 | `atencion-fondo` / `atencion-borde` | `#fbf1d9` / `#e2c378` | Dato atrasado, zona sin datos recientes |
 | `alerta` | `#b4531f` | Icono de alerta |
+| `error` / `error-fondo` | `#b3261e` / `#fdecea` | Mensaje de error de un formulario: correo o contraseña incorrectos, código vencido |
 
 **Reglas**
 
@@ -295,3 +296,22 @@ mapa y tarjetas. Los textos son los de la web (secciones 6, 7 y 9).
 | Actualizar | Tirar hacia abajo, con el indicador de Android en color marea | `componentes/pantalla/Pantalla.tsx` |
 
 Los colores y símbolos de estado salen de `@ola/compartido/mapa/paleta`, igual que en la web.
+
+### 12.2 Cuenta y zonas de interés
+
+Maqueta aprobada en la fase 3. Entrar, Crear cuenta, Recuperar contraseña y Mis zonas son
+pantallas completas con flecha de «atrás», no hojas: el teclado ocupa media pantalla y una hoja
+no deja ver el campo que se escribe.
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Campo | Etiqueta arriba, siempre visible, y caja blanca de 52 dp con borde marea al enfocarla. La contraseña lleva un ojo de 48 dp para mostrarla, con su nombre para TalkBack. El código usa teclado numérico, fuente de datos y 6 casillas de ancho. Sin autocompletado de Android, decisión de la fase 3: además de apagarlo, la sesión que Android 14 abre igual se cancela al enfocar cada campo y al dejar la pantalla (D-32) | `componentes/formulario/Campo.tsx` |
+| Mensaje | Franja con ícono sobre el botón: roja para un error, marea para «te enviamos un código», de atención para «Tu sesión terminó. Vuelve a entrar.» TalkBack la anuncia al aparecer; el error, interrumpiendo lo que esté leyendo | `componentes/formulario/Mensaje.tsx` |
+| Formulario | Se desplaza y sube con el teclado; «Siguiente» del teclado envía desde el último campo | `componentes/formulario/Formulario.tsx` |
+| Recuperar | Dos pasos en la misma pantalla: primero el correo; después, el código y la contraseña nueva. «Enviar otro código» espera 60 s y muestra la cuenta regresiva | `app/recuperar.tsx` |
+| Mis zonas | Las 10 zonas de norte a sur, cada una con su estado y un interruptor. Toda la fila, de 64 dp, es el interruptor: el de Android solo mide 27 dp de alto (D-33). TalkBack lee «Callao, cálido, en alerta» y si está activado. Sin sesión, una invitación a entrar | `app/mis-zonas.tsx` |
+| Avisos en el detalle | Sin sesión, «Entrar para recibir avisos». Con sesión, «Recibir avisos de esta zona» o la marca «Recibes avisos» con «Dejar de recibir» | `componentes/zona/AvisosZona.tsx` |
+
+Después de entrar, crear la cuenta o cambiar la contraseña, la persona vuelve adonde estaba: al
+detalle desde el que pidió avisos o a Mis zonas si ahí se le cerró la sesión. Salir borra la
+sesión y la lista de zonas seguidas, pero no el estado del mar guardado.

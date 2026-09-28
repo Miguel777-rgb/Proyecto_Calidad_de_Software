@@ -1,7 +1,7 @@
 import type { EstadoZona } from '@ola/compartido/api'
 import { textos } from '@ola/compartido/i18n/textos'
 import { router } from 'expo-router'
-import { ActivityIndicator, StyleSheet, Switch, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from 'react-native'
 import { SimboloEstado } from '../componentes/estado/Estado'
 import { Mensaje } from '../componentes/formulario/Mensaje'
 import { Boton } from '../componentes/pantalla/Boton'
@@ -30,8 +30,18 @@ function FilaZona({
 }) {
   const code = zona.laboratory.code
   const nombre = zona.laboratory.name
+  // Toda la fila es el interruptor: el Switch de Android mide 27 dp de alto y
+  // la fila 64. El Switch queda como dibujo, sin toques ni nombre propios.
   return (
-    <View style={estilos.fila}>
+    <Pressable
+      testID={`seguir-${code}`}
+      accessibilityRole="switch"
+      accessibilityLabel={`${nombre}, ${situacion(zona).toLowerCase().replace(' · ', ', ')}`}
+      accessibilityState={{ checked: seguida, disabled: ocupada }}
+      disabled={ocupada}
+      onPress={alCambiar}
+      style={({ pressed }) => [estilos.fila, pressed && estilos.filaPulsada]}
+    >
       <View style={estilos.nombre} importantForAccessibility="no-hide-descendants">
         <Texto style={estilos.nombreTexto}>{nombre}</Texto>
         <View style={estilos.situacion}>
@@ -39,16 +49,15 @@ function FilaZona({
           <Texto style={estilos.situacionTexto}>{situacion(zona)}</Texto>
         </View>
       </View>
-      <Switch
-        testID={`seguir-${code}`}
-        accessibilityLabel={`${nombre}, ${situacion(zona).toLowerCase().replace(' · ', ', ')}`}
-        value={seguida}
-        disabled={ocupada}
-        onValueChange={alCambiar}
-        trackColor={{ false: '#c9d3d5', true: color.abisal }}
-        thumbColor={seguida ? color.blanco : '#6d7e82'}
-      />
-    </View>
+      <View pointerEvents="none" importantForAccessibility="no-hide-descendants">
+        <Switch
+          value={seguida}
+          disabled={ocupada}
+          trackColor={{ false: '#c9d3d5', true: color.abisal }}
+          thumbColor={seguida ? color.blanco : '#6d7e82'}
+        />
+      </View>
+    </Pressable>
   )
 }
 
@@ -136,6 +145,7 @@ const estilos = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: color.borde,
   },
+  filaPulsada: { backgroundColor: color.realce },
   nombre: { flexShrink: 1, gap: 4 },
   nombreTexto: { fontFamily: fuente.titulo, fontWeight: '600', fontSize: 18, lineHeight: 23 },
   situacion: { flexDirection: 'row', alignItems: 'center', gap: 6 },

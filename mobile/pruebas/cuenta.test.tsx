@@ -344,12 +344,15 @@ describe('Mis zonas', () => {
     for (const zona of ESTADO_MUESTRA.zones) {
       expect(screen.getByTestId(`seguir-${zona.laboratory.code}`)).toBeOnTheScreen()
     }
-    expect(screen.getByLabelText('Callao, cálido, en alerta').props.value).toBe(true)
-    expect(screen.getByLabelText('Huacho, cálido').props.value).toBe(false)
-    expect(screen.getByLabelText('Matarani, sin datos recientes')).toBeOnTheScreen()
+    expect(screen.getByRole('switch', { name: 'Callao, cálido, en alerta' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Huacho, cálido' })).not.toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Matarani, sin datos recientes' })).toBeOnTheScreen()
+    // Toda la fila es el interruptor, no solo el Switch de 27 dp de Android.
+    expect(screen.getAllByRole('switch')).toHaveLength(ESTADO_MUESTRA.zones.length)
+    expect(screen.getByTestId('seguir-CALLAO')).toHaveStyle({ minHeight: 64 })
   })
 
-  it('el interruptor suscribe a la zona', async () => {
+  it('tocar la fila suscribe a la zona', async () => {
     await conSesionGuardada()
     const fetchSimulado = simularApi({
       ...ESTADO,
@@ -359,9 +362,9 @@ describe('Mis zonas', () => {
     await abrir('/mis-zonas')
     await screen.findByTestId('lista-zonas')
 
-    await fireEvent(screen.getByLabelText('Huacho, cálido'), 'valueChange', true)
+    await fireEvent.press(screen.getByRole('switch', { name: 'Huacho, cálido' }))
 
-    await waitFor(() => expect(screen.getByLabelText('Huacho, cálido').props.value).toBe(true))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Huacho, cálido' })).toBeChecked())
     const post = fetchSimulado.mock.calls.find(
       ([, init]) => (init as RequestInit | undefined)?.method === 'POST',
     )

@@ -63,24 +63,24 @@ class EffectiveSettings:
 def _a_entero(clave: str, valor: object) -> int:
     # bool es subclase de int en Python: aceptarlo guardaria True como 1.
     if isinstance(valor, bool):
-        raise InvalidSettingError(f"'{clave}' debe ser un numero entero.")
+        raise InvalidSettingError(f"'{clave}' debe ser un número entero.")
     if isinstance(valor, int):
         return valor
     if isinstance(valor, str | float):
         try:
             return int(valor)
         except ValueError:
-            raise InvalidSettingError(f"'{clave}' debe ser un numero entero.") from None
-    raise InvalidSettingError(f"'{clave}' debe ser un numero entero.")
+            raise InvalidSettingError(f"'{clave}' debe ser un número entero.") from None
+    raise InvalidSettingError(f"'{clave}' debe ser un número entero.")
 
 
 def _a_umbral(valor: object) -> Decimal:
     if isinstance(valor, bool) or not isinstance(valor, int | float | str | Decimal):
-        raise InvalidSettingError("El umbral debe ser un numero.")
+        raise InvalidSettingError("El umbral debe ser un número.")
     try:
         return Decimal(str(valor))
     except InvalidOperation:
-        raise InvalidSettingError("El umbral debe ser un numero.") from None
+        raise InvalidSettingError("El umbral debe ser un número.") from None
 
 
 def get_effective(session: Session, settings: Settings) -> EffectiveSettings:
@@ -126,7 +126,7 @@ def update(
             continue
 
         if clave not in LIMITES:
-            raise InvalidSettingError(f"Parametro desconocido: '{clave}'.")
+            raise InvalidSettingError(f"Parámetro desconocido: '{clave}'.")
 
         numero = _a_entero(clave, valor)
         minimo, maximo = LIMITES[clave]

@@ -23,7 +23,7 @@ MAX_COMPARE_LABS = 4
 class UnknownLaboratoryError(ValueError):
     def __init__(self, code: str) -> None:
         self.code = code
-        super().__init__(f"No existe un laboratorio con el codigo '{code}'.")
+        super().__init__(f"No existe un laboratorio con el código '{code}'.")
 
 
 class InvalidRangeError(ValueError):

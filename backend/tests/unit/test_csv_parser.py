@@ -54,7 +54,7 @@ class TestCabecera:
             analizar("fecha,lugar,valor")
 
     def test_rechaza_un_archivo_vacio(self):
-        with pytest.raises(InvalidHeaderError, match="vacio"):
+        with pytest.raises(InvalidHeaderError, match="vacío"):
             analizar()
 
     def test_el_mensaje_indica_que_columna_falta(self):
@@ -99,7 +99,7 @@ class TestFilasRechazadas:
     def test_rechaza_fechas_invalidas(self, fecha):
         resultado = analizar(CABECERA, f"{fecha},CALLAO,1.0")
         assert len(errores(resultado)) == 1
-        assert "Fecha invalida" in errores(resultado)[0].reason
+        assert "Fecha inválida" in errores(resultado)[0].reason
 
     @pytest.mark.parametrize("valor", ["NaN", "nan", "", "   ", "NULL", "-"])
     def test_rechaza_las_marcas_de_dato_ausente(self, valor):
@@ -110,7 +110,7 @@ class TestFilasRechazadas:
     @pytest.mark.parametrize("valor", ["muy calido", "1.5.2", "--3"])
     def test_rechaza_valores_no_numericos(self, valor):
         resultado = analizar(CABECERA, f"2026-07-31,CALLAO,{valor}")
-        assert "no numerica" in errores(resultado)[0].reason
+        assert "no numérica" in errores(resultado)[0].reason
 
     def test_rechaza_un_decimal_escrito_con_coma(self):
         # '1,5' se parte en dos columnas: sin este control la fila entraria
@@ -125,7 +125,7 @@ class TestFilasRechazadas:
 
     def test_rechaza_infinito(self):
         resultado = analizar(CABECERA, "2026-07-31,CALLAO,Infinity")
-        assert "no numerica" in errores(resultado)[0].reason
+        assert "no numérica" in errores(resultado)[0].reason
 
     def test_rechaza_un_laboratorio_desconocido(self):
         # El diccionario oficial nombra HUANCHACO, que no existe en los datos.
@@ -135,7 +135,7 @@ class TestFilasRechazadas:
 
     def test_rechaza_un_laboratorio_vacio(self):
         resultado = analizar(CABECERA, "2026-07-31,,1.0")
-        assert "vacio" in errores(resultado)[0].reason
+        assert "vacío" in errores(resultado)[0].reason
 
     def test_rechaza_una_fila_incompleta(self):
         resultado = analizar(CABECERA, "2026-07-31,CALLAO")

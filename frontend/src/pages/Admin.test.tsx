@@ -109,7 +109,7 @@ describe('Admin', () => {
             ...IMPORTACION,
             rows_rejected: 2,
             error_sample: [
-              { line: 3, reason: 'Fecha invalida: 31-07-2026.', content: '31-07-2026,CALLAO,1.5' },
+              { line: 3, reason: 'Fecha inválida: 31-07-2026.', content: '31-07-2026,CALLAO,1.5' },
               { line: 9, reason: 'Laboratorio costero desconocido: HUANCHACO.', content: '' },
             ],
           },

@@ -77,7 +77,7 @@ def parse_atsm(
     try:
         cabecera = next(lector)
     except StopIteration:
-        raise InvalidHeaderError("El archivo esta vacio.") from None
+        raise InvalidHeaderError("El archivo está vacío.") from None
 
     _validate_header(cabecera)
     indices = {normalize_code(c.lstrip(BOM)): i for i, c in enumerate(cabecera)}
@@ -107,7 +107,7 @@ def parse_atsm(
             yield RowError(
                 numero,
                 f"La fila tiene {utiles} columnas y se esperaban {esperadas}. "
-                "Revisa si algun decimal usa coma en lugar de punto.",
+                "Revisa si algún decimal usa coma en lugar de punto.",
                 crudo,
             )
             continue
@@ -117,13 +117,13 @@ def parse_atsm(
             medida = date.fromisoformat(texto_fecha)
         except ValueError:
             yield RowError(
-                numero, f"Fecha invalida: '{texto_fecha}'. Se espera el formato AAAA-MM-DD.", crudo
+                numero, f"Fecha inválida: '{texto_fecha}'. Se espera el formato AAAA-MM-DD.", crudo
             )
             continue
 
         codigo = normalize_code(fila[i_lab])
         if not codigo:
-            yield RowError(numero, "El laboratorio costero esta vacio.", crudo)
+            yield RowError(numero, "El laboratorio costero está vacío.", crudo)
             continue
         if codigo not in codigos:
             # No se crean laboratorios solos: una errata generaria una zona
@@ -133,15 +133,15 @@ def parse_atsm(
 
         texto_valor = fila[i_valor].strip()
         if texto_valor.upper() in MISSING_TOKENS:
-            yield RowError(numero, "La anomalia no tiene valor.", crudo)
+            yield RowError(numero, "La anomalía no tiene valor.", crudo)
             continue
         try:
             valor = Decimal(texto_valor)
         except InvalidOperation:
-            yield RowError(numero, f"Anomalia no numerica: '{texto_valor}'.", crudo)
+            yield RowError(numero, f"Anomalía no numérica: '{texto_valor}'.", crudo)
             continue
         if not valor.is_finite():
-            yield RowError(numero, f"Anomalia no numerica: '{texto_valor}'.", crudo)
+            yield RowError(numero, f"Anomalía no numérica: '{texto_valor}'.", crudo)
             continue
 
         yield ParsedRow(numero, medida, codigo, valor)

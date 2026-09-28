@@ -32,12 +32,12 @@ HISTORY_POINTS = DEFAULT_WINDOW
 
 class UnknownLaboratoryError(ValueError):
     def __init__(self, code: str) -> None:
-        super().__init__(f"No existe un laboratorio con el codigo '{code}'.")
+        super().__init__(f"No existe un laboratorio con el código '{code}'.")
 
 
 class InvalidHorizonError(ValueError):
     def __init__(self) -> None:
-        super().__init__(f"El horizonte debe estar entre {MIN_HORIZON} y {MAX_HORIZON} dias.")
+        super().__init__(f"El horizonte debe estar entre {MIN_HORIZON} y {MAX_HORIZON} días.")
 
 
 @dataclass(frozen=True)

@@ -63,7 +63,7 @@ describe('PanelEnvioAvisos', () => {
   })
 
   it('muestra el mensaje del servidor si el envio se rechaza', async () => {
-    simularEnvio({ detail: 'Esta accion requiere permisos de administrador.' }, 403)
+    simularEnvio({ detail: 'Esta acción requiere permisos de administrador.' }, 403)
     render(<PanelEnvioAvisos />)
     await pulsarEnviar()
 

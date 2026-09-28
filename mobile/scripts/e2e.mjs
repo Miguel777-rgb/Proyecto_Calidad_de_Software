@@ -131,6 +131,8 @@ async function main() {
 
       resultados.inicio = await maestro('inicio', '.maestro/inicio')
 
+      resultados.cuenta = await maestro('cuenta', '.maestro/cuenta')
+
       resultados['sin conexion'] = await maestro('sin-conexion', '.maestro/sin-conexion')
 
       adb('shell', 'settings', 'put', 'system', 'font_scale', '2.0')

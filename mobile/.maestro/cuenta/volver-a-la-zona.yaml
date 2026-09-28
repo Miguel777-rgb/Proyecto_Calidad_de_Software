@@ -1,0 +1,36 @@
+# Quien entra desde «Entra para recibir avisos» vuelve a esa zona.
+appId: pe.ola.app
+name: Al entrar desde una zona se vuelve a ella
+tags: [cuenta]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- runFlow: ../comun/registrarse.yaml
+- runFlow: ../comun/cerrar-sesion.yaml
+- scrollUntilVisible:
+    element:
+      id: tarjeta-PISCO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-PISCO
+- tapOn:
+    id: entrar-para-avisos
+- tapOn:
+    id: entrar-correo
+- inputText: ${output.correo}
+- tapOn:
+    id: entrar-contrasena
+- inputText: miclave123
+- hideKeyboard
+- tapOn:
+    id: entrar-enviar
+- extendedWaitUntil:
+    visible:
+      id: recibir-avisos
+    timeout: 15000
+- assertVisible: Pisco

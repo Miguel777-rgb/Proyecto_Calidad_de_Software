@@ -1,0 +1,36 @@
+# Crear una cuenta, que la sesion sobreviva a cerrar la app y cerrar sesion.
+appId: pe.ola.app
+name: Crear cuenta, volver a abrir la app y cerrar sesion
+tags: [cuenta]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- runFlow: ../comun/registrarse.yaml
+- takeScreenshot: informes/capturas/cuenta-con-sesion
+# La sesion va cifrada en el celular: cerrar y abrir la app no la pierde.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: boton-cuenta
+    timeout: 15000
+- tapOn:
+    id: boton-cuenta
+- assertVisible: ${output.correo}
+- tapOn: Cerrar sesión
+- extendedWaitUntil:
+    visible:
+      id: entrar
+    timeout: 5000
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: entrar
+    timeout: 15000
+- assertNotVisible:
+    id: boton-cuenta

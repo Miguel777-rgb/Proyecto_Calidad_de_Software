@@ -1,0 +1,10 @@
+# Cierra la sesion desde la hoja de cuenta.
+appId: pe.ola.app
+---
+- tapOn:
+    id: boton-cuenta
+- tapOn: Cerrar sesión
+- extendedWaitUntil:
+    visible:
+      id: entrar
+    timeout: 5000

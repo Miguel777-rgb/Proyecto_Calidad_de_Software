@@ -3,3 +3,4 @@
 flows:
   - "marco/*"
   - "inicio/*"
+  - "cuenta/*"

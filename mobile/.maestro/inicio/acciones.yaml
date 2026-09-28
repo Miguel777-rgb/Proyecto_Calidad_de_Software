@@ -1,10 +1,12 @@
-# Las acciones del detalle llevan a Entrar y a Historico, provisionales hasta
-# las fases 3 y 5.
+# Las acciones del detalle llevan a Entrar y a Historico. Historico es
+# provisional hasta la fase 5.
 appId: pe.ola.app
 name: Las acciones del detalle llevan a su pantalla
 tags: [inicio]
 ---
-- launchApp
+# Sin sesion guardada: con sesion, el detalle ofrece recibir avisos.
+- launchApp:
+    clearState: true
 - extendedWaitUntil:
     visible:
       id: fecha-referencia
@@ -18,7 +20,8 @@ tags: [inicio]
     id: tarjeta-CALLAO
 - tapOn:
     id: entrar-para-avisos
-- assertVisible: Iniciar sesión llega en la próxima versión de la app.
+- assertVisible:
+    id: entrar-correo
 - back
 - assertVisible:
     id: pestana-index

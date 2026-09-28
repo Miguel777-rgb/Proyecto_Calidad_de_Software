@@ -1,0 +1,22 @@
+# Crea una cuenta nueva desde la banda. Deja el correo en output.correo. No se
+# corre sola: la llaman los flujos de cuenta con runFlow.
+appId: pe.ola.app
+---
+- evalScript: ${output.correo = 'maestro-' + Date.now() + '@ejemplo.pe'}
+- tapOn:
+    id: entrar
+- tapOn:
+    id: crear-cuenta
+- tapOn:
+    id: registro-correo
+- inputText: ${output.correo}
+- tapOn:
+    id: registro-contrasena
+- inputText: miclave123
+- hideKeyboard
+- tapOn:
+    id: registro-enviar
+- extendedWaitUntil:
+    visible:
+      id: boton-cuenta
+    timeout: 15000

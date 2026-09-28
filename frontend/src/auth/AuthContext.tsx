@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  cambiarContrasena,
   iniciarSesion as apiLogin,
   registrar as apiRegistrar,
   obtenerPerfil,
@@ -12,6 +13,8 @@ export interface AuthContextValue {
   cargando: boolean
   entrar: (email: string, password: string) => Promise<void>
   registrarse: (email: string, password: string, fullName?: string) => Promise<void>
+  /** Cambia la contrasena con el codigo del correo y deja la sesion iniciada. */
+  restablecer: (email: string, codigo: string, password: string) => Promise<void>
   salir: () => void
 }
 
@@ -60,14 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const restablecer = useCallback(async (email: string, codigo: string, password: string) => {
+    const sesion = await cambiarContrasena({ email, code: codigo, password })
+    tokenStorage.set(sesion.access_token)
+    setUsuario(sesion.user)
+  }, [])
+
   const salir = useCallback(() => {
     tokenStorage.clear()
     setUsuario(null)
   }, [])
 
   const value = useMemo(
-    () => ({ usuario, cargando, entrar, registrarse, salir }),
-    [usuario, cargando, entrar, registrarse, salir],
+    () => ({ usuario, cargando, entrar, registrarse, restablecer, salir }),
+    [usuario, cargando, entrar, registrarse, restablecer, salir],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

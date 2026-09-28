@@ -20,6 +20,7 @@ const Historico = lazy(() => import('./pages/Historico'))
 const Inicio = lazy(() => import('./pages/Inicio'))
 const MisZonas = lazy(() => import('./pages/MisZonas'))
 const Proyeccion = lazy(() => import('./pages/Proyeccion'))
+const Recuperar = lazy(() => import('./pages/Recuperar'))
 const Registro = lazy(() => import('./pages/Registro'))
 
 /**
@@ -95,6 +96,7 @@ export default function App() {
               />
               <Route path="/entrar" element={<Entrar />} />
               <Route path="/registro" element={<Registro />} />
+              <Route path="/recuperar" element={<Recuperar />} />
             </Routes>
           </Suspense>
         </main>

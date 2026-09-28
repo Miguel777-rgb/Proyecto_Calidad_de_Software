@@ -53,6 +53,9 @@ export default function Entrar() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <Link to="/recuperar" state={{ correo: email }} className="olvide">
+          {textos.entrar.olvide}
+        </Link>
 
         {error !== null && (
           <p className="error" role="alert">

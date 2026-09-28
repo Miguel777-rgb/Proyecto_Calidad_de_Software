@@ -130,6 +130,20 @@ describe('Crear cuenta', () => {
     )
   })
 
+  it('un correo mal escrito se corrige antes de llamar a la API', async () => {
+    const fetchSimulado = simularApi(ESTADO)
+    await abrir('/registro')
+
+    await escribir('Correo electrónico', 'sin-arroba')
+    await escribir('Contraseña', 'miclave123')
+    await fireEvent.press(screen.getByTestId('registro-enviar'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Escribe un correo válido, como nombre@ejemplo.pe.',
+    )
+    expect(fetchSimulado.mock.calls.some(([url]) => String(url).endsWith('/register'))).toBe(false)
+  })
+
   it('un correo ya registrado muestra el mensaje del backend', async () => {
     simularApi({
       ...ESTADO,
@@ -222,6 +236,48 @@ describe('Recuperar contraseña', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('El código no es válido o ya venció.'),
     )
+  })
+
+  it('un correo mal escrito o una contraseña corta se avisan antes de llamar a la API', async () => {
+    const fetchSimulado = simularApi({
+      ...ESTADO,
+      '/auth/password-reset/request': respuesta({ detail: 'ok' }, 202),
+    })
+    await abrir('/recuperar')
+    const llamadas = (ruta: string) =>
+      fetchSimulado.mock.calls.filter(([url]) => String(url).endsWith(ruta)).length
+
+    await escribir('Correo electrónico', 'sin-arroba')
+    await fireEvent.press(screen.getByTestId('enviar-codigo'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Escribe un correo válido, como nombre@ejemplo.pe.',
+    )
+    expect(llamadas('/request')).toBe(0)
+
+    await escribir('Correo electrónico', 'pescador@ejemplo.pe')
+    await fireEvent.press(screen.getByTestId('enviar-codigo'))
+    await screen.findByTestId('codigo-enviado')
+    await escribir('Código de 6 dígitos', '482913')
+    await escribir('Contraseña nueva', 'corta')
+    await fireEvent.press(screen.getByTestId('cambiar-contrasena'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La contraseña debe tener al menos 8 caracteres.',
+    )
+    expect(llamadas('/confirm')).toBe(0)
+  })
+
+  it('si no se pudo pedir el codigo, lo dice y deja reintentar', async () => {
+    simularApi({
+      ...ESTADO,
+      '/auth/password-reset/request': respuesta({ detail: 'Error interno del servidor.' }, 500),
+    })
+    await abrir('/recuperar?correo=pescador%40ejemplo.pe')
+
+    await fireEvent.press(await screen.findByTestId('enviar-codigo'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error interno del servidor.')
+    expect(screen.getByTestId('enviar-codigo')).toBeOnTheScreen()
   })
 
   it('pasado un minuto ofrece enviar otro codigo', async () => {

@@ -55,6 +55,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Los tokens emitidos antes de esta fecha dejan de valer: cambiar la
+    # contrasena cierra las demas sesiones, tambien las de 30 dias de la app.
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     @property
     def is_admin(self) -> bool:
@@ -62,6 +65,31 @@ class User(Base):
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role.value})>"
+
+
+class PasswordResetCode(Base):
+    """Codigo de un solo uso para cambiar la contrasena (RF-07).
+
+    Se guarda el HMAC del codigo, nunca el codigo: quien lea la base no puede
+    usarlo. Vale unos minutos y admite pocos intentos.
+    """
+
+    __tablename__ = "password_reset_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped[User] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<PasswordResetCode {self.id} user={self.user_id}>"
 
 
 class ImportStatus(enum.StrEnum):

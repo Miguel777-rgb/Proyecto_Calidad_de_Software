@@ -15,7 +15,7 @@ from ola.db.session import get_session
 from ola.mail import Mailer, SmtpMailer
 from ola.repositories import users_repo
 from ola.security import decode_access_token
-from ola.services import settings_service
+from ola.services import auth_service, settings_service
 from ola.services.settings_service import EffectiveSettings
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -25,7 +25,7 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 CREDENCIALES_INVALIDAS = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Credenciales invalidas o sesion expirada.",
+    detail="Credenciales inválidas o sesión expirada.",
     headers={"WWW-Authenticate": "Bearer"},
 )
 
@@ -50,6 +50,9 @@ def get_current_user(
     user = users_repo.get_by_id(session, user_id)
     if user is None or not user.is_active:
         raise CREDENCIALES_INVALIDAS
+    # Cambiar la contrasena cierra las sesiones abiertas antes del cambio.
+    if auth_service.token_revoked(payload, user):
+        raise CREDENCIALES_INVALIDAS
     return user
 
 
@@ -60,7 +63,7 @@ def require_admin(user: CurrentUser) -> User:
     if not user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Esta accion requiere permisos de administrador.",
+            detail="Esta acción requiere permisos de administrador.",
         )
     return user
 

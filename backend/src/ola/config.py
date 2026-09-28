@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     jwt_secret: str = "inseguro-solo-para-desarrollo"
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 60
+    # Sesion que pide la app Android (RF-07, SRS 1.8): el token va cifrado en
+    # el celular. La web se queda con access_token_minutes.
+    app_session_days: int = Field(default=30, ge=1)
+
+    # Recuperacion de contrasena con un codigo por correo (RF-07).
+    password_reset_minutes: int = Field(default=15, ge=1)
+    password_reset_attempts: int = Field(default=5, ge=1)
+    password_reset_interval_seconds: int = Field(default=60, ge=0)
 
     admin_email: str = "admin@ola.pe"
     admin_password: str = "cambiar"
@@ -88,7 +96,7 @@ class Settings(BaseSettings):
         if self.admin_password in INSECURE_ADMIN_PASSWORDS:
             raise ValueError(
                 "OLA_ADMIN_PASSWORD conserva el valor de la plantilla. "
-                "Define una contrasena propia antes de desplegar."
+                "Define una contraseña propia antes de desplegar."
             )
         return self
 

@@ -63,6 +63,10 @@ def engine():
     admin_engine.dispose()
 
     test_engine = create_engine(url)
+    # Se rehace el esquema en cada corrida: create_all no agrega columnas a
+    # tablas que ya existen, y una base de pruebas vieja se quedaba sin las
+    # columnas nuevas (D-31).
+    Base.metadata.drop_all(test_engine)
     Base.metadata.create_all(test_engine)
     yield test_engine
     test_engine.dispose()

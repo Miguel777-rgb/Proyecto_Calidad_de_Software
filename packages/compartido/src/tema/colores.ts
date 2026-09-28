@@ -25,6 +25,8 @@ export const PALETA = {
   'atencion-fondo': '#fbf1d9',
   'atencion-borde': '#e2c378',
   alerta: '#b4531f',
+  error: '#b3261e',
+  'error-fondo': '#fdecea',
 } as const
 
 export type ColorOla = keyof typeof PALETA

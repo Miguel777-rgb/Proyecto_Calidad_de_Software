@@ -38,6 +38,23 @@ export const textos = {
     enviando: 'Entrando…',
     sinCuenta: '¿No tienes cuenta?',
     crearla: 'Crear una cuenta',
+    olvide: '¿Olvidaste tu contraseña?',
+  },
+  recuperar: {
+    titulo: 'Recuperar contraseña',
+    ayuda:
+      'Escribe el correo de tu cuenta. Te enviaremos un código de 6 dígitos para crear una contraseña nueva.',
+    enviar: 'Enviar código',
+    enviando: 'Enviando…',
+    enviado: (correo: string) =>
+      `Si ${correo} tiene cuenta, te enviamos un código. Vale 15 minutos.`,
+    codigo: 'Código de 6 dígitos',
+    nueva: 'Contraseña nueva',
+    boton: 'Cambiar contraseña',
+    cambiando: 'Cambiando…',
+    reenviar: 'Enviar otro código',
+    espera: (segundos: number) => `Puedes pedir otro código en ${segundos} s`,
+    codigoIncompleto: 'El código tiene 6 dígitos.',
   },
   registro: {
     titulo: 'Crear cuenta',
@@ -92,6 +109,7 @@ export const textos = {
     soloAdmin: 'Esta sección requiere permisos de administrador.',
     contrasenaCorta: 'La contraseña debe tener al menos 8 caracteres.',
     correoRequerido: 'Indica tu correo electrónico.',
+    correoInvalido: 'Escribe un correo válido, como nombre@ejemplo.pe.',
     inesperado: 'Ocurrió un error inesperado. Inténtalo de nuevo.',
     archivoRequerido: 'Selecciona un archivo CSV antes de importar.',
   },
@@ -304,8 +322,6 @@ export const textos = {
       historico: 'El histórico de cada zona llega en la próxima versión de la app.',
       comparacion: 'La comparación entre zonas llega en la próxima versión de la app.',
       proyeccion: 'Los próximos días de cada zona llegan en la próxima versión de la app.',
-      entrar: 'Iniciar sesión llega en la próxima versión de la app.',
-      misZonas: 'Tus zonas de interés llegan en la próxima versión de la app.',
       avisos: 'Tus avisos llegan en la próxima versión de la app.',
     },
     fase: (n: number) => `Provisional · fase ${n}`,
@@ -320,6 +336,10 @@ export const textos = {
     datosGuardados: (fecha: string, hora: string) =>
       `Sin conexión. Datos guardados el ${fecha} a las ${hora}.`,
     zonaDesconocida: 'No encontramos esa zona.',
+    sesionTermino: 'Tu sesión terminó. Vuelve a entrar.',
+    mostrarContrasena: 'Mostrar contraseña',
+    ocultarContrasena: 'Ocultar contraseña',
+    enAlerta: 'en alerta',
   },
   conexion: {
     verificando: 'Verificando conexión con el servidor…',

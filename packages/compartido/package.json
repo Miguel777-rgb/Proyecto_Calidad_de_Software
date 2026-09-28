@@ -14,7 +14,8 @@
     "./mapa/paleta": "./src/mapa/paleta.ts",
     "./i18n/textos": "./src/i18n/textos.ts",
     "./pruebas": "./src/pruebas/datos.ts",
-    "./tema/colores": "./src/tema/colores.ts"
+    "./tema/colores": "./src/tema/colores.ts",
+    "./validacion": "./src/validacion.ts"
   },
   "scripts": {
     "test": "vitest run",

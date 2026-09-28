@@ -151,6 +151,84 @@ describe('crearCliente', () => {
  * FastAPI espera. Si una ruta cambia en un lado y no en el otro, la web y la
  * app fallarian a la vez; esta tabla lo detecta antes.
  */
+describe('sesion que termina', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('avisa cuando una peticion con token recibe 401', async () => {
+    simularFetch(() => json({ detail: 'Credenciales inválidas o sesión expirada.' }, 401))
+    const alNoAutorizado = vi.fn()
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono('abc'), alNoAutorizado })
+
+    await expect(cliente.listarSuscripciones()).rejects.toMatchObject({ status: 401 })
+
+    expect(alNoAutorizado).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin token, un 401 es una clave equivocada y no avisa', async () => {
+    simularFetch(() => json({ detail: 'Correo o contraseña incorrectos.' }, 401))
+    const alNoAutorizado = vi.fn()
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono(null), alNoAutorizado })
+
+    await expect(cliente.iniciarSesion({ email: 'a@b.pe', password: 'x' })).rejects.toThrow(
+      'Correo o contraseña incorrectos.',
+    )
+
+    expect(alNoAutorizado).not.toHaveBeenCalled()
+  })
+
+  it('un 403 no cierra la sesion', async () => {
+    simularFetch(() => json({ detail: 'Esta acción requiere permisos de administrador.' }, 403))
+    const alNoAutorizado = vi.fn()
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono('abc'), alNoAutorizado })
+
+    await expect(cliente.listarImportaciones()).rejects.toMatchObject({ status: 403 })
+
+    expect(alNoAutorizado).not.toHaveBeenCalled()
+  })
+})
+
+describe('sesion larga y codigo de recuperacion', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('la app pide la sesion larga en el cuerpo al entrar', async () => {
+    const fetchSimulado = simularFetch(() => json({}))
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono() })
+
+    await cliente.iniciarSesion({ email: 'a@b.pe', password: 'miclave123', mantener_sesion: true })
+
+    expect(JSON.parse(String((fetchSimulado.mock.calls[0][1] as RequestInit).body))).toEqual({
+      email: 'a@b.pe',
+      password: 'miclave123',
+      mantener_sesion: true,
+    })
+  })
+
+  it('pedir el codigo solo manda el correo', async () => {
+    const fetchSimulado = simularFetch(() => json({ detail: 'Si ese correo tiene cuenta, te enviamos un código.' }, 202))
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono() })
+
+    const respuesta = await cliente.pedirCodigo('a@b.pe')
+
+    expect(JSON.parse(String((fetchSimulado.mock.calls[0][1] as RequestInit).body))).toEqual({
+      email: 'a@b.pe',
+    })
+    expect(respuesta.detail).toMatch(/te enviamos un código/)
+  })
+
+  it('un codigo vencido llega como mensaje legible', async () => {
+    simularFetch(() => json({ detail: 'El código no es válido o ya venció.' }, 400))
+    const cliente = crearCliente({ baseUrl: '/api', almacenToken: almacenSincrono() })
+
+    await expect(
+      cliente.cambiarContrasena({ email: 'a@b.pe', code: '000000', password: 'miclave123' }),
+    ).rejects.toThrow('El código no es válido o ya venció.')
+  })
+})
+
 describe('rutas de la API', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -171,6 +249,18 @@ describe('rutas de la API', () => {
       ruta: '/api/auth/login',
     },
     { nombre: 'obtenerPerfil', args: [], metodo: 'GET', ruta: '/api/auth/me' },
+    {
+      nombre: 'pedirCodigo',
+      args: ['a@b.pe'],
+      metodo: 'POST',
+      ruta: '/api/auth/password-reset/request',
+    },
+    {
+      nombre: 'cambiarContrasena',
+      args: [{ email: 'a@b.pe', code: '482913', password: 'miclave123' }],
+      metodo: 'POST',
+      ruta: '/api/auth/password-reset/confirm',
+    },
     { nombre: 'listarLaboratorios', args: [], metodo: 'GET', ruta: '/api/laboratories' },
     { nombre: 'listarImportaciones', args: [], metodo: 'GET', ruta: '/api/imports' },
     { nombre: 'obtenerEstado', args: [], metodo: 'GET', ruta: '/api/status' },

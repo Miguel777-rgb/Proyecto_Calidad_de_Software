@@ -27,3 +27,47 @@ export function simularFetch(...respuestas: (Response | Error)[]) {
 export function sesionDe(usuario: Usuario | null, sinLeer = 0): Sesion {
   return { usuario, sinLeer, salir: jest.fn() }
 }
+
+type Respuestas = Response | Error | Promise<Response> | (Response | Error | Promise<Response>)[]
+
+/**
+ * Sustituye fetch segun la ruta pedida (el final de la URL, sin la raiz de la
+ * API). Con una lista, cada llamada usa la siguiente y la ultima se repite.
+ * Una ruta sin respuesta responde 404, como FastAPI.
+ */
+export function simularApi(rutas: Record<string, Respuestas>) {
+  const pendientes = Object.fromEntries(
+    Object.entries(rutas).map(([ruta, valor]) => [ruta, Array.isArray(valor) ? [...valor] : [valor]]),
+  )
+  const fetchSimulado = jest.fn(async (url: string) => {
+    const ruta = new URL(url).pathname.replace(/^\/api/, '')
+    const lista = pendientes[ruta]
+    if (lista === undefined) return respuesta({ detail: 'Not Found' }, 404)
+    const siguiente = lista.length > 1 ? lista.shift()! : lista[0]
+    if (siguiente instanceof Error) throw siguiente
+    return siguiente
+  })
+  global.fetch = fetchSimulado as unknown as typeof fetch
+  return fetchSimulado
+}
+
+/** Una respuesta que llega cuando la prueba lo decide. */
+export function respuestaPendiente() {
+  let responder: (r: Response) => void = () => {}
+  let fallar: (e: Error) => void = () => {}
+  const promesa = new Promise<Response>((resolver, rechazar) => {
+    responder = resolver
+    fallar = rechazar
+  })
+  return { promesa, responder, fallar }
+}
+
+export const CONFIGURACION = {
+  threshold_c: '0.5',
+  min_streak_records: 5,
+  max_gap_days: 2,
+  freshness_days: 7,
+  map_window_days: 5,
+}
+
+export const SIN_RED = new TypeError('Network request failed')

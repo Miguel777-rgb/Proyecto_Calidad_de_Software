@@ -2,10 +2,10 @@
 
 Proyecto académico del curso **Calidad de Software**. OLA es una aplicación web que transforma el dataset público de anomalía de la temperatura superficial del mar (ATSM), publicado por IMARPE/PRODUCE, en información sencilla para consultar el estado térmico de los laboratorios costeros del litoral peruano.
 
-> Web completa y verificada: 1,073 pruebas automatizadas, 95 % de cobertura en el backend,
+> Web completa y verificada: 1,168 pruebas automatizadas, 95 % de cobertura en el backend,
 > accesibilidad WCAG 2.2 AA comprobada en cada pantalla y el stack probado de extremo a extremo
 > en escritorio y celular. La aplicación Android (RF-09) está en construcción por fases; su
-> marco ya funciona en un celular real. Ver
+> marco y la pestaña Mapa ya funcionan en un celular real. Ver
 > [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito y
 > [el plan de calidad](docs/calidad.md) para las metas y las métricas.
 
@@ -205,8 +205,9 @@ se versiona `.env.example`.
 ## App Android
 
 La app (`mobile/`) se compila y se prueba en el equipo, no en Docker: necesita el Android SDK y
-un celular. Hoy muestra el marco completo y la fecha del dato. Sus pantallas se completan fase a
-fase (ver [el plan de calidad](docs/calidad.md), sección 13).
+un celular. Hoy tiene el marco completo y la pestaña Mapa: resumen, mapa con las 10 zonas,
+tarjetas, detalle de cada zona y lectura sin conexión. El resto de las pantallas se completa
+fase a fase (ver [el plan de calidad](docs/calidad.md), sección 13).
 
 **Requisitos:** Node 24, pnpm (Corepack usa la versión 9.15.2 del repositorio), Android SDK con
 `ANDROID_HOME` definida, JDK 17 en `JAVA_HOME`, [Maestro](https://maestro.mobile.dev) y un
@@ -231,18 +232,22 @@ Con el backend levantado (`docker compose up -d`) y el celular conectado:
 adb reverse tcp:18000 tcp:8000  # el celular ve la API del equipo en su localhost:18000, por el cable
 pnpm android                    # build de desarrollo con recarga en caliente (paquete pe.ola.app.dev)
 pnpm e2e                        # compila el APK de pruebas, lo instala y corre Maestro
+pnpm e2e --sin-compilar --solo .maestro/inicio   # solo un flujo o una carpeta
 pnpm medir                      # tiempo hasta ver el estado del mar, mediana de 3 arranques
 pnpm compilar demo              # APK contra el VPS, en mobile/informes/ola-demo.apk
 ```
 
 `pnpm e2e` prepara el celular entre flujos: corta el acceso a la API para probar el error de
-conexión y sube la letra al 200 %. Al terminar deja la letra y las animaciones como estaban. Los
-informes y capturas quedan en `mobile/informes/`, que no se versiona.
+conexión y los datos guardados, activa el modo avión para probar la reconexión y sube la letra
+al 200 %. Al terminar deja la letra, las animaciones y el modo avión como estaban. Los informes y
+capturas quedan en `mobile/informes/`, que no se versiona.
 
 > **pnpm en Windows** enlaza `node_modules` con uniones de directorio que apuntan a rutas de
 > Windows. Un contenedor Linux no puede seguirlas, así que los scripts de la app corren en el
 > equipo. La primera compilación nativa tarda más de una hora: compila el C++ de React Native.
-> Las siguientes reutilizan `mobile/.cxx/`, que no se versiona.
+> Las siguientes reutilizan `mobile/.cxx/`, que no se versiona. `pnpm compilar` solo rehace
+> `android/` si cambió algo nativo (dependencias, configuración, plugins o recursos); si solo
+> cambió JavaScript, compila en unos minutos. `--limpio` lo rehace siempre.
 
 ## Despliegue en un VPS con Dokploy
 
@@ -340,9 +345,9 @@ retrospectiva por fase.
 
 | Evidencia | Estado |
 |---|---|
-| Pruebas automatizadas | **1,073** en backend, paquete compartido, web, app móvil, E2E y herramientas |
-| Cobertura de sentencias | **95 %** backend · **97.5 %** paquete compartido · **89.9 %** web · **91.1 %** app |
-| Defectos | 27 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
+| Pruebas automatizadas | **1,168** en backend, paquete compartido, web, app móvil, E2E y herramientas |
+| Cobertura de sentencias | **95 %** backend · **97.5 %** paquete compartido · **89.9 %** web · **95.8 %** app |
+| Defectos | 29 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
 | Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto |
 | Análisis estático | ruff y mypy en modo estricto, sin observaciones |
 | Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |

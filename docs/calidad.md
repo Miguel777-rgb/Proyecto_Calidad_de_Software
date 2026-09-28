@@ -4,8 +4,8 @@
 | Campo | Detalle |
 |---|---|
 | Curso | Calidad de Software (3.8.2.21) · 2026-II |
-| Versión | 1.1 (fase 1 de la aplicación móvil) |
-| Fecha | 2026-09-23 |
+| Versión | 1.2 (fase 2 de la aplicación móvil) |
+| Fecha | 2026-09-27 |
 | Responsable de QA | Jorge Ortiz Castañeda (Scrum Master) |
 | Aprobación | Miguel Angel Flores Leon (Product Owner) |
 
@@ -190,6 +190,7 @@ no hay chequeos y ese tiempo no cuenta como caída; el informe muestra el period
 |---|---|---|---|---|---|
 | 0 | 2026-09-14 | 95 % / 97.3 % / 89.9 % / — | 2 (0) | — | Inicio de la medición |
 | 1 | 2026-09-23 | 95 % / 97.5 % / 89.9 % / 91.1 % | 6 (0) | 0.64 s (peor de 5: 1.75 s) | Equipo 99.07 % · VPS 96.72 % |
+| 2 | 2026-09-27 | 95 % / 97.5 % / 89.9 % / 95.8 % | 2 (0) | 0.84 s (peor de 5: 1.21 s) | Equipo 99.56 % · VPS 98.63 % |
 
 Notas de la fase 1:
 
@@ -209,6 +210,25 @@ Notas de la fase 1:
 - **APK:** 66.7 MB el de pruebas, solo para arm64. El de demostración, que también incluye
   armeabi-v7a para celulares de 32 bits, pesa 80.8 MB. El de entrega se mide en la fase 6.
 
+Notas de la fase 2:
+
+- **Densidad de defectos:** 29 defectos en 12.3 KLOC, 2.36 por KLOC. La app pasó de 1,814 a
+  3,334 líneas: 2,594 de pantallas y lógica, y 740 de configuración, plugin y scripts. El paquete
+  compartido tiene 1,117. El backend y la web no cambiaron. La densidad baja porque el código
+  creció más rápido que los defectos, no porque haya menos defectos.
+- **Estado en la app:** la marca `estado-visible` ahora espera, además del resumen, las
+  tarjetas y los 10 marcadores ya ubicados sobre el mapa, con datos recién llegados de la API.
+  Pasó de 0.64 a 0.84 s: es lo que tarda MapLibre en dibujar su primer cuadro. Los mosaicos del
+  fondo no cuentan, porque vienen de OpenFreeMap y no de OLA.
+- **Disponibilidad:** del 22 al 28 de septiembre (UTC), solo con el equipo encendido: 1,368
+  chequeos del backend del equipo y 1,238 del VPS. El equipo estuvo apagado del 24 al 27, y
+  esos días no cuentan ni a favor ni en contra. En el VPS, la única caída nueva fue de un
+  chequeo, el 23 a las 12:38 UTC: el equipo que mide no pudo resolver el nombre del dominio.
+- **APK y compilación:** 79.4 MB el de pruebas; MapLibre suma 12.7 MB. El APK de prueba con
+  las tres librerías nativas nuevas tardó 18 min 30 s. La compilación completa, con el proyecto
+  nativo generado de nuevo, 46 min 54 s. Reutilizando ese proyecto cuando solo cambia
+  JavaScript, 3 min 24 s (`scripts/compilar.mjs`).
+
 ---
 
 ## 8. Costo de calidad
@@ -224,17 +244,19 @@ actividad, no un registro de tiempo.
 | Prevención | Guía de diseño con la paleta validada a contraste 3:1 | 3 | S/ 75 |
 | Prevención | Este plan, la tabla de riesgos y la SRS 1.7 | 6 | S/ 150 |
 | Prevención | Preguntas y maqueta aprobada del marco de la app, antes de programarlo | 3 | S/ 75 |
+| Prevención | Preguntas y maqueta aprobada de la pestaña Mapa, y un APK de prueba con las librerías nativas antes de programar | 4 | S/ 100 |
 | **Evaluación** | Pruebas del backend: unitarias e integración | 20 | S/ 500 |
 | Evaluación | Pruebas de la web y del paquete compartido: unitarias, E2E, accesibilidad, capturas y rendimiento | 20 | S/ 500 |
 | Evaluación | Correr las suites y revisar capturas al cerrar cada fase | 6 | S/ 150 |
 | Evaluación | Pruebas de la app: Jest, flujos de Maestro en el celular y medición del arranque | 10 | S/ 250 |
-| **Falla interna** | 27 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 30.75 | S/ 768.75 |
+| Evaluación | Pruebas de la pestaña Mapa: Jest con mutaciones manuales, flujos de Maestro con modo avión y regresión completa | 10 | S/ 250 |
+| **Falla interna** | 29 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 34.25 | S/ 856.25 |
 | **Falla externa** | Ningún defecto llegó a producción | 0 | S/ 0 |
 
 | Resumen | Horas | Costo |
 |---|---|---|
-| Costo de conformidad (prevención + evaluación) | 78 | S/ 1,950 |
-| Costo de no conformidad (fallas) | 30.75 | S/ 768.75 |
+| Costo de conformidad (prevención + evaluación) | 92 | S/ 2,300 |
+| Costo de no conformidad (fallas) | 34.25 | S/ 856.25 |
 
 **Lectura.** El único defecto crítico (D-01, un decimal con coma que corrompía el valor) se
 atrapó en una prueba unitaria y costó una hora. Si hubiera llegado a producción, un pescador
@@ -243,12 +265,16 @@ puede poner en soles con honestidad: además de corregir el importador y reimpor
 habría que avisar a los usuarios, y la confianza perdida en una herramienta de alertas no se
 recupera con un parche. Por eso la falla externa es la categoría más cara aunque hoy valga cero.
 
-El otro dato que importa: 13 de los 27 defectos se encontraron en E2E o en revisión, que son
+El otro dato que importa: 15 de los 29 defectos se encontraron en E2E o en revisión, que son
 etapas más caras que la unitaria. Varias retrospectivas apuntan a detectar antes (sección 12).
 
 De las 8.5 horas de falla interna sumadas desde la fase 0, un solo defecto (D-26, la
 compilación en Windows) se llevó 4. No era un error del código de la app, sino del entorno
 donde se compila: se paga igual.
+
+En la fase 2, D-28 costó 2.5 horas y no podía salir antes: las pruebas de Jest usan un mapa
+simulado, y el defecto estaba en cómo el mapa nativo mete sus marcadores en Android. Lo encontró
+Maestro en el celular.
 
 ---
 
@@ -313,7 +339,8 @@ cerrar cada fase.
 | R-03 | Una alerta equivocada hace perder la confianza de los pescadores | Baja | Muy alto | OLA y el boletín de ENFEN discrepan sobre una zona | Pruebas de los límites de RF-01. Los dos modelos de proyección se muestran juntos. La fecha del dato y el aviso «no reemplaza los boletines de IMARPE» siempre visibles | Jhordan Huamani Huamani | Abierto |
 | R-04 | La notificación push no llega (FCM o el ahorro de batería del fabricante la retienen) | Media | Alto | Avisos push en estado fallido, o la prueba en celular no muestra la notificación | Correo y aviso en la app como canales redundantes (RF-03). Cada fallo queda registrado y se reintenta. Verificación en un celular real en la fase 4 | Jhordan Huamani Huamani | Abierto |
 | R-05 | Secretos subidos al repositorio (`.env`, credenciales de Firebase, keystore) | Baja | Alto | Uno de esos archivos aparece en `git status` o en el diff de un PR | `.gitignore` y puerta de calidad 6 antes de cada push. Si se filtra uno, se revoca y se genera otro | Jorge Ortiz Castañeda | Abierto |
-| R-06 | La cadena de compilación Android en Windows falla o tarda horas (rutas largas, descargas del SDK que se cortan, C++ de React Native) | Alta | Medio | Una compilación falla por el entorno y no por el código, o tarda más de una hora | Requisitos del SDK en el README; plugin `compilacion-nativa-windows.js`; APK de pruebas solo para arm64; `mobile/.cxx/` conservado entre compilaciones | Jhordan Huamani Huamani | **Materializado** en la fase 1 |
+| R-06 | La cadena de compilación Android en Windows falla o tarda horas (rutas largas, descargas del SDK que se cortan, C++ de React Native) | Alta | Medio | Una compilación falla por el entorno y no por el código, o tarda más de una hora | Requisitos del SDK en el README; plugin `compilacion-nativa-windows.js`; APK de pruebas solo para arm64; `mobile/.cxx/` conservado entre compilaciones; desde la fase 2, `android/` se reutiliza si no cambió nada nativo | Jhordan Huamani Huamani | **Materializado** en la fase 1; mitigado en la fase 2 |
+| R-07 | Una librería nativa se comporta en el celular distinto que en su simulación de Jest | Media | Alto | Una prueba de Jest pasa y el mismo caso falla en Maestro | Un flujo de Maestro por cada elemento que se toca; revisar la jerarquía de accesibilidad en el celular (`uiautomator dump`) antes de cerrar la fase | Jorge Ortiz Castañeda | **Materializado** en la fase 2 (D-28) |
 
 **Revisiones**
 
@@ -321,6 +348,7 @@ cerrar cada fase.
 |---|---|---|
 | 0 | 2026-09-14 | Tabla creada. Ningún riesgo materializado |
 | 1 | 2026-09-23 | Se añade R-06, que se materializó: tres fallas seguidas de la compilación nativa en Windows (sección 12). R-04 y R-05 sin cambios; la cuenta de servicio de Firebase todavía no existe |
+| 2 | 2026-09-27 | Se añade R-07, materializado en D-28. R-06 se mitiga: recompilar cuando solo cambia JavaScript baja de 47 a 3.5 minutos. R-04 y R-05 sin cambios |
 
 ---
 
@@ -411,6 +439,30 @@ si funcionó lo que se cambió la vez anterior.
   de correr Playwright o Maestro, detener el daemon de Gradle y comprobar que haya al menos 2 GB
   de RAM libres.
 
+### Fase 2 de la app móvil (2026-09-27)
+
+- **Funcionó:** decidir todo antes de programar. Tres rondas de preguntas y la maqueta aprobada
+  tal cual dejaron cerradas la librería del mapa, los datos guardados y la reconexión. El
+  proveedor de estado y sus 14 pruebas salieron a la primera. Para comprobar que las pruebas
+  vigilan algo, se rompieron a mano cuatro líneas clave, una por vez; cada rotura hizo fallar
+  al menos una prueba. Los flujos sin conexión y de reconexión con modo avión pasaron en el
+  celular sin cambios.
+- **Falló:** confiar en la simulación del mapa. En Jest, cada marcador era un botón con su
+  nombre; en el celular se veía, pero TalkBack no lo encontraba y tocarlo no hacía nada (D-28).
+  Lo mostró Maestro, y el volcado de la jerarquía de accesibilidad explicó por qué. Además,
+  cuatro flujos fallaban por cómo estaban escritos, no por la app (D-29). En una de tres
+  corridas completas, el flujo de reconexión encontró la pantalla en negro; no se repitió en las
+  otras dos ni corriendo solo, y queda en observación.
+- **¿Funcionó la acción anterior?** Sí. El APK de prueba con MapLibre, AsyncStorage y NetInfo
+  compiló a la primera, en 18 min 30 s, antes de escribir una pantalla. Las horas de cada
+  compilación quedaron registradas, y eso mostró el costo real de rehacer el proyecto nativo:
+  47 minutos por cada cambio de JavaScript. Ahora solo se rehace si cambia algo nativo. Antes de
+  Playwright se detuvo Gradle: la RAM libre subió de 1.7 a 2 GB.
+- **Acción para la fase 3:** revisar en el celular la jerarquía de accesibilidad de cada
+  pantalla nueva (Entrar, Registro, Cuenta) antes de cerrar la fase, no solo en Jest.
+  `expo-secure-store` es nativo: la primera compilación de la fase 3 rehará el proyecto nativo
+  (unos 47 minutos) y conviene lanzarla al empezar, mientras se preparan las preguntas.
+
 ---
 
 ## 13. Cronograma
@@ -441,6 +493,7 @@ gantt
   Fase 0 planificado          :2026-09-15, 14d
   Fase 0 real                 :done, 2026-09-14, 1d
   Fase 1 real                 :done, 2026-09-22, 2d
+  Fase 2 real                 :done, 2026-09-23, 2026-09-27
   Fase 1 planificado          :2026-09-29, 14d
   Fases 2 y 3 planificado     :2026-10-13, 14d
   Fase 4 planificado          :2026-10-27, 14d

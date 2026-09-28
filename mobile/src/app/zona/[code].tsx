@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Boton } from '../../componentes/pantalla/Boton'
 import { Texto } from '../../componentes/Texto'
+import { AvisosZona } from '../../componentes/zona/AvisosZona'
 import { DetalleZona } from '../../componentes/zona/DetalleZona'
 import { useEstadoMar } from '../../estado/EstadoMar'
 import { color } from '../../tema'
@@ -59,9 +60,20 @@ export default function Zona() {
         zona={zona}
         ventana={ventana}
         alCerrar={cerrar}
-        // Entrar reemplaza la hoja: al volver de Entrar se ve el mapa.
-        alEntrar={() => router.replace('/entrar')}
         alVerHistorico={() => router.navigate('/historico')}
+        accionAvisos={
+          <AvisosZona
+            code={zona.laboratory.code}
+            nombre={zona.laboratory.name}
+            // Entrar reemplaza la hoja; al entrar, se vuelve a abrir esta zona.
+            alEntrar={() =>
+              router.replace({
+                pathname: '/entrar',
+                params: { volver: `/zona/${encodeURIComponent(zona.laboratory.code)}` },
+              })
+            }
+          />
+        }
       />
     </ScrollView>
   )

@@ -29,7 +29,7 @@ def list_alerts(
         if laboratorio is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No existe un laboratorio con el codigo '{lab}'.",
+                detail=f"No existe un laboratorio con el código '{lab}'.",
             )
         laboratory_id = laboratorio.id
 
@@ -79,7 +79,7 @@ def laboratory_streaks(
     if laboratorio is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No existe un laboratorio con el codigo '{code}'.",
+            detail=f"No existe un laboratorio con el código '{code}'.",
         )
 
     serie = readings_repo.series(session, laboratorio.id)

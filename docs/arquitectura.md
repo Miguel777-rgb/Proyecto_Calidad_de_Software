@@ -79,7 +79,7 @@ C4Container
 | API | Toda la lógica de negocio. La web y la app no clasifican ni calculan alertas por su cuenta | [backend/](../backend/) |
 | Base de datos | Única fuente de verdad. Las migraciones las aplica la API al arrancar | [backend/alembic/](../backend/alembic/) |
 | Aplicación web | Interfaz para pescadores y administradores | [frontend/](../frontend/) |
-| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión. Guarda el último estado en el celular (AsyncStorage) y lo muestra si la API no responde | [mobile/](../mobile/) |
+| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión. Guarda el último estado en el celular (AsyncStorage) y lo muestra si la API no responde. El token de la sesión, que dura 30 días, va cifrado con el Keystore de Android (`expo-secure-store`) | [mobile/](../mobile/) |
 
 ### Código compartido entre la web y la app
 

@@ -133,6 +133,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ['expo-font', { android: { fonts: FUENTES } }],
       // Mapa nativo de Inicio (fase 2). Mosaicos de OpenFreeMap, sin clave.
       '@maplibre/maplibre-react-native',
+      // Token de sesion cifrado (fase 3, SRS 3.5). Lo cifrado no entra en el
+      // respaldo de Android: en otro celular no se podria descifrar.
+      ['expo-secure-store', { configureAndroidBackup: true }],
       [
         'expo-build-properties',
         {

@@ -8,6 +8,8 @@ import Raiz from '../src/app/_layout'
 import Avisos from '../src/app/avisos'
 import Entrar from '../src/app/entrar'
 import MisZonas from '../src/app/mis-zonas'
+import Recuperar from '../src/app/recuperar'
+import Registro from '../src/app/registro'
 import Zona from '../src/app/zona/[code]'
 
 /** Las rutas reales de la app, con sus layouts y pantallas. */
@@ -19,6 +21,8 @@ export const RUTAS = {
   '(tabs)/comparar': Comparar,
   '(tabs)/proyeccion': Proyeccion,
   entrar: Entrar,
+  registro: Registro,
+  recuperar: Recuperar,
   'mis-zonas': MisZonas,
   avisos: Avisos,
   'zona/[code]': Zona,

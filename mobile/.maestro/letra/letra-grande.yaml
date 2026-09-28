@@ -30,3 +30,16 @@ tags: [letra]
       id: atribucion
     direction: DOWN
     timeout: 60000
+# Con el teclado y la letra al 200 %, el formulario se desplaza y el boton se alcanza.
+- tapOn:
+    id: entrar
+- tapOn:
+    id: entrar-correo
+- inputText: pescador@ejemplo.pe
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: entrar-enviar
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: informes/capturas/letra-200-entrar

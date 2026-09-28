@@ -135,6 +135,36 @@ button[type='submit']:disabled {
   font-size: 0.875rem;
 }
 
+/* Recuperar la contrasena (RF-07). */
+.olvide {
+  align-self: flex-end;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.aviso-ok {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-marea-fondo);
+  border-radius: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+input.codigo {
+  font-family: var(--font-datos, monospace);
+  letter-spacing: 0.4em;
+}
+
+button.enlace {
+  padding: 0;
+  font: inherit;
+  color: #1a44d8;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 h3 {
   margin: 2rem 0 0.5rem;
   font-size: 1.125rem;

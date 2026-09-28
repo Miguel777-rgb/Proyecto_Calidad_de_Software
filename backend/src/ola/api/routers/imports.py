@@ -43,7 +43,7 @@ def import_csv(
         raise HTTPException(
             # Codigo literal: la constante de Starlette quedo obsoleta.
             status_code=413,
-            detail=f"El archivo supera el limite de {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+            detail=f"El archivo supera el límite de {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
 
     run = import_service.run_import(
@@ -62,6 +62,6 @@ def get_import(run_id: int, session: SessionDep, admin: AdminUser) -> ImportRunO
     run = imports_repo.get(session, run_id)
     if run is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No existe esa importacion."
+            status_code=status.HTTP_404_NOT_FOUND, detail="No existe esa importación."
         )
     return ImportRunOut.from_run(run)

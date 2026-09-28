@@ -3,6 +3,7 @@ import { Slot } from 'expo-router'
 import { fireEvent, screen, waitFor } from 'expo-router/testing-library'
 import { ProveedorEstadoMar } from '../src/estado/EstadoMar'
 import { ProveedorSesion } from '../src/sesion'
+import { ProveedorZonasSeguidas } from '../src/suscripciones'
 import { abrir, RUTAS } from './app'
 import { CONFIGURACION, respuesta, sesionDe, simularApi, USUARIO } from './utilidades'
 
@@ -47,9 +48,7 @@ describe('navegacion', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }))
 
     expect(app.ruta()).toBe('/entrar')
-    expect(
-      await screen.findByText('Iniciar sesión llega en la próxima versión de la app.'),
-    ).toBeOnTheScreen()
+    expect(await screen.findByLabelText('Correo electrónico')).toBeOnTheScreen()
   })
 
   it('desde la hoja de cuenta se llega a los avisos', async () => {
@@ -58,7 +57,9 @@ describe('navegacion', () => {
       _layout: () => (
         <ProveedorSesion valor={sesionDe(USUARIO, 2)}>
           <ProveedorEstadoMar>
-            <Slot />
+            <ProveedorZonasSeguidas>
+              <Slot />
+            </ProveedorZonasSeguidas>
           </ProveedorEstadoMar>
         </ProveedorSesion>
       ),

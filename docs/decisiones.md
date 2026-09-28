@@ -370,6 +370,44 @@ sección 12.
 
 ---
 
+## 20. Cuenta, recuperación de contraseña y zonas en la app (septiembre de 2026)
+
+Fase 3 de RF-09 y cambio de RF-07 (SRS 1.8): entrar, crear la cuenta, recuperar la contraseña y
+elegir zonas desde la app. La maqueta se aprobó tal cual; la guía está en [diseno.md](diseno.md),
+sección 12.2. El plan decía que el backend no cambiaba en esta fase. Cambió, con aprobación del
+PO, porque sin recuperación una sesión de 30 días termina en una cuenta perdida.
+
+| Decisión | Motivo | Se descartó |
+|---|---|---|
+| Recuperar la contraseña con un código de 6 dígitos enviado por correo, en el backend, la web y la app | El código se escribe en la misma pantalla donde se pidió, en la web o en la app. No hace falta abrir un enlace en el navegador ni que la app reciba enlaces | Un enlace con un token, que en el celular abre el navegador y no la app |
+| El código vale 15 minutos, admite 5 intentos y se puede pedir uno por minuto. Cada código nuevo anula el anterior | Con 5 intentos, adivinar un código tiene una probabilidad de 5 en un millón. El minuto de espera evita llenar el buzón de alguien a pedido de un tercero | Sin límite de intentos; un bloqueo de la cuenta, que un tercero podría provocar a propósito |
+| Se guarda el HMAC-SHA256 del código, con el secreto del servidor y el id del usuario, y se compara en tiempo constante | 6 dígitos son un millón de combinaciones: con un hash simple, quien copie la tabla los prueba todos en segundos. Sin el secreto no puede | Guardar el código tal cual; bcrypt, lento de más para un código que vence en 15 minutos |
+| Pedir un código responde siempre lo mismo, exista o no la cuenta, y aunque el correo no salga | La respuesta no revela qué correos están registrados. Si el correo falla, queda en el registro del servidor | Decir «ese correo no tiene cuenta», que ayuda a la persona pero también a quien busca cuentas |
+| Cambiar la contraseña invalida los tokens emitidos antes (`password_changed_at` frente al `iat` del token) y deja la sesión iniciada | Si alguien más tenía la sesión abierta, la pierde. No hace falta una tabla de sesiones: el token sigue sin estado y basta una columna | Una lista de tokens revocados; tokens de refresco |
+| Sesión de 30 días solo en la app (`mantener_sesion`); en la web sigue de 60 minutos | En el celular, la persona no debería escribir la contraseña cada vez que abre la app. La web puede abrirse en una computadora compartida | Sesión larga en los dos; tokens de refresco con rotación, más piezas para el mismo resultado |
+| El token y los datos del usuario van en `expo-secure-store`, cifrados con el Keystore de Android | AsyncStorage guarda texto plano, legible en una copia de seguridad. Se configuró que la copia de seguridad de Android no incluya lo cifrado, que en otro celular no se podría descifrar | AsyncStorage |
+| Al abrir, la app muestra la sesión guardada y la confirma con `/auth/me`. Sin conexión la conserva; con un 401 la cierra sin avisar | La persona abrió la app, no hizo nada todavía: un aviso de «sesión terminada» a esa altura confunde. Sin red no hay forma de saber si el token sigue valiendo | Pedir la contraseña cada vez que no hay red |
+| Un 401 a mitad de uso cierra la sesión, abre Entrar con «Tu sesión terminó. Vuelve a entrar.» y, al entrar, devuelve a la pantalla donde estaba | El cliente compartido avisa con `alNoAutorizado`, y un vigía del marco abre Entrar. La persona no pierde el lugar | Mandar al mapa; mostrar el error de la API tal cual |
+| Salir borra el token, el usuario y las zonas seguidas, pero no el estado del mar guardado | El estado del mar es público; borrarlo dejaría la app vacía sin conexión | Borrar todo lo guardado |
+| Entrar, Crear cuenta, Recuperar y Mis zonas son pantallas completas con «atrás» | Con el teclado abierto, una hoja deja poco espacio para ver el campo | Hojas como la de cuenta |
+| Mis zonas es la lista de las 10 con un interruptor; desde ahí también se sigue Matarani, que no tiene marcador en el mapa. Toda la fila, de 64 dp, es el interruptor (D-33) | Una pantalla sirve para elegir y para ver lo que ya se sigue. El detalle de la zona tiene además su propio «Recibir avisos» | Una lista solo de las seguidas, con un botón para añadir |
+| Sin autocompletado de Android en los campos: `autoComplete="off"` y un módulo nativo propio cancela la sesión de autocompletado al enfocar cada campo y al dejar el formulario (`mobile/modules/autocompletado/`) | Se decidió así en la ronda de preguntas de la fase 3. Desde Android 14 el sistema pide autocompletar también los campos marcados como no importantes, así que apagarlo en cada campo no bastó (D-32). Sin sesión abierta, el servicio del celular no tiene nada que ofrecer guardar | El autocompletado de Google; aceptar la ventana de Samsung Pass y cerrarla en cada flujo de Maestro, que habría escondido el defecto |
+| Los mensajes del backend se corrigieron con tildes (D-30) | La app y la web muestran el `detail` de la API tal cual: corregirlo en cada cliente sería repetirlo | Traducir los mensajes en cada cliente |
+| La base de pruebas se borra y se crea de nuevo en cada corrida, y una prueba compara las migraciones con los modelos (D-31) | `create_all` no toca una tabla que ya existe: la columna nueva nunca llegaba a la base de pruebas. La comparación con Alembic sobre una base vacía avisa si un modelo cambia sin su migración | Confiar en que cada quien borre la base a mano |
+| Los flujos de Maestro leen el código de recuperación en Mailpit con un script | El flujo prueba lo mismo que haría la persona: pedir el código, leer el correo y escribirlo | Un código fijo solo para pruebas en el backend |
+
+### 20.1 Lo que costó más de lo previsto
+
+| Problema | Qué pasó |
+|---|---|
+| Un formateo sin la configuración del proyecto | Se corrió Prettier con sus valores por defecto sobre `mobile/src` y `mobile/pruebas`, y reescribió 58 archivos con comillas dobles y punto y coma, incluidos los de las fases 1 y 2. Se descartó con Git y los archivos de la fase se escribieron de nuevo con el estilo del proyecto. El repositorio no tiene configuración de Prettier: el estilo se mantiene a mano y lo vigila la revisión |
+| La base de pruebas no tenía la columna nueva (D-31) | Las pruebas de integración fallaban porque a la tabla de usuarios le faltaba la columna nueva. Parecía un error de la migración, pero la migración estaba bien: la base de pruebas se había creado en una fase anterior y `create_all` no la actualizaba |
+| Samsung Pass pedía guardar la contraseña (D-32) | En Jest los campos tenían el autocompletado apagado y todo pasaba. En el celular, cuatro de cinco flujos de cuenta fallaron: después de entrar, la ventana «Save sign-in info to Samsung Pass?» tapaba la app y seguía abierta en los flujos siguientes. La configuración del celular (`device_config list autofill`) explicó por qué: `trigger_fill_request_on_unimportant_view=true`. React Native no ofrece cancelar la sesión, así que hizo falta un módulo nativo, y con él rehacer el proyecto Android. Cancelar al enfocar arregló cuatro flujos; el quinto, que entra desde el detalle de una zona, seguía mostrando la ventana, y se añadió cancelar también al dejar el formulario |
+| El interruptor de Mis zonas medía 27 dp (D-33) | Las pruebas de Jest lo encontraban por rol y nombre, y pasaban. La revisión en el celular del árbol de accesibilidad, la acción que había dejado la fase 2, mostró que el `Switch` de Android mide 47 × 27 dp y era lo único que respondía al dedo. Ahora la fila entera es el interruptor y el `Switch` queda como dibujo, oculto para TalkBack: la versión comprimida del árbol, la que usa TalkBack, muestra un interruptor por zona y ninguno más |
+| Volver después de entrar | `dismissAll` fallaba cuando Entrar era la primera pantalla de la pila, como en las pruebas que abren la app directamente en Entrar. `dismissTo('/')` vuelve al mapa, o lo abre si no estaba |
+
+---
+
 ## Lo que quedó fuera
 
 - **Rediseño de Histórico, Comparar, Próximos días, cuenta y Administración**: conservan el

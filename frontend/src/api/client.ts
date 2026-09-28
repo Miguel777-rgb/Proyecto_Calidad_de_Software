@@ -38,6 +38,8 @@ export const {
   registrar,
   iniciarSesion,
   obtenerPerfil,
+  pedirCodigo,
+  cambiarContrasena,
   listarLaboratorios,
   listarImportaciones,
   obtenerEstado,

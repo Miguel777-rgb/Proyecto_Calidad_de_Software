@@ -31,7 +31,7 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 | RF-04 | Mostrar el estado vigente de los 10 laboratorios costeros en un mapa interactivo. |
 | RF-05 | Graficar el histórico de anomalías por laboratorio y rango de fechas. |
 | RF-06 | Comparar las series de dos o más laboratorios en un mismo periodo. |
-| RF-07 | Permitir registro, autenticación y suscripción a zonas de interés. |
+| RF-07 | Permitir registro, autenticación, recuperación de contraseña y suscripción a zonas de interés. |
 | RF-08 | Importar y actualizar el CSV de ATSM validando sus columnas. |
 | RF-09 | Ofrecer una aplicación para Android 10 o superior con las funciones del usuario final y avisos push. |
 
@@ -61,6 +61,7 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 │   └── e2e/                         # Pruebas de extremo a extremo (Playwright)
 ├── mobile/                          # App Android (Expo + React Native + TypeScript)
 │   ├── src/app/                     # Pantallas (rutas de expo-router)
+│   ├── modules/                     # Módulos nativos propios (autocompletado)
 │   ├── .maestro/                    # Pruebas de extremo a extremo (Maestro)
 │   └── scripts/                     # Compilar, probar en el celular y medir el arranque
 ├── packages/
@@ -149,7 +150,7 @@ ya tengas corriendo (es frecuente con PostgreSQL en el 5432), cámbialo en el mi
 
 ```bash
 docker compose up -d --build                  # 2. levanta db, api, web, mailpit y uptime-kuma
-docker compose exec api alembic upgrade head  # 3. aplica las migraciones
+docker compose exec api alembic upgrade head  # 3. aplica las migraciones (repítelo al traer cambios del backend)
 docker compose --profile calidad run --rm calidad configurar.py   # 4. prepara el monitor de disponibilidad
 ```
 
@@ -205,9 +206,12 @@ se versiona `.env.example`.
 ## App Android
 
 La app (`mobile/`) se compila y se prueba en el equipo, no en Docker: necesita el Android SDK y
-un celular. Hoy tiene el marco completo y la pestaña Mapa: resumen, mapa con las 10 zonas,
-tarjetas, detalle de cada zona y lectura sin conexión. El resto de las pantallas se completa
-fase a fase (ver [el plan de calidad](docs/calidad.md), sección 13).
+un celular. Hoy tiene el marco completo, la pestaña Mapa (resumen, mapa con las 10 zonas,
+tarjetas, detalle de cada zona y lectura sin conexión) y la cuenta: entrar, crear la cuenta,
+recuperar la contraseña con un código que llega por correo y elegir las zonas de las que se
+reciben avisos. La sesión dura 30 días y el token se guarda cifrado con `expo-secure-store`. El
+resto de las pantallas se completa fase a fase (ver [el plan de calidad](docs/calidad.md),
+sección 13).
 
 **Requisitos:** Node 24, pnpm (Corepack usa la versión 9.15.2 del repositorio), Android SDK con
 `ANDROID_HOME` definida, JDK 17 en `JAVA_HOME`, [Maestro](https://maestro.mobile.dev) y un
@@ -239,14 +243,16 @@ pnpm compilar demo              # APK contra el VPS, en mobile/informes/ola-demo
 
 `pnpm e2e` prepara el celular entre flujos: corta el acceso a la API para probar el error de
 conexión y los datos guardados, activa el modo avión para probar la reconexión y sube la letra
-al 200 %. Al terminar deja la letra, las animaciones y el modo avión como estaban. Los informes y
-capturas quedan en `mobile/informes/`, que no se versiona.
+al 200 %. Al terminar deja la letra, las animaciones y el modo avión como estaban. Los flujos de
+cuenta crean una cuenta nueva en cada corrida y leen el código de recuperación en Mailpit, así
+que Mailpit tiene que estar levantado en el puerto 8025. Los informes y capturas quedan en
+`mobile/informes/`, que no se versiona.
 
 > **pnpm en Windows** enlaza `node_modules` con uniones de directorio que apuntan a rutas de
 > Windows. Un contenedor Linux no puede seguirlas, así que los scripts de la app corren en el
 > equipo. La primera compilación nativa tarda más de una hora: compila el C++ de React Native.
 > Las siguientes reutilizan `mobile/.cxx/`, que no se versiona. `pnpm compilar` solo rehace
-> `android/` si cambió algo nativo (dependencias, configuración, plugins o recursos); si solo
+> `android/` si cambió algo nativo (dependencias, configuración, plugins, recursos o módulos propios); si solo
 > cambió JavaScript, compila en unos minutos. `--limpio` lo rehace siempre.
 
 ## Despliegue en un VPS con Dokploy
@@ -345,9 +351,9 @@ retrospectiva por fase.
 
 | Evidencia | Estado |
 |---|---|
-| Pruebas automatizadas | **1,168** en backend, paquete compartido, web, app móvil, E2E y herramientas |
-| Cobertura de sentencias | **95 %** backend · **97.5 %** paquete compartido · **89.9 %** web · **95.8 %** app |
-| Defectos | 29 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
+| Pruebas automatizadas | **1,302** en backend, paquete compartido, web, app móvil, E2E y herramientas |
+| Cobertura de sentencias | **95 %** backend · **97.7 %** paquete compartido · **90.4 %** web · **95.9 %** app |
+| Defectos | 33 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
 | Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto |
 | Análisis estático | ruff y mypy en modo estricto, sin observaciones |
 | Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |
@@ -367,6 +373,8 @@ Otras prácticas aplicadas:
 - validación del formato y del contenido del dataset, con importación parcial y reporte de
   errores por fila;
 - contraseñas con bcrypt y negativa a arrancar en producción con secretos débiles;
+- recuperación de contraseña con un código de un solo uso que se guarda como HMAC, vence a los
+  15 minutos y no revela qué correos tienen cuenta;
 - código versionado con commits descriptivos;
 - documentación actualizada junto con cada avance.
 

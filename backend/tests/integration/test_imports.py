@@ -142,7 +142,7 @@ class TestImportacionParcial:
         muestra = cuerpo["error_sample"]
         assert len(muestra) == 1
         assert muestra[0]["line"] == 3
-        assert "Fecha invalida" in muestra[0]["reason"]
+        assert "Fecha inválida" in muestra[0]["reason"]
 
     def test_un_laboratorio_desconocido_no_crea_una_zona_nueva(
         self, client, admin_headers, db_session

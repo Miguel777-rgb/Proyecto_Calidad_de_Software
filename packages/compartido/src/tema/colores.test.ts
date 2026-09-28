@@ -16,6 +16,8 @@ const TEXTOS: [texto: keyof typeof PALETA, fondo: keyof typeof PALETA, uso: stri
   ['espuma-tenue', 'abisal', 'texto secundario sobre la banda'],
   ['abisal', 'dorado', 'boton Entrar y contador de avisos'],
   ['marea', 'marea-fondo', 'rol de la cuenta'],
+  ['error', 'error-fondo', 'mensaje de error de un formulario'],
+  ['abisal', 'marea-fondo', 'aviso de codigo enviado'],
 ]
 
 describe('PALETA', () => {

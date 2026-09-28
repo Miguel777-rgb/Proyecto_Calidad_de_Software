@@ -4,7 +4,7 @@
 | Campo | Detalle |
 |---|---|
 | Curso | Calidad de Software (3.8.2.21) · 2026-II |
-| Versión | 1.2 (fase 2 de la aplicación móvil) |
+| Versión | 1.3 (fase 3 de la aplicación móvil) |
 | Fecha | 2026-09-27 |
 | Responsable de QA | Jorge Ortiz Castañeda (Scrum Master) |
 | Aprobación | Miguel Angel Flores Leon (Product Owner) |
@@ -191,6 +191,7 @@ no hay chequeos y ese tiempo no cuenta como caída; el informe muestra el period
 | 0 | 2026-09-14 | 95 % / 97.3 % / 89.9 % / — | 2 (0) | — | Inicio de la medición |
 | 1 | 2026-09-23 | 95 % / 97.5 % / 89.9 % / 91.1 % | 6 (0) | 0.64 s (peor de 5: 1.75 s) | Equipo 99.07 % · VPS 96.72 % |
 | 2 | 2026-09-27 | 95 % / 97.5 % / 89.9 % / 95.8 % | 2 (0) | 0.84 s (peor de 5: 1.21 s) | Equipo 99.56 % · VPS 98.63 % |
+| 3 | 2026-09-28 | 95 % / 97.7 % / 90.4 % / 95.9 % | 4 (0) | 0.81 s (peor de 5: 0.84 s) | Equipo 99.61 % · VPS 98.80 % |
 
 Notas de la fase 1:
 
@@ -229,6 +230,30 @@ Notas de la fase 2:
   nativo generado de nuevo, 46 min 54 s. Reutilizando ese proyecto cuando solo cambia
   JavaScript, 3 min 24 s (`scripts/compilar.mjs`).
 
+Notas de la fase 3:
+
+- **Densidad de defectos:** 33 defectos en 14.2 KLOC, 2.32 por KLOC. El backend suma 333
+  líneas (4,619), por la recuperación de contraseña; la web, 182 (3,732); el paquete compartido,
+  78 (1,195), y la app, 1,352: 3,871 de pantallas y lógica y 815 de configuración, scripts y el
+  módulo nativo de autocompletado.
+- **Cobertura:** la de la app quedó en 94.7 % con las pantallas nuevas. El informe mostró qué
+  faltaba: el correo mal escrito en Registro y Recuperar, la contraseña corta al cambiarla y el
+  error al pedir el código. Con tres pruebas más, cada una comprobada rompiendo su validación,
+  subió a 95.7 %, y a 95.9 % con las pruebas del autocompletado (D-32). Quedan sin probar el descarte de respuestas viejas en las zonas seguidas, el
+  «Reintentar» de Mis zonas y el enlace «Ya tengo cuenta» de Registro. La de la web subió de
+  89.9 a 90.4 % con la página Recuperar.
+- **Estado en la app:** 0.81 s, casi lo mismo que en la fase 2 (0.84 s): la cuenta no suma
+  trabajo antes de mostrar el estado. Se midió sin sesión iniciada; con sesión, la app además
+  confirma el token con `/auth/me`, en paralelo con la consulta del estado del mar.
+- **Disponibilidad:** del 22 al 28 de septiembre (UTC): 1,552 chequeos del backend del equipo y
+  1,420 del VPS. No hubo caídas nuevas desde la fase 2; todas las del periodo son del 22 y 23.
+- **Web:** el mapa muestra las 10 zonas en una mediana de 0.88 s con 4G normal y la portada
+  descarga 170.6 kB comprimidos: la página Recuperar se carga aparte y no pesa en la portada.
+- **APK y compilación:** 79.6 MB el de pruebas (`expo-secure-store` suma 0.2 MB). Con
+  `expo-secure-store`, el proyecto nativo se rehízo en 13 min 2 s, no en los 47 minutos que se
+  temían: `mobile/.cxx/` ya tenía compilado el C++ de React Native. Con el módulo propio de
+  autocompletado, 15 min 28 s. Sin cambios nativos, entre 2 min 12 s y 2 min 28 s.
+
 ---
 
 ## 8. Costo de calidad
@@ -245,18 +270,21 @@ actividad, no un registro de tiempo.
 | Prevención | Este plan, la tabla de riesgos y la SRS 1.7 | 6 | S/ 150 |
 | Prevención | Preguntas y maqueta aprobada del marco de la app, antes de programarlo | 3 | S/ 75 |
 | Prevención | Preguntas y maqueta aprobada de la pestaña Mapa, y un APK de prueba con las librerías nativas antes de programar | 4 | S/ 100 |
+| Prevención | Cuatro rondas de preguntas y maqueta aprobada de la cuenta; SRS 1.8 antes de tocar el backend | 4 | S/ 100 |
 | **Evaluación** | Pruebas del backend: unitarias e integración | 20 | S/ 500 |
 | Evaluación | Pruebas de la web y del paquete compartido: unitarias, E2E, accesibilidad, capturas y rendimiento | 20 | S/ 500 |
 | Evaluación | Correr las suites y revisar capturas al cerrar cada fase | 6 | S/ 150 |
 | Evaluación | Pruebas de la app: Jest, flujos de Maestro en el celular y medición del arranque | 10 | S/ 250 |
 | Evaluación | Pruebas de la pestaña Mapa: Jest con mutaciones manuales, flujos de Maestro con modo avión y regresión completa | 10 | S/ 250 |
-| **Falla interna** | 29 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 34.25 | S/ 856.25 |
+| Evaluación | Pruebas de la cuenta: pytest de la recuperación y las sesiones, Vitest y Playwright de Recuperar con Mailpit, Jest y Maestro de la app, y regresión completa | 12 | S/ 300 |
+| **Falla interna** | 33 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 39.5 | S/ 987.50 |
+| Falla interna | Rehacer a mano los archivos de la fase 3 que un formateador mal configurado reescribió (sección 12). No es un defecto del producto: no llegó a un commit | 2 | S/ 50 |
 | **Falla externa** | Ningún defecto llegó a producción | 0 | S/ 0 |
 
 | Resumen | Horas | Costo |
 |---|---|---|
-| Costo de conformidad (prevención + evaluación) | 92 | S/ 2,300 |
-| Costo de no conformidad (fallas) | 34.25 | S/ 856.25 |
+| Costo de conformidad (prevención + evaluación) | 108 | S/ 2,700 |
+| Costo de no conformidad (fallas) | 41.5 | S/ 1,037.50 |
 
 **Lectura.** El único defecto crítico (D-01, un decimal con coma que corrompía el valor) se
 atrapó en una prueba unitaria y costó una hora. Si hubiera llegado a producción, un pescador
@@ -265,7 +293,7 @@ puede poner en soles con honestidad: además de corregir el importador y reimpor
 habría que avisar a los usuarios, y la confianza perdida en una herramienta de alertas no se
 recupera con un parche. Por eso la falla externa es la categoría más cara aunque hoy valga cero.
 
-El otro dato que importa: 15 de los 29 defectos se encontraron en E2E o en revisión, que son
+El otro dato que importa: 18 de los 33 defectos se encontraron en E2E o en revisión, que son
 etapas más caras que la unitaria. Varias retrospectivas apuntan a detectar antes (sección 12).
 
 De las 8.5 horas de falla interna sumadas desde la fase 0, un solo defecto (D-26, la
@@ -275,6 +303,12 @@ donde se compila: se paga igual.
 En la fase 2, D-28 costó 2.5 horas y no podía salir antes: las pruebas de Jest usan un mapa
 simulado, y el defecto estaba en cómo el mapa nativo mete sus marcadores en Android. Lo encontró
 Maestro en el celular.
+
+En la fase 3, el defecto más caro no está en la bitácora: un formateador corrido sin la
+configuración del proyecto reescribió 58 archivos, y rehacer los de la fase costó 2 horas.
+D-31 costó una hora y es el más serio de la fase, porque dejaba de verificar en silencio.
+D-32 costó 2.5 horas y, como D-28, solo podía salir en el celular: dependía del servicio de
+autocompletado del fabricante y de una opción de Android 14 que Jest no simula.
 
 ---
 
@@ -287,7 +321,7 @@ para el siguiente nivel.
 
 | Área de práctica | Evidencia en el repositorio | Valoración |
 |---|---|---|
-| Desarrollo y gestión de requisitos | SRS IEEE 830 con 8 versiones justificadas; matriz de responsables; trazabilidad RF → pruebas | Implementada |
+| Desarrollo y gestión de requisitos | SRS IEEE 830 con 9 versiones justificadas; matriz de responsables; trazabilidad RF → pruebas | Implementada |
 | Gestión de la configuración | Git con Conventional Commits, un Pull Request por fase, lockfile único, migraciones versionadas, secretos fuera del repositorio | Implementada |
 | Verificación y validación | Pruebas en cuatro capas; maquetas aprobadas antes de programar; E2E contra el sistema completo con datos reales | Implementada |
 | Análisis y resolución de decisiones | [decisiones.md](decisiones.md) registra cada decisión con su motivo y la alternativa descartada | Implementada |
@@ -341,6 +375,7 @@ cerrar cada fase.
 | R-05 | Secretos subidos al repositorio (`.env`, credenciales de Firebase, keystore) | Baja | Alto | Uno de esos archivos aparece en `git status` o en el diff de un PR | `.gitignore` y puerta de calidad 6 antes de cada push. Si se filtra uno, se revoca y se genera otro | Jorge Ortiz Castañeda | Abierto |
 | R-06 | La cadena de compilación Android en Windows falla o tarda horas (rutas largas, descargas del SDK que se cortan, C++ de React Native) | Alta | Medio | Una compilación falla por el entorno y no por el código, o tarda más de una hora | Requisitos del SDK en el README; plugin `compilacion-nativa-windows.js`; APK de pruebas solo para arm64; `mobile/.cxx/` conservado entre compilaciones; desde la fase 2, `android/` se reutiliza si no cambió nada nativo | Jhordan Huamani Huamani | **Materializado** en la fase 1; mitigado en la fase 2 |
 | R-07 | Una librería nativa se comporta en el celular distinto que en su simulación de Jest | Media | Alto | Una prueba de Jest pasa y el mismo caso falla en Maestro | Un flujo de Maestro por cada elemento que se toca; revisar la jerarquía de accesibilidad en el celular (`uiautomator dump`) antes de cerrar la fase | Jorge Ortiz Castañeda | **Materializado** en la fase 2 (D-28) |
+| R-08 | Una herramienta automática (formateador, reemplazo masivo) reescribe código ya revisado de otras fases | Baja | Medio | `git status` muestra decenas de archivos cambiados que la tarea no tocaba | Revisar `git diff --stat` antes de cada commit. No correr formateadores sin la configuración del proyecto; el estilo se mantiene a mano | Jhordan Huamani Huamani | **Materializado** en la fase 3, sin llegar a un commit |
 
 **Revisiones**
 
@@ -349,6 +384,7 @@ cerrar cada fase.
 | 0 | 2026-09-14 | Tabla creada. Ningún riesgo materializado |
 | 1 | 2026-09-23 | Se añade R-06, que se materializó: tres fallas seguidas de la compilación nativa en Windows (sección 12). R-04 y R-05 sin cambios; la cuenta de servicio de Firebase todavía no existe |
 | 2 | 2026-09-27 | Se añade R-07, materializado en D-28. R-06 se mitiga: recompilar cuando solo cambia JavaScript baja de 47 a 3.5 minutos. R-04 y R-05 sin cambios |
+| 3 | 2026-09-28 | Se añade R-08, materializado. R-06 sigue mitigado: con un módulo nativo nuevo, el proyecto nativo se rehízo en 13 minutos. R-05 se revisó con más cuidado porque la fase usa el secreto del servidor para el HMAC del código: sigue solo en `.env`. R-07 se materializó otra vez (D-32): en Jest no hay servicio de autocompletado, y en el celular Samsung Pass tapaba la app |
 
 ---
 
@@ -362,7 +398,7 @@ cerrar cada fase.
 4. Si se aprueba, la fila de la sección 5 de la SRS se escribe **en el mismo avance** que
    implementa el cambio, y se actualiza la trazabilidad.
 
-La SRS lleva 8 versiones con este flujo (1.0 a 1.7).
+La SRS lleva 9 versiones con este flujo (1.0 a 1.8).
 
 ### 11.2 Configuración
 
@@ -463,6 +499,36 @@ si funcionó lo que se cambió la vez anterior.
   `expo-secure-store` es nativo: la primera compilación de la fase 3 rehará el proyecto nativo
   (unos 47 minutos) y conviene lanzarla al empezar, mientras se preparan las preguntas.
 
+### Fase 3 de la app móvil (2026-09-28)
+
+- **Funcionó:** preguntar antes de programar otra vez. Cuatro rondas cerraron la duración de la
+  sesión, qué pasa con un 401, qué se borra al salir y las reglas del código, y la recuperación
+  entró en el alcance con su propia versión de la SRS (1.8) antes de tocar el backend. Las
+  pruebas del backend encontraron D-31 al primer intento: sin ellas, la base de pruebas habría
+  seguido con el esquema viejo. Con las correcciones, los 17 flujos de Maestro pasaron en una
+  misma corrida en el celular, incluido recuperar la contraseña con el código real que llega a
+  Mailpit.
+- **Falló:** un formateador. Para ordenar los archivos nuevos de la app se corrió Prettier sin
+  la configuración del proyecto, que no tiene, y reescribió 58 archivos, incluidos los de las
+  fases 1 y 2. Se descartó con Git y los archivos de la fase se escribieron de nuevo (R-08).
+  Además, al corregir las tildes del backend (D-30) quedaron seis pruebas del lector de CSV
+  esperando el texto viejo; las encontró la corrida completa de pytest, no la de los archivos
+  tocados. En el celular salieron dos defectos que Jest no podía ver: Samsung Pass ofrecía
+  guardar la contraseña aunque el autocompletado estaba apagado (D-32), y el interruptor de Mis
+  zonas medía 27 dp de alto (D-33). Por último, dos flujos de Maestro de las fases 1 y 2 seguían
+  esperando el texto de la pantalla provisional de Entrar: al reemplazarla no se buscó qué
+  pruebas la mencionaban.
+- **¿Funcionó la acción anterior?** Sí. Revisar en el celular la jerarquía de accesibilidad de
+  cada pantalla nueva encontró D-33, que Jest daba por bueno porque el interruptor tenía nombre y
+  estado. La compilación con el módulo nativo nuevo tardó 13 minutos, no 47: no hizo falta
+  adelantarla.
+- **Acción para la fase 4:** después de cambiar un texto o un mensaje, correr la suite completa
+  de esa capa, no solo las pruebas de los archivos tocados. Antes de cada commit, revisar
+  `git diff --stat`. La fase 4 suma Firebase: probar su compilación con un APK de prueba antes de
+  programar, como se hizo con el mapa, y guardar `google-services.json` fuera del repositorio
+  desde el primer momento. Al reemplazar una pantalla provisional (el centro de avisos lo es),
+  buscar en `.maestro/` y en las pruebas los textos que la mencionaban.
+
 ---
 
 ## 13. Cronograma
@@ -494,6 +560,7 @@ gantt
   Fase 0 real                 :done, 2026-09-14, 1d
   Fase 1 real                 :done, 2026-09-22, 2d
   Fase 2 real                 :done, 2026-09-23, 2026-09-27
+  Fase 3 real                 :done, 2026-09-27, 2026-09-28
   Fase 1 planificado          :2026-09-29, 14d
   Fases 2 y 3 planificado     :2026-10-13, 14d
   Fase 4 planificado          :2026-10-27, 14d

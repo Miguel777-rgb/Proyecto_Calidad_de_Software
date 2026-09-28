@@ -40,7 +40,7 @@ def add_subscription(
     if laboratorio is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No existe un laboratorio con el codigo '{datos.laboratory_code}'.",
+            detail=f"No existe un laboratorio con el código '{datos.laboratory_code}'.",
         )
     # Suscribirse dos veces a la misma zona no es un error: se devuelve la
     # suscripcion que ya existia.
@@ -63,7 +63,7 @@ def remove_subscription(code: str, session: SessionDep, user: CurrentUser) -> No
     if laboratorio is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No existe un laboratorio con el codigo '{code}'.",
+            detail=f"No existe un laboratorio con el código '{code}'.",
         )
     if not subscriptions_repo.remove(session, user.id, laboratorio.id):
         raise HTTPException(

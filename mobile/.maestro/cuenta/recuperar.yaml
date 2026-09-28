@@ -1,0 +1,71 @@
+# Recuperar la contrasena con el codigo real del correo, leido de Mailpit.
+appId: pe.ola.app
+name: Recuperar la contrasena con el codigo del correo
+tags: [cuenta]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- runFlow: ../comun/registrarse.yaml
+- runFlow: ../comun/cerrar-sesion.yaml
+- tapOn:
+    id: entrar
+- tapOn:
+    id: entrar-correo
+- inputText: ${output.correo}
+- hideKeyboard
+- tapOn:
+    id: olvide
+- tapOn:
+    id: enviar-codigo
+- extendedWaitUntil:
+    visible:
+      id: codigo-enviado
+    timeout: 10000
+- assertVisible:
+    id: espera-codigo
+- runScript: ../comun/codigo-del-correo.js
+- tapOn:
+    id: recuperar-codigo
+- inputText: ${output.codigo}
+- tapOn:
+    id: recuperar-contrasena
+- inputText: una clave nueva
+- hideKeyboard
+- takeScreenshot: informes/capturas/recuperar-codigo
+- tapOn:
+    id: cambiar-contrasena
+- extendedWaitUntil:
+    visible:
+      id: boton-cuenta
+    timeout: 15000
+# La clave vieja ya no sirve; la nueva si.
+- runFlow: ../comun/cerrar-sesion.yaml
+- tapOn:
+    id: entrar
+- tapOn:
+    id: entrar-correo
+- inputText: ${output.correo}
+- tapOn:
+    id: entrar-contrasena
+- inputText: miclave123
+- hideKeyboard
+- tapOn:
+    id: entrar-enviar
+- extendedWaitUntil:
+    visible: Correo o contraseña incorrectos.
+    timeout: 10000
+- tapOn:
+    id: entrar-contrasena
+- eraseText: 20
+- inputText: una clave nueva
+- hideKeyboard
+- tapOn:
+    id: entrar-enviar
+- extendedWaitUntil:
+    visible:
+      id: boton-cuenta
+    timeout: 15000

@@ -42,6 +42,17 @@ export interface OpcionesCliente {
   /** Raiz de la API sin barra final: `/api` en la web, una URL completa en la app. */
   baseUrl: string
   almacenToken: AlmacenToken
+  /**
+   * Se llama cuando una peticion que llevaba token recibe un 401: la sesion
+   * vencio, se cerro al cambiar la contrasena o la cuenta se desactivo. La
+   * app la usa para cerrar la sesion y explicarlo.
+   */
+  alNoAutorizado?: () => void
+}
+
+/** La app pide sesiones de 30 dias; la web no manda el campo. */
+interface ConSesionLarga {
+  mantener_sesion?: boolean
 }
 
 /** Mensaje legible a partir del cuerpo de error de FastAPI. */
@@ -74,7 +85,7 @@ async function leerCuerpo(respuesta: Response): Promise<unknown> {
   }
 }
 
-export function crearCliente({ baseUrl, almacenToken }: OpcionesCliente) {
+export function crearCliente({ baseUrl, almacenToken, alNoAutorizado }: OpcionesCliente) {
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     // Con un almacen sincrono no se espera nada antes de pedir: la peticion
     // sale en el mismo instante en que se llama, como en la web original.
@@ -91,6 +102,9 @@ export function crearCliente({ baseUrl, almacenToken }: OpcionesCliente) {
     })
 
     if (!response.ok) {
+      // Sin token, un 401 es un error de credenciales (entrar con una clave
+      // equivocada), no una sesion que termino.
+      if (response.status === 401 && token) alNoAutorizado?.()
       throw new ApiError(
         extraerMensaje(await leerCuerpo(response), `Error ${response.status} al llamar a ${path}`),
         response.status,
@@ -130,11 +144,27 @@ export function crearCliente({ baseUrl, almacenToken }: OpcionesCliente) {
 
     getHealth: () => apiFetch<HealthResponse>('/health/ready'),
 
-    registrar: (datos: { email: string; password: string; full_name?: string }) =>
+    registrar: (datos: { email: string; password: string; full_name?: string } & ConSesionLarga) =>
       apiFetch<Sesion>('/auth/register', { method: 'POST', body: JSON.stringify(datos) }),
 
-    iniciarSesion: (datos: { email: string; password: string }) =>
+    iniciarSesion: (datos: { email: string; password: string } & ConSesionLarga) =>
       apiFetch<Sesion>('/auth/login', { method: 'POST', body: JSON.stringify(datos) }),
+
+    /** Pide un codigo por correo. La respuesta es la misma si el correo no tiene cuenta. */
+    pedirCodigo: (email: string) =>
+      apiFetch<{ detail: string }>('/auth/password-reset/request', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+
+    /** Cambia la contrasena con el codigo y devuelve una sesion nueva. */
+    cambiarContrasena: (
+      datos: { email: string; code: string; password: string } & ConSesionLarga,
+    ) =>
+      apiFetch<Sesion>('/auth/password-reset/confirm', {
+        method: 'POST',
+        body: JSON.stringify(datos),
+      }),
 
     obtenerPerfil: () => apiFetch<Usuario>('/auth/me'),
 

@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { olvidarTokenEnMemoria } from '../src/api'
 import { reiniciarHitos } from '../src/hitos'
 import { reiniciarRed } from './simulaciones/netinfo'
+import { vaciarSeguro } from './simulaciones/secureStore'
 
 // jest-expo no ejecuta app.config.ts: se le entrega a expo-constants lo que
 // dejaria en `extra` la variante e2e, para que las pruebas usen la misma
@@ -34,10 +36,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 )
 jest.mock('@react-native-community/netinfo', () => jest.requireActual('./simulaciones/netinfo'))
 jest.mock('@maplibre/maplibre-react-native', () => jest.requireActual('./simulaciones/maplibre'))
+jest.mock('expo-secure-store', () => jest.requireActual('./simulaciones/secureStore'))
 
 beforeEach(async () => {
   reiniciarHitos()
   reiniciarRed()
+  // Sin sesion guardada: cada prueba abre la app como recien instalada.
+  vaciarSeguro()
+  olvidarTokenEnMemoria()
   // Cada prueba empieza sin datos guardados, como una instalacion nueva.
   await AsyncStorage.clear()
   // Los hitos de rendimiento van al registro del sistema; en las pruebas solo

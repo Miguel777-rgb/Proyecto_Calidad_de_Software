@@ -105,7 +105,7 @@ describe('PanelConfiguracion', () => {
   })
 
   it('avisa si la reevaluacion falla', async () => {
-    simularApi(undefined, () => respuesta({ detail: 'Esta accion requiere permisos.' }, 403))
+    simularApi(undefined, () => respuesta({ detail: 'Esta acción requiere permisos.' }, 403))
     const user = userEvent.setup()
     renderConProveedores(<PanelConfiguracion />)
 

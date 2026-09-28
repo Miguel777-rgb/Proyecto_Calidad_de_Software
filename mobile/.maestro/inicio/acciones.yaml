@@ -1,0 +1,40 @@
+# Las acciones del detalle llevan a Entrar y a Historico, provisionales hasta
+# las fases 3 y 5.
+appId: pe.ola.app
+name: Las acciones del detalle llevan a su pantalla
+tags: [inicio]
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-CALLAO
+- tapOn:
+    id: entrar-para-avisos
+- assertVisible: Iniciar sesión llega en la próxima versión de la app.
+- back
+- assertVisible:
+    id: pestana-index
+    selected: true
+- assertNotVisible:
+    id: detalle-zona
+- scrollUntilVisible:
+    element:
+      id: tarjeta-HUACHO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-HUACHO
+- tapOn:
+    id: ver-historico
+- assertVisible:
+    id: pestana-historico
+    selected: true
+- assertVisible: El histórico de cada zona llega en la próxima versión de la app.

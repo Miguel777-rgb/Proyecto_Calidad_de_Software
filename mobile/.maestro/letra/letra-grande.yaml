@@ -18,7 +18,15 @@ tags: [letra]
 - assertVisible:
     id: entrar
 - takeScreenshot: informes/capturas/letra-200
+# El resumen y las tarjetas crecen y se leen completos desplazando.
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: informes/capturas/letra-200-tarjetas
 - scrollUntilVisible:
     element:
       id: atribucion
     direction: DOWN
+    timeout: 60000

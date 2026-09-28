@@ -1,0 +1,64 @@
+# Las 10 zonas del dataset real del Docker local, en el resumen, el mapa y las
+# tarjetas. Los datos son fijos mientras no se reimporte el CSV de IMARPE.
+appId: pe.ola.app
+name: Inicio muestra las 10 zonas en el resumen, el mapa y las tarjetas
+tags: [inicio]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- assertVisible: "[0-9]{2}/[0-9]{2}/[0-9]{4}"
+- assertVisible: "8 zonas en alerta: Tumbes .*"
+- assertVisible:
+    id: conteo-warm
+- scrollUntilVisible:
+    element:
+      id: mapa-zonas
+    direction: DOWN
+    timeout: 60000
+    centerElement: true
+- assertVisible:
+    id: marcador-TUMBES
+- assertVisible:
+    id: marcador-PAITA
+- assertVisible:
+    id: marcador-SAN JOSE
+- assertVisible:
+    id: marcador-CHICAMA
+- assertVisible:
+    id: marcador-CHIMBOTE
+- assertVisible:
+    id: marcador-HUACHO
+- assertVisible:
+    id: marcador-CALLAO
+- assertVisible:
+    id: marcador-PISCO
+- assertVisible:
+    id: marcador-MATARANI
+- assertVisible:
+    id: marcador-ILO
+- takeScreenshot: informes/capturas/inicio-mapa
+- scrollUntilVisible:
+    element:
+      id: tarjeta-TUMBES
+    direction: DOWN
+    timeout: 60000
+- assertVisible: "En alerta desde [0-9]{2}/[0-9]{2}/[0-9]{4} · [0-9]+ mediciones seguidas"
+- scrollUntilVisible:
+    element:
+      id: tarjeta-ILO
+    direction: DOWN
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: tarjeta-SAN JOSE
+    direction: DOWN
+    timeout: 60000
+- scrollUntilVisible:
+    element: "Sin mediciones desde 31/12/2016"
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: informes/capturas/inicio-tarjetas

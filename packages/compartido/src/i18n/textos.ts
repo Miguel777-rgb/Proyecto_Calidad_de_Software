@@ -301,7 +301,6 @@ export const textos = {
     lema: 'Datos abiertos del IMARPE',
     fechaDato: 'Datos del mar al',
     provisional: {
-      mapa: 'El mapa y las 10 zonas llegan en la próxima versión de la app.',
       historico: 'El histórico de cada zona llega en la próxima versión de la app.',
       comparacion: 'La comparación entre zonas llega en la próxima versión de la app.',
       proyeccion: 'Los próximos días de cada zona llegan en la próxima versión de la app.',
@@ -314,6 +313,13 @@ export const textos = {
     datosASalvo: 'Tus datos están a salvo.',
     volverAlMapa: 'Volver al mapa',
     cerrarCuenta: 'Cerrar el menú de cuenta',
+    verTodaLaCosta: 'Ver toda la costa',
+    atribucionMapa: 'OpenFreeMap © OpenMapTiles · © OpenStreetMap',
+    atribucionMapaLectura:
+      'Mapa base: OpenFreeMap, con datos de OpenMapTiles y de los colaboradores de OpenStreetMap.',
+    datosGuardados: (fecha: string, hora: string) =>
+      `Sin conexión. Datos guardados el ${fecha} a las ${hora}.`,
+    zonaDesconocida: 'No encontramos esa zona.',
   },
   conexion: {
     verificando: 'Verificando conexión con el servidor…',

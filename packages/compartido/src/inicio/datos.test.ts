@@ -3,6 +3,7 @@ import {
   conteoPorEstado,
   diasDesde,
   fechaCorta,
+  fechaYHora,
   gradosConSigno,
   ordenarZonas,
   unirNombres,
@@ -146,5 +147,19 @@ describe('unirNombres', () => {
 
   it('sin nombres devuelve texto vacio', () => {
     expect(unirNombres([])).toBe('')
+  })
+})
+
+describe('fechaYHora', () => {
+  it('da la fecha y la hora locales con dos cifras', () => {
+    expect(fechaYHora(new Date(2026, 8, 3, 8, 6))).toEqual({ fecha: '03/09/2026', hora: '08:06' })
+  })
+
+  it('usa el reloj de 24 horas', () => {
+    expect(fechaYHora(new Date(2026, 8, 23, 20, 46)).hora).toBe('20:46')
+  })
+
+  it('pasada la medianoche ya es el día siguiente', () => {
+    expect(fechaYHora(new Date(2026, 8, 24, 0, 5))).toEqual({ fecha: '24/09/2026', hora: '00:05' })
   })
 })

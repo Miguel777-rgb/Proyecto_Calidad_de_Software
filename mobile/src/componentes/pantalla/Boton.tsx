@@ -7,17 +7,26 @@ export function Boton({
   texto,
   alPulsar,
   testID,
+  desactivado = false,
 }: {
   texto: string
   alPulsar: () => void
   testID?: string
+  /** Mientras se envia un formulario: no se puede pulsar dos veces. */
+  desactivado?: boolean
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: desactivado }}
+      disabled={desactivado}
       onPress={alPulsar}
       testID={testID}
-      style={({ pressed }) => [estilos.boton, pressed && estilos.pulsado]}
+      style={({ pressed }) => [
+        estilos.boton,
+        pressed && estilos.pulsado,
+        desactivado && estilos.desactivado,
+      ]}
     >
       <Texto style={estilos.texto}>{texto}</Texto>
     </Pressable>
@@ -34,5 +43,6 @@ const estilos = StyleSheet.create({
     backgroundColor: color.abisal,
   },
   pulsado: { backgroundColor: color['abisal-3'] },
-  texto: { color: color.espuma, fontWeight: '600' },
+  desactivado: { opacity: 0.6 },
+  texto: { color: color.espuma, fontWeight: '600', textAlign: 'center' },
 })

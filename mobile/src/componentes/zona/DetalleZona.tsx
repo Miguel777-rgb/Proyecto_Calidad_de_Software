@@ -2,7 +2,7 @@ import type { EstadoZona } from '@ola/compartido/api'
 import { fechaCorta, gradosConSigno } from '@ola/compartido/inicio/datos'
 import { textos } from '@ola/compartido/i18n/textos'
 import { TINTES } from '@ola/compartido/mapa/paleta'
-import { ChartLine, CircleCheck, Clock, LogIn, TriangleAlert, X } from 'lucide-react-native'
+import { ChartLine, CircleCheck, Clock, TriangleAlert, X } from 'lucide-react-native'
 import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { color, fuente, medida } from '../../tema'
@@ -14,40 +14,51 @@ interface Props {
   /** Dias que promedia el mapa; null si la configuracion no llego. */
   ventana: number | null
   alCerrar: () => void
-  alEntrar: () => void
   alVerHistorico: () => void
+  /** Recibir avisos de la zona: depende de la sesion (ver AvisosZona). */
+  accionAvisos?: ReactNode
 }
 
-function Accion({
+export function Accion({
   texto,
   icono,
   alPulsar,
   testID,
+  primaria = false,
+  desactivada = false,
 }: {
   texto: string
   icono: ReactNode
   alPulsar: () => void
   testID: string
+  primaria?: boolean
+  desactivada?: boolean
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: desactivada }}
+      disabled={desactivada}
       testID={testID}
       onPress={alPulsar}
-      style={({ pressed }) => [estilos.accion, pressed && estilos.accionPulsada]}
+      style={({ pressed }) => [
+        estilos.accion,
+        primaria && estilos.accionPrimaria,
+        pressed && (primaria ? estilos.primariaPulsada : estilos.accionPulsada),
+        desactivada && estilos.desactivada,
+      ]}
     >
       {icono}
-      <Texto style={estilos.accionTexto}>{texto}</Texto>
+      <Texto style={[estilos.accionTexto, primaria && estilos.textoPrimario]}>{texto}</Texto>
     </Pressable>
   )
 }
 
 /**
- * Detalle de una zona, con el mismo contenido que la web. «Recibir avisos»
- * lleva a Entrar hasta que la app tenga sesion (fase 3); una zona que ya no
- * mide no genera alertas, asi que no lo ofrece.
+ * Detalle de una zona, con el mismo contenido que la web. Una zona que ya no
+ * mide no genera alertas, asi que no ofrece recibir avisos.
  */
-export function DetalleZona({ zona, ventana, alCerrar, alEntrar, alVerHistorico }: Props) {
+export function DetalleZona({ zona, ventana, alCerrar, alVerHistorico, accionAvisos }: Props) {
   const nombre = zona.laboratory.name
   const alerta = zona.open_alert
 
@@ -131,14 +142,7 @@ export function DetalleZona({ zona, ventana, alCerrar, alEntrar, alVerHistorico 
       )}
 
       <View style={estilos.acciones}>
-        {!zona.is_stale && (
-          <Accion
-            testID="entrar-para-avisos"
-            texto={textos.mapa.entraParaAvisos}
-            icono={<LogIn size={20} color={color.abisal} aria-hidden />}
-            alPulsar={alEntrar}
-          />
-        )}
+        {!zona.is_stale && accionAvisos}
         <Accion
           testID="ver-historico"
           texto={textos.mapa.verHistorico(nombre)}
@@ -212,5 +216,9 @@ const estilos = StyleSheet.create({
     paddingVertical: 8,
   },
   accionPulsada: { backgroundColor: color.realce },
+  accionPrimaria: { backgroundColor: color.abisal },
+  primariaPulsada: { backgroundColor: color['abisal-3'] },
+  desactivada: { opacity: 0.6 },
+  textoPrimario: { color: color.espuma },
   accionTexto: { flexShrink: 1, fontWeight: '600', textAlign: 'center' },
 })

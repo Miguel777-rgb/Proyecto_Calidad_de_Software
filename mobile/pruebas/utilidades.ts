@@ -1,6 +1,6 @@
 import { ADMIN, USUARIO } from '@ola/compartido/pruebas'
 import type { Usuario } from '@ola/compartido/api'
-import type { Sesion } from '../src/sesion'
+import { SIN_SESION, type Sesion } from '../src/sesion'
 
 export { ADMIN, USUARIO }
 
@@ -25,7 +25,7 @@ export function simularFetch(...respuestas: (Response | Error)[]) {
 }
 
 export function sesionDe(usuario: Usuario | null, sinLeer = 0): Sesion {
-  return { usuario, sinLeer, salir: jest.fn() }
+  return { ...SIN_SESION, usuario, sinLeer, salir: jest.fn() }
 }
 
 type Respuestas = Response | Error | Promise<Response> | (Response | Error | Promise<Response>)[]
@@ -39,7 +39,8 @@ export function simularApi(rutas: Record<string, Respuestas>) {
   const pendientes = Object.fromEntries(
     Object.entries(rutas).map(([ruta, valor]) => [ruta, Array.isArray(valor) ? [...valor] : [valor]]),
   )
-  const fetchSimulado = jest.fn(async (url: string) => {
+  // _init no se usa aqui, pero las pruebas leen el metodo y el cuerpo de cada llamada.
+  const fetchSimulado = jest.fn(async (url: string, _init?: RequestInit) => {
     const ruta = new URL(url).pathname.replace(/^\/api/, '')
     const lista = pendientes[ruta]
     if (lista === undefined) return respuesta({ detail: 'Not Found' }, 404)

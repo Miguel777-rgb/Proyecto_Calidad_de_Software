@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native'
 import type { EstadoZona } from '@ola/compartido/api'
 import { ESTADO_MUESTRA } from '@ola/compartido/pruebas'
+import { Pressable, Text } from 'react-native'
 import { DetalleZona } from './DetalleZona'
 
 function zona(code: string): EstadoZona {
@@ -8,8 +9,21 @@ function zona(code: string): EstadoZona {
 }
 
 async function dibujar(code: string, extra: Partial<Parameters<typeof DetalleZona>[0]> = {}) {
-  const acciones = { alCerrar: jest.fn(), alEntrar: jest.fn(), alVerHistorico: jest.fn() }
-  await render(<DetalleZona zona={zona(code)} ventana={5} {...acciones} {...extra} />)
+  const acciones = { alCerrar: jest.fn(), alAvisos: jest.fn(), alVerHistorico: jest.fn() }
+  await render(
+    <DetalleZona
+      zona={zona(code)}
+      ventana={5}
+      alCerrar={acciones.alCerrar}
+      alVerHistorico={acciones.alVerHistorico}
+      accionAvisos={
+        <Pressable accessibilityRole="button" onPress={acciones.alAvisos}>
+          <Text>Avisos de la zona</Text>
+        </Pressable>
+      }
+      {...extra}
+    />,
+  )
   return acciones
 }
 
@@ -63,18 +77,18 @@ describe('DetalleZona', () => {
       'No hay mediciones desde el 31/12/2016: no se puede saber cómo está el mar aquí.',
     )
     expect(screen.queryByTestId('detalle-promedio')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Entra para recibir avisos' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Avisos de la zona' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Ver histórico de Matarani' })).toBeOnTheScreen()
   })
 
   it('cada accion hace lo suyo', async () => {
     const acciones = await dibujar('CALLAO')
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Entra para recibir avisos' }))
+    await fireEvent.press(screen.getByRole('button', { name: 'Avisos de la zona' }))
     await fireEvent.press(screen.getByRole('button', { name: 'Ver histórico de Callao' }))
     await fireEvent.press(screen.getByRole('button', { name: 'Cerrar el detalle de la zona' }))
 
-    expect(acciones.alEntrar).toHaveBeenCalledTimes(1)
+    expect(acciones.alAvisos).toHaveBeenCalledTimes(1)
     expect(acciones.alVerHistorico).toHaveBeenCalledTimes(1)
     expect(acciones.alCerrar).toHaveBeenCalledTimes(1)
   })

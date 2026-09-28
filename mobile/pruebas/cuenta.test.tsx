@@ -1,10 +1,13 @@
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library'
 import { ESTADO_MUESTRA, LABORATORIOS, sesionDe as sesionApi } from '@ola/compartido/pruebas'
+import { cancelarAutocompletado } from '../modules/autocompletado'
 import { olvidarTokenEnMemoria } from '../src/api'
 import { ESPERA_REENVIO } from '../src/app/recuperar'
 import { abrir } from './app'
 import { contenidoSeguro, setItemAsync } from './simulaciones/secureStore'
 import { CONFIGURACION, respuesta, simularApi, USUARIO } from './utilidades'
+
+jest.mock('../modules/autocompletado', () => ({ cancelarAutocompletado: jest.fn() }))
 
 const ESTADO = { '/status': respuesta(ESTADO_MUESTRA), '/settings': respuesta(CONFIGURACION) }
 const suscripcion = (code: string) => ({
@@ -111,6 +114,18 @@ describe('Entrar', () => {
 
     const correo = await screen.findByLabelText('Correo electrónico')
     expect(correo.props).toMatchObject({ autoComplete: 'off', importantForAutofill: 'no' })
+
+    // Desde Android 14 eso no basta: al enfocar un campo se cancela la sesion
+    // que el sistema abre igual (D-32).
+    jest.mocked(cancelarAutocompletado).mockClear()
+    await fireEvent(correo, 'focus')
+    await fireEvent(screen.getByLabelText('Contraseña'), 'focus')
+    expect(cancelarAutocompletado).toHaveBeenCalledTimes(2)
+
+    // Y al dejar la pantalla, que es cuando el celular ofrece guardar.
+    jest.mocked(cancelarAutocompletado).mockClear()
+    await pulsar('Crear una cuenta', 'link')
+    await waitFor(() => expect(cancelarAutocompletado).toHaveBeenCalledTimes(1))
   })
 })
 

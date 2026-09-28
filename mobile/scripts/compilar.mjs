@@ -8,7 +8,8 @@
  *
  * El proyecto nativo (android/) se genera de nuevo cuando cambia algo que lo
  * decide: la variante (cambia el paquete y los permisos de red), la
- * configuracion, las dependencias, los plugins o los recursos. Mezclar restos
+ * configuracion, las dependencias, los plugins, los recursos o los modulos
+ * nativos propios (modules/). Mezclar restos
  * de otra variante daria un APK distinto del que dice la configuracion. Si
  * nada de eso cambio, se reutiliza: Gradle solo recompila lo nuevo, casi
  * siempre el codigo JavaScript. android/ no se versiona.
@@ -46,6 +47,12 @@ function huellaNativa() {
     '../pnpm-lock.yaml',
     ...readdirSync(join(RAIZ, 'plugins')).map((a) => `plugins/${a}`),
     ...readdirSync(join(RAIZ, 'assets')).map((a) => `assets/${a}`),
+    // Modulos nativos propios: su declaracion decide que se enlaza. Su codigo
+    // Kotlin no hace falta, porque Gradle lo compila desde modules/.
+    ...readdirSync(join(RAIZ, 'modules')).flatMap((m) => [
+      `modules/${m}/expo-module.config.json`,
+      `modules/${m}/android/build.gradle`,
+    ]),
   ]
   for (const archivo of archivos) hash.update(archivo).update(readFileSync(join(RAIZ, archivo)))
   return hash.digest('hex')

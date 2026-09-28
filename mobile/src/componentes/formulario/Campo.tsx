@@ -2,6 +2,7 @@ import { textos } from '@ola/compartido/i18n/textos'
 import { Eye, EyeOff } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, StyleSheet, TextInput, View, type KeyboardTypeOptions } from 'react-native'
+import { cancelarAutocompletado } from '../../../modules/autocompletado'
 import { color, fuente, medida, tamano } from '../../tema'
 import { Texto } from '../Texto'
 
@@ -29,7 +30,9 @@ const TECLADO: Record<Tipo, KeyboardTypeOptions> = {
 
 /**
  * Campo de formulario de la cuenta. Sin autocompletado de Android, como se
- * decidio en la fase 3. La contrasena lleva un ojo para mostrarla.
+ * decidio en la fase 3: `autoComplete="off"` no basta desde Android 14, asi que
+ * al recibir el foco se cancela la sesion que el sistema abre igual (D-32). La
+ * contrasena lleva un ojo para mostrarla.
  */
 export function Campo({
   etiqueta,
@@ -58,7 +61,10 @@ export function Campo({
           accessibilityHint={nota}
           value={valor}
           onChangeText={alCambiar}
-          onFocus={() => setFoco(true)}
+          onFocus={() => {
+            cancelarAutocompletado()
+            setFoco(true)
+          }}
           onBlur={() => setFoco(false)}
           onSubmitEditing={alEnviar}
           keyboardType={TECLADO[tipo]}

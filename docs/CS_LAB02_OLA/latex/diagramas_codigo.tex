@@ -1,0 +1,74 @@
+% Entregable 2 de la Práctica de Laboratorio 02: diagramas UML y código relevante.
+% Compilar con compilar.sh (dos pasadas, para el total de páginas).
+\documentclass[11pt,a4paper]{article}
+\input{estilo.tex}
+\hypersetup{pdftitle={Práctica de Laboratorio 02 — Diagrama UML y código relevante},
+            pdfauthor={Equipo OLA}, pdfsubject={Calidad de Software}}
+\lstset{float=false,basicstyle=\ttfamily\scriptsize,numberstyle=\ttfamily\tiny\color{gris}}
+
+% \codigo{archivo}{pie}: fragmento de código completo, con la numeración de líneas del archivo.
+\newcommand{\codigo}[2]{\lstinputlisting[caption={#2},captionpos=t,aboveskip=0.5em]{codigo/#1}}
+
+\begin{document}
+
+\portada{Diagrama UML y código relevante}
+        {Diagramas de clases del diseño actual y del propuesto, y el código del módulo «Alertas y avisos» antes y después de la refactorización}
+
+{\hypersetup{linkcolor=black}\renewcommand{\contentsname}{\sffamily\color{azul}Índice}\tableofcontents}
+\thispagestyle{plain}
+\newpage
+
+% =====================================================================
+\section{Diagramas de clases}
+
+Los diagramas modelan el módulo «Alertas y avisos» del backend de OLA en el commit \cod{d5c054f}, antes y después de la refactorización de \cod{refactorizacion\_avisos.patch}. Cada diseño se muestra en dos figuras: el módulo con sus clases y dependencias (a) y las clases de \cod{db.models} (b). Se dibujaron con el sistema visual de Archify; el generador está en \cod{diagramas/fuente/}.
+
+Como el backend agrupa gran parte de su lógica en módulos de funciones, estos se representan como clases con el estereotipo «module», y sus miembros son las funciones y los métodos medidos (NOM).
+
+\negrita{Cómo leer las figuras.}
+\begin{itemize}
+  \item En el diseño actual (Figuras 1a y 1b), el rosa marca las unidades y dependencias con hallazgos de la matriz.
+  \item En el diseño propuesto (Figuras 2a y 2b), el verde marca lo nuevo, el ámbar lo modificado y el rosa los hallazgos que siguen pendientes.
+  \item Las figuras 1b y 2b muestran todos los atributos de las cuatro entidades del módulo y las asociaciones que derivan de sus claves foráneas.
+\end{itemize}
+
+\afterpage{%
+\paginafigura{../diagramas/E-01a_diseno_actual_modulo.pdf}{\textbf{Figura 1a: E-01.} Diagrama de clases del diseño actual del módulo «Alertas y avisos». En rosa, las unidades y dependencias con hallazgos.}%
+\paginafigura{../diagramas/E-01b_diseno_actual_db_models.pdf}{\textbf{Figura 1b: E-01.} Las 15 clases de \texttt{db.models} en el diseño actual, con las asociaciones que derivan de sus claves foráneas.}%
+\paginafigura{../diagramas/E-06a_diseno_propuesto_modulo.pdf}{\textbf{Figura 2a: E-06.} Diagrama de clases del diseño propuesto del módulo «Alertas y avisos». Verde: nuevo; ámbar: modificado; rosa: hallazgos pendientes.}%
+\paginafigura{../diagramas/E-06b_diseno_propuesto_db_models.pdf}{\textbf{Figura 2b: E-06.} Las clases de \texttt{db.models} en el diseño propuesto: los enumerados de los avisos pasan a \texttt{domain.notices}.}}
+
+% =====================================================================
+\clearpage
+\section{Código relevante}
+
+Se incluyen completos los cuatro archivos que definen el rediseño y, como contraste, el servicio original que reunía las responsabilidades. Los archivos tienen su numeración de líneas. El cambio completo, con las pruebas unitarias nuevas, está en \cod{refactorizacion\_avisos.patch}.
+
+\subsection{Antes: un servicio con cinco responsabilidades}
+
+\cod{notification\_service} (141 líneas de código, complejidad acumulada 20) decide qué avisos corresponden a cada episodio, construye sentencias SQL, redacta el mensaje, envía el correo y marca la lectura. La lista de canales es la tupla \cod{CANALES} y \cod{send\_pending} solo sabe enviar correo (hallazgos H-01 a H-05).
+
+\codigo{antes_notification_service.py}{\ev{E-05}. Diseño actual: \cod{services/notification\_service.py} en el commit \cod{d5c054f}.}
+
+\clearpage
+\subsection{Después: canales, despachador y coordinador}
+
+\negrita{Canales.} Cada canal cumple el contrato \cod{Channel}: declara si requiere envío y sabe entregar un aviso. \cod{ChannelRegistry} los indexa y \cod{default\_channels} es el único lugar donde se decide cuáles tiene el sistema.
+
+\codigo{despues_channels.py}{\ev{E-07}. Diseño propuesto: \cod{services/channels.py} (contrato, canales y registro).}
+
+\clearpage
+\negrita{Despachador.} \cod{NotificationDispatcher} contiene la lógica de envío (reintentos, registro del fallo y límite de la tanda). Recibe por el constructor el almacén, los canales y el reloj, definidos como protocolos, y por eso se prueba sin base de datos.
+
+\codigo{despues_notification_dispatcher.py}{\ev{E-07}. Diseño propuesto: \cod{services/notification\_dispatcher.py}.}
+
+\negrita{Dominio de los avisos.} \cod{domain/notices.py} reúne los enumerados de canal, tipo y estado (antes en \cod{db/models.py}), la planificación de las filas y la redacción de cada tipo de aviso, sin depender de la infraestructura.
+
+\codigo{despues_notices.py}{\ev{E-07}. Diseño propuesto: \cod{domain/notices.py}.}
+
+\clearpage
+\negrita{Coordinador.} \cod{notification\_service} queda con 73 líneas y complejidad acumulada 12: compone el despachador, fija el límite de la transacción y conserva sus firmas públicas, de modo que las pruebas de integración existentes no cambian.
+
+\codigo{despues_notification_service.py}{\ev{E-07}. Diseño propuesto: \cod{services/notification\_service.py} como coordinador.}
+
+\end{document}

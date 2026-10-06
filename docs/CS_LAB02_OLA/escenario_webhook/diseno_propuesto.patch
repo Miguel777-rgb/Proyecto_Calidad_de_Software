@@ -1,0 +1,169 @@
+Escenario de cambio E-10 sobre el DISEÑO PROPUESTO (Práctica de Laboratorio 02, proyecto OLA).
+Cambio: añadir un tercer canal de aviso, una pasarela de mensajería externa a la que el
+sistema entrega cada aviso mediante una petición HTTP POST (webhook). Canal siempre activo:
+sin OLA_WEBHOOK_URL la entrega falla con «pasarela no configurada» y queda para reintento.
+Base: commit d5c054f + refactorizacion_avisos.patch.  Aplicar desde la raíz del repositorio,
+después del parche de la refactorización:  git apply <este archivo>
+No incluye la migración de Alembic del enumerado notification_channel (igual en ambos diseños).
+
+diff --git a/backend/src/ola/api/deps.py b/backend/src/ola/api/deps.py
+index 8454122..aa81f4f 100644
+--- a/backend/src/ola/api/deps.py
++++ b/backend/src/ola/api/deps.py
+@@ -18,6 +18,7 @@ from ola.security import decode_access_token
+ from ola.services import settings_service
+ from ola.services.channels import ChannelRegistry, default_channels
+ from ola.services.settings_service import EffectiveSettings
++from ola.webhook import HttpWebhookSender, WebhookSender
+ 
+ bearer_scheme = HTTPBearer(auto_error=False)
+ 
+@@ -84,9 +85,16 @@ def get_mailer(settings: SettingsDep) -> Mailer:
+ MailerDep = Annotated[Mailer, Depends(get_mailer)]
+ 
+ 
+-def get_channels(mailer: MailerDep) -> ChannelRegistry:
++def get_webhook(settings: SettingsDep) -> WebhookSender:
++    return HttpWebhookSender(settings.webhook_url)
++
++
++WebhookDep = Annotated[WebhookSender, Depends(get_webhook)]
++
++
++def get_channels(mailer: MailerDep, webhook: WebhookDep) -> ChannelRegistry:
+     """Canales de aviso del sistema. Aqui se conecta cada canal con lo que necesita."""
+-    return default_channels(mailer)
++    return default_channels(mailer, webhook)
+ 
+ 
+ ChannelsDep = Annotated[ChannelRegistry, Depends(get_channels)]
+diff --git a/backend/src/ola/config.py b/backend/src/ola/config.py
+index d1f5c56..444e374 100644
+--- a/backend/src/ola/config.py
++++ b/backend/src/ola/config.py
+@@ -55,6 +55,9 @@ class Settings(BaseSettings):
+     smtp_tls: bool = False
+     mail_from: str = "alertas@ola.pe"
+ 
++    # Pasarela de mensajeria del canal webhook. Vacia: la entrega falla.
++    webhook_url: str = ""
++
+     # NoDecode evita que pydantic-settings intente leer la variable de
+     # entorno como JSON: aqui llega separada por comas.
+     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
+diff --git a/backend/src/ola/domain/notices.py b/backend/src/ola/domain/notices.py
+index b8029f6..8c93fb4 100644
+--- a/backend/src/ola/domain/notices.py
++++ b/backend/src/ola/domain/notices.py
+@@ -21,6 +21,7 @@ from ola.domain.messages import AlertMessage, alert_closed, alert_opened
+ class NotificationChannel(enum.StrEnum):
+     EMAIL = "email"
+     IN_APP = "in_app"
++    WEBHOOK = "webhook"
+ 
+ 
+ class NotificationKind(enum.StrEnum):
+diff --git a/backend/src/ola/services/channels.py b/backend/src/ola/services/channels.py
+index e0eb3c6..a804059 100644
+--- a/backend/src/ola/services/channels.py
++++ b/backend/src/ola/services/channels.py
+@@ -13,6 +13,7 @@ from typing import Protocol
+ 
+ from ola.domain.notices import NotificationChannel, OutboundNotice
+ from ola.mail import Email, Mailer
++from ola.webhook import WebhookMessage, WebhookNotConfiguredError, WebhookSender
+ 
+ 
+ class Channel(Protocol):
+@@ -56,6 +57,27 @@ class InAppChannel:
+         return None
+ 
+ 
++class WebhookChannel:
++    """Entrega el aviso a la pasarela de mensajeria externa."""
++
++    code = NotificationChannel.WEBHOOK
++    requires_dispatch = True
++
++    def __init__(self, sender: WebhookSender | None) -> None:
++        self._sender = sender
++
++    def deliver(self, notice: OutboundNotice) -> None:
++        if self._sender is None:
++            raise WebhookNotConfiguredError
++        self._sender.send(
++            WebhookMessage(
++                recipient=notice.recipient.email,
++                subject=notice.message.subject,
++                body=notice.message.body,
++            )
++        )
++
++
+ class DuplicateChannelError(ValueError):
+     def __init__(self, code: NotificationChannel) -> None:
+         super().__init__(f"El canal '{code.value}' esta registrado mas de una vez.")
+@@ -89,6 +111,6 @@ class ChannelRegistry:
+             raise UnknownChannelError(code) from None
+ 
+ 
+-def default_channels(mailer: Mailer) -> ChannelRegistry:
++def default_channels(mailer: Mailer, webhook: WebhookSender | None = None) -> ChannelRegistry:
+     """Punto unico donde se decide que canales tiene el sistema."""
+-    return ChannelRegistry([EmailChannel(mailer), InAppChannel()])
++    return ChannelRegistry([EmailChannel(mailer), InAppChannel(), WebhookChannel(webhook)])
+diff --git a/backend/src/ola/webhook.py b/backend/src/ola/webhook.py
+new file mode 100644
+index 0000000..6e7723d
+--- /dev/null
++++ b/backend/src/ola/webhook.py
+@@ -0,0 +1,49 @@
++"""Entrega de avisos a una pasarela de mensajeria externa (webhook).
++
++La pasarela recibe cada aviso como JSON en una peticion HTTP POST y se
++encarga de hacerlo llegar al destinatario. Su URL se define en el .env con
++OLA_WEBHOOK_URL; sin ella, la entrega falla y el aviso queda para reintentar.
++"""
++
++from __future__ import annotations
++
++import json
++import urllib.request
++from dataclasses import asdict, dataclass
++from typing import Protocol
++
++
++@dataclass(frozen=True)
++class WebhookMessage:
++    recipient: str
++    subject: str
++    body: str
++
++
++class WebhookSender(Protocol):
++    def send(self, message: WebhookMessage) -> None: ...
++
++
++class WebhookNotConfiguredError(RuntimeError):
++    def __init__(self) -> None:
++        super().__init__("La pasarela no esta configurada (OLA_WEBHOOK_URL).")
++
++
++class HttpWebhookSender:
++    """Envia por HTTP POST. Lanza la excepcion si falla; quien llama la registra."""
++
++    def __init__(self, url: str, *, timeout: float = 15) -> None:
++        self._url = url
++        self._timeout = timeout
++
++    def send(self, message: WebhookMessage) -> None:
++        if not self._url:
++            raise WebhookNotConfiguredError
++        peticion = urllib.request.Request(
++            self._url,
++            data=json.dumps(asdict(message)).encode("utf-8"),
++            headers={"Content-Type": "application/json"},
++            method="POST",
++        )
++        with urllib.request.urlopen(peticion, timeout=self._timeout):
++            pass

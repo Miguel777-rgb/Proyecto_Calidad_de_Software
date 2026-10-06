@@ -1,0 +1,24 @@
+E-10. Suite existente sobre el escenario webhook, diseño propuesto. Base de pruebas recreada antes de ejecutar.
+Comando: pytest -rfE --junitxml=...
+
+>       assert resumen.failed == 0
+E        +  where 1 = SendSummary(attempted=2, sent=1, failed=1).failed
+E        +  where 1 = SendSummary(attempted=1, sent=0, failed=1).attempted
+E        +  where 3 = len([<Notification 2 in_app opened pending>, <Notification 1 email opened sent>, <Notification 3 webhook opened failed>])
+E        +    where [<Notification 2 in_app opened pending>, <Notification 1 email opened sent>, <Notification 3 webhook opened failed>] = avisos(<sqlalchemy.orm.session.Session object at 0x7f6cf471b380>)
+>       assert resumen.failed == 1
+E        +  where 2 = SendSummary(attempted=2, sent=0, failed=2).failed
+E        +  where 4 = SendSummary(attempted=4, sent=2, failed=2).attempted
+FAILED tests/integration/test_notifications.py::TestRegistroDeAvisos::test_una_alerta_nueva_genera_avisos_para_el_suscrito
+FAILED tests/integration/test_notifications.py::TestRegistroDeAvisos::test_genera_un_aviso_por_canal
+FAILED tests/integration/test_notifications.py::TestEnvio::test_envia_los_correos_pendientes
+FAILED tests/integration/test_notifications.py::TestEnvio::test_no_reenvia_lo_ya_enviado
+FAILED tests/integration/test_notifications.py::TestEnvio::test_los_avisos_en_la_aplicacion_no_generan_correo
+FAILED tests/integration/test_notifications.py::TestFallosDeEnvio::test_un_fallo_se_registra_con_su_motivo
+FAILED tests/integration/test_notifications.py::TestFallosDeEnvio::test_un_fallo_no_detiene_los_demas_envios
+FAILED tests/integration/test_notifications.py::TestEndpointDeEnvio::test_el_resumen_informa_del_resultado
+FAILED tests/integration/test_notifications.py::TestAvisoDeCierre::test_cerrar_una_alerta_genera_avisos
+FAILED tests/integration/test_notifications.py::TestSuscribirseAUnaAlertaVigente::test_recibe_el_aviso_al_suscribirse
+FAILED tests/integration/test_notifications.py::TestSuscribirseAUnaAlertaVigente::test_darse_de_baja_y_volver_no_duplica_el_aviso
+FAILED tests/unit/test_channels.py::TestRegistro::test_solo_el_correo_requiere_envio
+12 failed, 460 passed in 72.47s (0:01:12)

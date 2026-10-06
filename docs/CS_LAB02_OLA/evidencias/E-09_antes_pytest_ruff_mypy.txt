@@ -1,0 +1,56 @@
+== versiones
+Python 3.13.15
+pytest 9.1.1
+ruff 0.16.6
+mypy 2.3.1 (compiled: yes)
+sqlalchemy 2.0.52 | fastapi 0.141.1 | pydantic 2.13.5 | psycopg 3.3.5 | bcrypt 5.0.0 | coverage 7.16.0
+== PostgreSQL
+17.11
+== pytest completo con cobertura
+........................................................................ [ 16%]
+........................................................................ [ 32%]
+........................................................................ [ 48%]
+........................................................................ [ 65%]
+........................................................................ [ 81%]
+........................................................................ [ 97%]
+..........                                                               [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.13.15-final-0 _______________
+
+Name                                     Stmts   Miss  Cover   Missing
+----------------------------------------------------------------------
+src/ola/api/deps.py                         42      1    98%   80
+src/ola/api/routers/alerts.py               36      1    97%   80
+src/ola/api/routers/health.py               19      2    89%   27-28
+src/ola/api/routers/imports.py              28      1    96%   43
+src/ola/api/routers/projection.py           16      2    88%   43-44
+src/ola/api/routers/subscriptions.py        39      1    97%   64
+src/ola/db/models.py                       140      8    94%   64, 98, 130, 168, 223, 239, 283, 345
+src/ola/db/session.py                       13      4    69%   24-28
+src/ola/mail.py                             35     12    66%   32, 35-46
+src/ola/main.py                             43     10    77%   38-51, 56-57
+src/ola/repositories/labs_repo.py           13      1    92%   14
+src/ola/repositories/readings_repo.py       56      7    88%   48, 50, 56, 85, 131, 165-170
+src/ola/repositories/settings_repo.py       13      2    85%   21-22
+src/ola/security.py                         30      1    97%   43
+src/ola/services/alert_service.py           69      2    97%   126-127
+src/ola/services/projection_service.py      51      2    96%   40, 66
+src/ola/services/settings_service.py        66      8    88%   66, 69-74, 79
+src/ola/startup.py                          28     28     0%   9-54
+----------------------------------------------------------------------
+TOTAL                                     1902     93    95%
+
+34 files skipped due to complete coverage.
+Coverage JSON written to file /out/antes-cov.json
+442 passed in 102.42s (0:01:42)
+== ruff check .
+All checks passed!
+exit=0
+== ruff format --check .
+   |
+
+1 file would be reformatted, 92 files already formatted
+exit=0
+== mypy src
+Success: no issues found in 61 source files
+exit=0

@@ -1,0 +1,217 @@
+Escenario de cambio E-10 sobre el DISEÑO ACTUAL (Práctica de Laboratorio 02, proyecto OLA).
+Cambio: añadir un tercer canal de aviso, una pasarela de mensajería externa a la que el
+sistema entrega cada aviso mediante una petición HTTP POST (webhook). Canal siempre activo:
+sin OLA_WEBHOOK_URL la entrega falla con «pasarela no configurada» y queda para reintento.
+Base: commit d5c054f (rama main).  Aplicar desde la raíz del repositorio:  git apply <este archivo>
+No incluye la migración de Alembic del enumerado notification_channel (igual en ambos diseños).
+
+diff --git a/backend/src/ola/api/deps.py b/backend/src/ola/api/deps.py
+index e971453..2126bde 100644
+--- a/backend/src/ola/api/deps.py
++++ b/backend/src/ola/api/deps.py
+@@ -17,6 +17,7 @@ from ola.repositories import users_repo
+ from ola.security import decode_access_token
+ from ola.services import settings_service
+ from ola.services.settings_service import EffectiveSettings
++from ola.webhook import HttpWebhookSender, WebhookSender
+ 
+ bearer_scheme = HTTPBearer(auto_error=False)
+ 
+@@ -81,3 +82,10 @@ def get_mailer(settings: SettingsDep) -> Mailer:
+ 
+ 
+ MailerDep = Annotated[Mailer, Depends(get_mailer)]
++
++
++def get_webhook(settings: SettingsDep) -> WebhookSender:
++    return HttpWebhookSender(settings.webhook_url)
++
++
++WebhookDep = Annotated[WebhookSender, Depends(get_webhook)]
+diff --git a/backend/src/ola/api/routers/alerts.py b/backend/src/ola/api/routers/alerts.py
+index e9c4a88..e5822f9 100644
+--- a/backend/src/ola/api/routers/alerts.py
++++ b/backend/src/ola/api/routers/alerts.py
+@@ -6,7 +6,7 @@ from typing import Annotated
+ 
+ from fastapi import APIRouter, HTTPException, Query, status
+ 
+-from ola.api.deps import AdminUser, EffectiveSettingsDep, MailerDep, SessionDep
++from ola.api.deps import AdminUser, EffectiveSettingsDep, MailerDep, SessionDep, WebhookDep
+ from ola.api.schemas.alerts import AlertEventOut, EvaluationSummaryOut, StreakOut
+ from ola.api.schemas.notifications import SendSummaryOut
+ from ola.domain.streaks import detect_streaks
+@@ -101,10 +101,10 @@ def laboratory_streaks(
+     summary="Envia los avisos pendientes por correo",
+ )
+ def send_notifications(
+-    session: SessionDep, mailer: MailerDep, admin: AdminUser, limit: int = 200
++    session: SessionDep, mailer: MailerDep, webhook: WebhookDep, admin: AdminUser, limit: int = 200
+ ) -> SendSummaryOut:
+     """Segundo paso del envio. Reintenta tambien los que fallaron antes."""
+-    resumen = notification_service.send_pending(session, mailer, limit=limit)
++    resumen = notification_service.send_pending(session, mailer, webhook, limit=limit)
+     return SendSummaryOut(
+         attempted=resumen.attempted,
+         sent=resumen.sent,
+diff --git a/backend/src/ola/config.py b/backend/src/ola/config.py
+index d1f5c56..444e374 100644
+--- a/backend/src/ola/config.py
++++ b/backend/src/ola/config.py
+@@ -55,6 +55,9 @@ class Settings(BaseSettings):
+     smtp_tls: bool = False
+     mail_from: str = "alertas@ola.pe"
+ 
++    # Pasarela de mensajeria del canal webhook. Vacia: la entrega falla.
++    webhook_url: str = ""
++
+     # NoDecode evita que pydantic-settings intente leer la variable de
+     # entorno como JSON: aqui llega separada por comas.
+     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
+diff --git a/backend/src/ola/db/models.py b/backend/src/ola/db/models.py
+index 05f748b..cb0d17e 100644
+--- a/backend/src/ola/db/models.py
++++ b/backend/src/ola/db/models.py
+@@ -242,6 +242,7 @@ class AppSetting(Base):
+ class NotificationChannel(enum.StrEnum):
+     EMAIL = "email"
+     IN_APP = "in_app"
++    WEBHOOK = "webhook"
+ 
+ 
+ class NotificationKind(enum.StrEnum):
+diff --git a/backend/src/ola/repositories/notifications_repo.py b/backend/src/ola/repositories/notifications_repo.py
+index 7a49bc2..236076d 100644
+--- a/backend/src/ola/repositories/notifications_repo.py
++++ b/backend/src/ola/repositories/notifications_repo.py
+@@ -52,8 +52,8 @@ def get_for_user(session: Session, notification_id: int, user_id: int) -> Notifi
+     )
+ 
+ 
+-def pending_emails(session: Session, *, limit: int = 200) -> list[Notification]:
+-    """Correos por enviar, incluidos los que fallaron en un intento anterior."""
++def pending_outbound(session: Session, *, limit: int = 200) -> list[Notification]:
++    """Avisos por enviar (correo y pasarela), incluidos los que fallaron antes."""
+     return list(
+         session.scalars(
+             select(Notification)
+@@ -62,7 +62,7 @@ def pending_emails(session: Session, *, limit: int = 200) -> list[Notification]:
+                 joinedload(Notification.user),
+             )
+             .where(
+-                Notification.channel == NotificationChannel.EMAIL,
++                Notification.channel.in_([NotificationChannel.EMAIL, NotificationChannel.WEBHOOK]),
+                 Notification.status.in_([NotificationStatus.PENDING, NotificationStatus.FAILED]),
+             )
+             .order_by(Notification.id)
+diff --git a/backend/src/ola/services/notification_service.py b/backend/src/ola/services/notification_service.py
+index 3244bb1..93998bc 100644
+--- a/backend/src/ola/services/notification_service.py
++++ b/backend/src/ola/services/notification_service.py
+@@ -32,8 +32,9 @@ from ola.db.models import (
+ from ola.domain.messages import AlertMessage, alert_closed, alert_opened
+ from ola.mail import Email, Mailer
+ from ola.repositories import notifications_repo, subscriptions_repo
++from ola.webhook import WebhookMessage, WebhookNotConfiguredError, WebhookSender
+ 
+-CANALES = (NotificationChannel.EMAIL, NotificationChannel.IN_APP)
++CANALES = (NotificationChannel.EMAIL, NotificationChannel.IN_APP, NotificationChannel.WEBHOOK)
+ 
+ 
+ @dataclass(frozen=True)
+@@ -150,21 +151,34 @@ def _mensaje(notificacion: Notification) -> AlertMessage:
+     )
+ 
+ 
+-def send_pending(session: Session, mailer: Mailer, *, limit: int = 200) -> SendSummary:
+-    """Envia los correos pendientes y los que fallaron en un intento anterior.
++def send_pending(
++    session: Session, mailer: Mailer, webhook: WebhookSender | None = None, *, limit: int = 200
++) -> SendSummary:
++    """Envia los avisos pendientes y los que fallaron en un intento anterior.
+ 
+     Un fallo no detiene la tanda ni pierde el aviso: queda marcado con su
+     motivo para que el administrador pueda reintentar.
+     """
+-    pendientes = notifications_repo.pending_emails(session, limit=limit)
++    pendientes = notifications_repo.pending_outbound(session, limit=limit)
+     enviados = fallidos = 0
+ 
+     for notificacion in pendientes:
+         mensaje = _mensaje(notificacion)
+         try:
+-            mailer.send(
+-                Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
+-            )
++            if notificacion.channel is NotificationChannel.WEBHOOK:
++                if webhook is None:
++                    raise WebhookNotConfiguredError
++                webhook.send(
++                    WebhookMessage(
++                        recipient=notificacion.user.email,
++                        subject=mensaje.subject,
++                        body=mensaje.body,
++                    )
++                )
++            else:
++                mailer.send(
++                    Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
++                )
+         except Exception as exc:
+             notificacion.status = NotificationStatus.FAILED
+             notificacion.error = str(exc)[:500]
+diff --git a/backend/src/ola/webhook.py b/backend/src/ola/webhook.py
+new file mode 100644
+index 0000000..6e7723d
+--- /dev/null
++++ b/backend/src/ola/webhook.py
+@@ -0,0 +1,49 @@
++"""Entrega de avisos a una pasarela de mensajeria externa (webhook).
++
++La pasarela recibe cada aviso como JSON en una peticion HTTP POST y se
++encarga de hacerlo llegar al destinatario. Su URL se define en el .env con
++OLA_WEBHOOK_URL; sin ella, la entrega falla y el aviso queda para reintentar.
++"""
++
++from __future__ import annotations
++
++import json
++import urllib.request
++from dataclasses import asdict, dataclass
++from typing import Protocol
++
++
++@dataclass(frozen=True)
++class WebhookMessage:
++    recipient: str
++    subject: str
++    body: str
++
++
++class WebhookSender(Protocol):
++    def send(self, message: WebhookMessage) -> None: ...
++
++
++class WebhookNotConfiguredError(RuntimeError):
++    def __init__(self) -> None:
++        super().__init__("La pasarela no esta configurada (OLA_WEBHOOK_URL).")
++
++
++class HttpWebhookSender:
++    """Envia por HTTP POST. Lanza la excepcion si falla; quien llama la registra."""
++
++    def __init__(self, url: str, *, timeout: float = 15) -> None:
++        self._url = url
++        self._timeout = timeout
++
++    def send(self, message: WebhookMessage) -> None:
++        if not self._url:
++            raise WebhookNotConfiguredError
++        peticion = urllib.request.Request(
++            self._url,
++            data=json.dumps(asdict(message)).encode("utf-8"),
++            headers={"Content-Type": "application/json"},
++            method="POST",
++        )
++        with urllib.request.urlopen(peticion, timeout=self._timeout):
++            pass

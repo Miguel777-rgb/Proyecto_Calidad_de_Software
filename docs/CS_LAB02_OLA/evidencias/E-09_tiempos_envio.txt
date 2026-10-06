@@ -1,0 +1,30 @@
+E-09. Tiempos de las pruebas de la lógica de envío (5 ejecuciones de cada conjunto).
+Entorno: imagen ola-api (Python 3.13.15, pytest 9.1.1) + PostgreSQL 17.11 en contenedor desechable. Fecha: 2026-10-06.
+
+## ANTES (d5c054f): tests/integration/test_notifications.py (34 pruebas de integración)
+34 passed in 12.53s
+34 passed in 12.56s
+34 passed in 12.83s
+34 passed in 12.90s
+34 passed in 12.90s
+
+## DESPUÉS (parche): tests/integration/test_notifications.py (las mismas 34, sin cambios)
+34 passed in 12.69s
+34 passed in 12.87s
+34 passed in 12.77s
+34 passed in 12.70s
+34 passed in 12.51s
+
+## DESPUÉS: tests/unit/test_notification_dispatcher.py (12 pruebas unitarias del despachador)
+12 passed in 0.02s
+12 passed in 0.02s
+12 passed in 0.02s
+12 passed in 0.02s
+12 passed in 0.02s
+
+## DESPUÉS: las 30 pruebas unitarias nuevas (test_channels, test_notices, test_notification_dispatcher)
+30 passed in 0.04s
+30 passed in 0.04s
+30 passed in 0.04s
+30 passed in 0.04s
+30 passed in 0.04s

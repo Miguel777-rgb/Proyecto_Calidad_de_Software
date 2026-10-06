@@ -1,0 +1,14 @@
+E-07. Los módulos nuevos se importan con SQLAlchemy, FastAPI, Starlette y psycopg bloqueados.
+Comando: docker run --rm -e PYTHONPATH=/src -v backend/src:/src ola-api python E-07_importaciones_sin_infraestructura.py
+
+ola.domain.notices                       OK sin fastapi, psycopg, sqlalchemy, starlette
+ola.clock                                OK sin fastapi, psycopg, sqlalchemy, starlette
+ola.services.notification_dispatcher     OK sin fastapi, psycopg, sqlalchemy, starlette
+ola.services.channels                    OK sin fastapi, psycopg, sqlalchemy, starlette
+bibliotecas externas cargadas: ['pydantic', 'pydantic_settings']
+
+Contraprueba en un intérprete sin ninguna biblioteca instalada (imagen python:3.13-slim):
+ola.domain.notices                       se importa sin bibliotecas externas
+ola.clock                                se importa sin bibliotecas externas
+ola.services.notification_dispatcher     FALLA: requiere pydantic
+ola.services.channels                    FALLA: requiere pydantic

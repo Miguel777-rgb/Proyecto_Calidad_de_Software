@@ -1,0 +1,38 @@
+E-10. Escenario de cambio: canal webhook siempre activo, implementado sobre los dos diseños.
+Medido con git diff --cached --numstat sobre backend/src y con la suite existente (pytest).
+
+## DISEÑO ACTUAL (d5c054f)
+  añadidas  eliminadas  archivo
+         8           0  backend/src/ola/api/deps.py
+         3           3  backend/src/ola/api/routers/alerts.py
+         3           0  backend/src/ola/config.py
+         1           0  backend/src/ola/db/models.py
+         3           3  backend/src/ola/repositories/notifications_repo.py
+        21           7  backend/src/ola/services/notification_service.py
+        49           0  backend/src/ola/webhook.py
+
+## DISEÑO PROPUESTO (d5c054f + refactorizacion_avisos.patch)
+  añadidas  eliminadas  archivo
+        10           2  backend/src/ola/api/deps.py
+         3           0  backend/src/ola/config.py
+         1           0  backend/src/ola/domain/notices.py
+        24           2  backend/src/ola/services/channels.py
+        49           0  backend/src/ola/webhook.py
+
+## RESUMEN                                                     actual  propuesto
+  Archivos de código modificados o creados                          7          5
+  Módulos existentes modificados                                    6          4
+  Módulos nuevos (cliente de la pasarela, idéntico)                 1          1
+  Líneas añadidas                                                  88         87
+  Líneas de código existente eliminadas o reescritas               13          4
+  Líneas tocadas en el servicio de avisos (+/-)                    28          0
+  Líneas tocadas en el repositorio de avisos (+/-)                  6          0
+  Líneas tocadas en el router (+/-)                                 6          0
+  CC del bucle de envío (antes del cambio: 4 y 4)                   6          4
+  Pruebas existentes que dejan de pasar                        11/442     12/472
+    cuentan los avisos registrados por episodio                     6          6
+    comprueban el resumen del envío                                 5          5
+    fijan qué canales requieren envío (prueba del propuesto)        0          1
+
+Si el bucle de envío está en el servicio (diseño actual), cada canal nuevo le añade ramas;
+en el propuesto, la lógica del canal vive en WebhookChannel.deliver (CC = 2) y el despachador no cambia.

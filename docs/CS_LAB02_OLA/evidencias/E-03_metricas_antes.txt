@@ -1,0 +1,60 @@
+E-03. Métricas de diseño ANTES (commit d5c054f).
+Comando: python metricas.py backend/src <módulos>
+
+Módulo                                       LOC  NOM  Ce  Ca     I  CCmáx  CCsum
+---------------------------------------------------------------------------------
+services.notification_service                141    7   5   2  0.71      5     20
+services.alert_service                       128    3   8   1  0.89      4      9
+repositories.notifications_repo               65    5   1   3  0.25      2      6
+repositories.alerts_repo                      25    3   1   3  0.25      3      5
+repositories.subscriptions_repo               39    5   1   2  0.33      2      7
+mail                                          36    5   1   2  0.33      3      8
+domain.messages                               57    3   0   1  0.00      1      3
+domain.streaks                                48    3   2   2  0.50      8     10
+db.models                                    229    9   0  20  0.00      1      9
+clock                                         13    4   0   0  0.00      1      4
+api.routers.alerts                            92    4  10   1  0.91      3      7
+api.routers.subscriptions                     81    6   6   1  0.86      3     10
+api.deps                                      57    4   7   9  0.44      4      8
+---------------------------------------------------------------------------------
+Total                                       1011   61                         106
+
+ola.services.notification_service
+  Ce -> ola.db.models, ola.domain.messages, ola.mail, ola.repositories.notifications_repo, ola.repositories.subscriptions_repo
+  Ca <- ola.api.routers.alerts, ola.api.routers.subscriptions
+ola.services.alert_service
+  Ce -> ola.db.models, ola.domain.freshness, ola.domain.streaks, ola.domain.types, ola.repositories.alerts_repo, ola.repositories.labs_repo, ola.repositories.readings_repo, ola.services.settings_service
+  Ca <- ola.api.routers.alerts
+ola.repositories.notifications_repo
+  Ce -> ola.db.models
+  Ca <- ola.api.routers.alerts, ola.api.routers.subscriptions, ola.services.notification_service
+ola.repositories.alerts_repo
+  Ce -> ola.db.models
+  Ca <- ola.api.routers.alerts, ola.services.alert_service, ola.services.status_service
+ola.repositories.subscriptions_repo
+  Ce -> ola.db.models
+  Ca <- ola.api.routers.subscriptions, ola.services.notification_service
+ola.mail
+  Ce -> ola.config
+  Ca <- ola.api.deps, ola.services.notification_service
+ola.domain.messages
+  Ce -> (ninguno)
+  Ca <- ola.services.notification_service
+ola.domain.streaks
+  Ce -> ola.domain.classification, ola.domain.types
+  Ca <- ola.api.routers.alerts, ola.services.alert_service
+ola.db.models
+  Ce -> (ninguno)
+  Ca <- ola.api.deps, ola.api.schemas.alerts, ola.api.schemas.auth, ola.api.schemas.imports, ola.api.schemas.notifications, ola.repositories.alerts_repo, ola.repositories.imports_repo, ola.repositories.labs_repo, ola.repositories.notifications_repo, ola.repositories.readings_repo, ola.repositories.settings_repo, ola.repositories.subscriptions_repo, ola.repositories.users_repo, ola.services.alert_service, ola.services.auth_service, ola.services.import_service, ola.services.notification_service, ola.services.projection_service, ola.services.series_service, ola.services.status_service
+ola.clock
+  Ce -> (ninguno)
+  Ca <- (ninguno)
+ola.api.routers.alerts
+  Ce -> ola.api.deps, ola.api.schemas.alerts, ola.api.schemas.notifications, ola.domain.streaks, ola.repositories.alerts_repo, ola.repositories.labs_repo, ola.repositories.notifications_repo, ola.repositories.readings_repo, ola.services.alert_service, ola.services.notification_service
+  Ca <- ola.main
+ola.api.routers.subscriptions
+  Ce -> ola.api.deps, ola.api.schemas.notifications, ola.repositories.labs_repo, ola.repositories.notifications_repo, ola.repositories.subscriptions_repo, ola.services.notification_service
+  Ca <- ola.main
+ola.api.deps
+  Ce -> ola.config, ola.db.models, ola.db.session, ola.mail, ola.repositories.users_repo, ola.security, ola.services.settings_service
+  Ca <- ola.api.routers.alerts, ola.api.routers.auth, ola.api.routers.imports, ola.api.routers.labs, ola.api.routers.projection, ola.api.routers.series, ola.api.routers.settings, ola.api.routers.status, ola.api.routers.subscriptions

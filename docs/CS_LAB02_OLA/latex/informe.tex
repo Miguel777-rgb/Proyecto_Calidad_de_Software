@@ -1,0 +1,619 @@
+% Informe de la Práctica de Laboratorio 02 — Proyecto OLA.
+% Compilar con compilar.sh (primero tabla3.tex, luego este archivo dos veces).
+\documentclass[11pt,a4paper]{article}
+\input{estilo.tex}
+\hypersetup{pdftitle={Práctica de Laboratorio 02 — Evaluación del diseño mediante atributos de calidad y evidencias},
+            pdfauthor={Equipo OLA}, pdfsubject={Calidad de Software}}
+
+\newcommand{\cSi}{\cellcolor[HTML]{E4F2E7}Sí}
+\newcommand{\cNo}{\cellcolor[HTML]{F8DCD6}No}
+\newcommand{\cPa}{\cellcolor[HTML]{FBF1D9}Parc.}
+\newcommand{\cNA}{N/A}
+
+\begin{document}
+
+\portada{Evaluación del diseño mediante atributos de calidad y evidencias}
+        {Informe técnico con diagnóstico, rediseño, matriz de hallazgos y registro de decisión de arquitectura}
+
+{\hypersetup{linkcolor=black}\renewcommand{\contentsname}{\sffamily\color{azul}Índice}\tableofcontents}
+\thispagestyle{plain}
+\newpage
+
+% =====================================================================
+\section{Datos de la práctica y alcance}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{L{4.2cm}Y}
+\hline
+\clave{Caso evaluado} & Proyecto autorizado: OLA, aplicación web que clasifica la anomalía de la temperatura del mar de los laboratorios costeros de IMARPE y avisa a los usuarios suscritos.\\ \hline
+\clave{Módulo evaluado} & «Alertas y avisos» del backend (requisitos RF-01 y RF-03). Ocupa el lugar del módulo Matrícula que propone la guía.\\ \hline
+\clave{Versión evaluada} & Repositorio \cod{Miguel777-rgb/Proyecto\_Calidad\_de\_Software}, rama \cod{main}, commit \cod{d5c054f} del 13/09/2026.\\ \hline
+\clave{Fecha de ejecución} & Revisión del diseño: 05/10/2026. Mediciones en el entorno del proyecto: 06/10/2026.\\ \hline
+\clave{Unidades revisadas} & 14 unidades de diseño (sección~\ref{sec:lista}) en 12 módulos de Python. Las métricas cubren además \cod{api.deps}: 13 módulos.\\ \hline
+\clave{Fuera de alcance} & El frontend (React), los módulos de importación, series y proyección, y las pruebas de extremo a extremo.\\ \hline
+\end{tabularx}
+\end{center}
+
+\subsection{Adaptación de la guía al proyecto}
+
+El backend de OLA está escrito en Python con FastAPI y organiza buena parte de su lógica en \negrita{módulos de funciones}, no en clases. Para aplicar la guía se tomó como unidad de diseño la clase cuando existe (\cod{SmtpMailer}, \cod{Notification}, \cod{Clock}) y el módulo cuando agrupa funciones (\cod{notification\_service}, \cod{alerts\_repo}). En los diagramas UML los módulos se representan como clases de utilidad con el estereotipo «module», y las métricas «por clase» de la guía se calcularon por módulo: número de funciones y métodos, dependencias y complejidad.
+
+El cuestionario de la guía se responde en un documento aparte.
+
+\subsection{Control previo: herramientas y entorno}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{4.0cm}L{3.6cm}Y}
+\filacab \cab{Herramienta} & \cab{Versión} & \cab{Uso en la práctica}\\
+Sistema operativo & CachyOS (\emph{rolling}), núcleo Linux 7.2.8 & Equipo anfitrión de los contenedores.\\
+\rowcolor{fondotenue}Docker & 29.8.1 & Contenedores de la API, de la base de pruebas y de \LaTeX.\\
+Git & 2.55.0 & Obtener el código, aplicar los parches y medir con \cod{git diff -{}-numstat}.\\
+\rowcolor{fondotenue}Imagen \cod{ola-api} (Python) & 3.13.15 & Imagen de desarrollo del proyecto (\cod{backend/Dockerfile}); ejecuta las pruebas, ruff y mypy.\\
+pytest · pytest-cov · coverage & 9.1.1 · 7.1.0 · 7.16.0 & Pruebas unitarias y de integración; cobertura de sentencias.\\
+\rowcolor{fondotenue}ruff & 0.16.6 & Análisis estático y complejidad ciclomática (regla C901).\\
+mypy & 2.3.1 & Tipos en modo estricto, con el complemento de pydantic.\\
+\rowcolor{fondotenue}PostgreSQL & 17.11 & Base de pruebas \cod{ola\_test} en un contenedor desechable (\cod{postgres:17-alpine}).\\
+SQLAlchemy · FastAPI · pydantic · psycopg · bcrypt & 2.0.52 · 0.141.1 · 2.13.5 · 3.3.5 · 5.0.0 & Dependencias del backend fijadas en \cod{uv.lock}.\\
+\rowcolor{fondotenue}Guion de métricas & propio (\cod{metricas.py}) & LOC, NOM, Ce, Ca, I y complejidad con el módulo \cod{ast}.\\
+Diagramas UML & Archify 3.0.1 (sistema visual) · librsvg 2.62.3 & Generador propio con la paleta, la tipografía y las flechas de Archify; exportación a PDF y PNG.\\
+\rowcolor{fondotenue}Markdown & — & Redactar el ADR; puede abrirse en StackEdit.\\
+\LaTeX & TeX Live 2026 (pdf\TeX{} 1.40.29) & Componer este informe.\\
+\end{tabularx}
+\end{center}
+
+\negrita{Configuración que puede afectar los resultados.} Las pruebas se ejecutaron en la imagen \cod{ola-api} con las variables \cod{OLA\_*} de \cod{.env.example}, salvo \cod{OLA\_JWT\_SECRET} (64 caracteres hexadecimales aleatorios) y \cod{OLA\_ADMIN\_PASSWORD}, que se definieron con valores propios, como pide la plantilla. La carpeta \cod{dataset/} se montó en \cod{/dataset}, igual que en \cod{compose.yml}. La base de pruebas corrió en un contenedor PostgreSQL~17 aislado, no en el servicio \cod{db} del proyecto, para no tocar los datos de desarrollo. Con los secretos de la plantilla, la prueba \cod{test\_is\_production\_solo\_es\_verdadero\_en\_produccion} falla porque el validador de producción los rechaza; no es un defecto del módulo evaluado.
+
+% =====================================================================
+\section{Diagnóstico}
+
+\subsection{Modelo del diseño actual}
+
+Las Figuras~1a y~1b (\ev{E-01}) modelan el módulo. El backend sigue cuatro capas: los routers de la API reciben la petición, los servicios coordinan el caso de uso, el dominio contiene la lógica pura (rachas, textos de los avisos) y los repositorios acceden a PostgreSQL mediante SQLAlchemy.
+
+El flujo evaluado tiene dos pasos. Al evaluar las alertas, \cod{alert\_service.evaluate} detecta los episodios y \cod{notification\_service.create\_for\_events} registra un aviso pendiente por cada suscrito y canal. Después, un administrador dispara \cod{notification\_service.send\_pending}, que envía los correos pendientes y reintenta los fallidos.
+
+Cada caja del diagrama muestra todos los atributos y operaciones de la unidad, de modo que el número de operaciones coincide con su NOM, y lleva sus valores de NOM, Ce y Ca. Las unidades y dependencias con hallazgos están en rosa, con su identificador. Para que el diagrama se lea, no se dibujan las dependencias hacia \cod{api.deps} ni hacia módulos fuera del alcance; Ce las cuenta igualmente. La Figura~1b detalla las 15 clases de \cod{db.models}.
+
+\afterpage{%
+\paginafigura{../diagramas/E-01a_diseno_actual_modulo.pdf}{\textbf{Figura 1a: E-01.} Diagrama de clases del diseño actual del módulo «Alertas y avisos». En rosa, las unidades y dependencias con hallazgos.}%
+\paginafigura{../diagramas/E-01b_diseno_actual_db_models.pdf}{\textbf{Figura 1b: E-01.} Las 15 clases de \texttt{db.models} en el diseño actual, con las asociaciones que derivan de sus claves foráneas.}}
+
+\subsection{Lista de revisión}\label{sec:lista}
+
+Se aplicó una lista de ocho criterios a 14 unidades (\ev{E-02}, Tabla~\ref{tab:lista}). Los criterios son: C1, responsabilidad única; C2, cohesión interna; C3, depende de abstracciones y no de detalles; C4, abierto a extensión sin modificación; C5, respeta la regla de capas; C6, sin duplicación; C7, complejidad ciclomática de cada función no mayor que 10; C8, comprobable sin infraestructura (base de datos o servidor de correo). «Parc.» indica un cumplimiento parcial.
+
+\begin{table}[ht]
+\centering\small
+\caption{\textsf{\textbf{E-02.}} Lista de revisión aplicada a 14 unidades}\label{tab:lista}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{L{0.8cm}L{6.0cm}*{8}{C{0.85cm}}}
+\filacab \cab{ID} & \cab{Unidad} & \cab{C1} & \cab{C2} & \cab{C3} & \cab{C4} & \cab{C5} & \cab{C6} & \cab{C7} & \cab{C8}\\
+U01 & \cod{services.notification\_service} & \cNo & \cPa & \cPa & \cNo & \cNo & \cNo & \cSi & \cNo\\
+U02 & \cod{services.alert\_service} & \cPa & \cSi & \cNo & \cPa & \cNo & \cSi & \cSi & \cNo\\
+U03 & \cod{repositories.notifications\_repo} & \cSi & \cSi & \cSi & \cNo & \cSi & \cPa & \cSi & \cPa\\
+U04 & \cod{repositories.alerts\_repo} & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cPa\\
+U05 & \cod{repositories.subscriptions\_repo} & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cPa\\
+U06 & \cod{mail.SmtpMailer} & \cSi & \cSi & \cPa & \cSi & \cSi & \cSi & \cSi & \cPa\\
+U07 & \cod{mail.RecordingMailer} & \cSi & \cSi & \cSi & \cSi & \cPa & \cSi & \cSi & \cSi\\
+U08 & \cod{mail.Mailer} · \cod{Email} & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi\\
+U09 & \cod{domain.messages} · \cod{AlertMessage} & \cSi & \cSi & \cSi & \cPa & \cSi & \cPa & \cSi & \cSi\\
+U10 & \cod{domain.streaks} · \cod{\_Run} · \cod{Streak} (\cod{domain.types}) & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi\\
+U11 & \cod{db.models.Notification} & \cSi & \cSi & \cNA & \cPa & \cPa & \cSi & \cSi & \cNA\\
+U12 & \cod{clock.Clock} · \cod{SystemClock} · \cod{FixedClock} & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi & \cSi\\
+U13 & \cod{api.routers.alerts} & \cPa & \cPa & \cSi & \cSi & \cPa & \cPa & \cSi & \cPa\\
+U14 & \cod{api.routers.subscriptions} & \cPa & \cSi & \cSi & \cSi & \cPa & \cPa & \cSi & \cPa\\
+\filatotal \multicolumn{2}{l}{\textsf{\textbf{Incumplimientos (No)}}} & 1 & 0 & 1 & 2 & 2 & 1 & 0 & 2\\
+\end{tabular}
+\end{table}
+
+\negrita{Resultado:} 9 incumplimientos y 24 cumplimientos parciales sobre 112 comprobaciones. Dos unidades concentran 8 de los 9 incumplimientos: \cod{notification\_service} (5) y \cod{alert\_service} (3). El dominio (U09, U10, U12) y los repositorios (U04, U05) no presentan incumplimientos. Ninguna función supera el umbral de complejidad (C7). La justificación de cada celda está en la hoja «Lista de revisión» de la matriz de hallazgos (\cod{Matriz\_Hallazgos\_OLA.xlsx}).
+
+\subsection{Métricas de diseño}
+
+La Tabla~\ref{tab:metricas} (\ev{E-03}) recoge las métricas por unidad, obtenidas con el guion propio \cod{metricas.py}, basado en el módulo \cod{ast}, y contrastadas con ruff. NOM es el número de funciones y métodos; Ce, los módulos internos de los que depende la unidad (acoplamiento eferente); Ca, los módulos internos que dependen de ella (acoplamiento aferente); $I = Ce/(Ca + Ce)$, la inestabilidad; CCmáx y CCsum, la complejidad ciclomática máxima y acumulada de sus funciones.
+
+\begin{table}[ht]
+\centering\small
+\caption{\textsf{\textbf{E-03.}} Métricas de diseño del módulo, versión \cod{d5c054f}}\label{tab:metricas}
+\rowcolors{2}{white}{fondotenue}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{L{5.75cm}*{5}{C{1.04cm}}*{2}{C{1.15cm}}}
+\filacab \cab{Unidad (módulo)} & \cab{LOC} & \cab{NOM} & \cab{Ce} & \cab{Ca} & \cab{I} & \cab{CCmáx} & \cab{CCsum}\\
+\cod{services.notification\_service} & 141 & 7 & 5 & 2 & 0.71 & 5 & 20\\
+\cod{services.alert\_service} & 128 & 3 & 8 & 1 & 0.89 & 4 & 9\\
+\cod{repositories.notifications\_repo} & 65 & 5 & 1 & 3 & 0.25 & 2 & 6\\
+\cod{repositories.alerts\_repo} & 25 & 3 & 1 & 3 & 0.25 & 3 & 5\\
+\cod{repositories.subscriptions\_repo} & 39 & 5 & 1 & 2 & 0.33 & 2 & 7\\
+\cod{mail} & 36 & 5 & 1 & 2 & 0.33 & 3 & 8\\
+\cod{domain.messages} & 57 & 3 & 0 & 1 & 0.00 & 1 & 3\\
+\cod{domain.streaks} & 48 & 3 & 2 & 2 & 0.50 & 8 & 10\\
+\cod{db.models} & 229 & 9 & 0 & 20 & 0.00 & 1 & 9\\
+\cod{clock} & 13 & 4 & 0 & 0 & 0.00 & 1 & 4\\
+\cod{api.routers.alerts} & 92 & 4 & 10 & 1 & 0.91 & 3 & 7\\
+\cod{api.routers.subscriptions} & 81 & 6 & 6 & 1 & 0.86 & 3 & 10\\
+\cod{api.deps} & 57 & 4 & 7 & 9 & 0.44 & 4 & 8\\
+\filatotal \textsf{\textbf{Total}} & \textbf{1011} & \textbf{61} & & & & & \textbf{106}\\
+\end{tabular}
+\end{table}
+
+Lectura de las métricas:
+\begin{itemize}
+  \item \negrita{Complejidad.} Es baja en todo el módulo: la función más compleja es \cod{streaks.\_runs}, con 8, y ninguna supera 10. El problema del módulo no es la complejidad algorítmica, sino el reparto de responsabilidades.
+  \item \negrita{Cohesión.} \cod{notification\_service} es la unidad con mayor complejidad acumulada (20) y la segunda en tamaño tras los modelos. Sus 7 funciones atienden cinco asuntos distintos: decidir qué avisos corresponden, insertarlos, redactar el mensaje, enviarlo y marcar la lectura.
+  \item \negrita{Acoplamiento.} Los servicios dependen de 5 y 8 módulos internos y, además, importan SQLAlchemy para construir sentencias: 4 en \cod{notification\_service} y 4 en \cod{alert\_service}. \cod{routers.alerts} es la unidad más inestable ($I = 0.91$, $Ce = 10$).
+  \item \negrita{Abstracción sin uso.} \cod{clock} tiene $Ca = 0$ y $Ce = 0$: ningún módulo de producción lo importa. El reloj que debía hacer deterministas las pruebas no se usa, y \cod{notification\_service} llama a \cod{datetime.now(UTC)} en 3 lugares.
+  \item \negrita{Núcleo estable.} \cod{db.models} tiene $Ca = 20$ e $I = 0$: casi todo depende de él. Es aceptable porque es declarativo (CCmáx = 1), pero obliga a que los enumerados del dominio vivan en la capa de persistencia.
+\end{itemize}
+
+\subsection{Fragmentos que evidencian los problemas}
+
+El Fragmento~\ref{frag:envio} (\ev{E-05}) muestra el envío actual. La función obtiene los pendientes con una consulta que solo conoce el correo (línea 2), elige el texto con un condicional (línea 6), envía (líneas 8--10), captura cualquier excepción y sella la hora con el reloj del sistema (línea 18). Para probar el reintento o el registro del fallo hace falta una base PostgreSQL con episodios, usuarios y suscripciones.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-05}. Envío en el diseño actual (\cod{notification\_service.py}, líneas 153--179, sin la cadena de documentación).},label=frag:envio]
+def send_pending(session: Session, mailer: Mailer, *, limit: int = 200) -> SendSummary:
+    pendientes = notifications_repo.pending_emails(session, limit=limit)
+    enviados = fallidos = 0
+
+    for notificacion in pendientes:
+        mensaje = _mensaje(notificacion)
+        try:
+            mailer.send(
+                Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
+            )
+        except Exception as exc:
+            notificacion.status = NotificationStatus.FAILED
+            notificacion.error = str(exc)[:500]
+            fallidos += 1
+        else:
+            notificacion.status = NotificationStatus.SENT
+            notificacion.error = None
+            notificacion.sent_at = datetime.now(UTC)
+            enviados += 1
+
+    session.commit()
+    return SendSummary(attempted=len(pendientes), sent=enviados, failed=fallidos)
+\end{lstlisting}
+
+El Fragmento~\ref{frag:insercion} muestra el bloque de inserción que el servicio construye por su cuenta. Aparece dos veces en el mismo archivo, en \cod{create\_for\_events} y en \cod{notify\_open\_alerts\_of}, junto con el diccionario de la fila.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-05}. SQL construido en el servicio y duplicado (\cod{notification\_service.py}, líneas 114--131; el mismo bloque está en las líneas 71--90).},label=frag:insercion]
+    filas = [
+        {
+            "alert_event_id": evento.id,
+            "user_id": user_id,
+            "channel": canal,
+            "kind": NotificationKind.OPENED,
+            "status": NotificationStatus.PENDING,
+        }
+        for evento in vigentes
+        for canal in CANALES
+    ]
+    creados = session.execute(
+        insert(Notification)
+        .values(filas)
+        .on_conflict_do_nothing(constraint="uq_notification_unica")
+        .returning(Notification.id)
+    ).scalars()
+    return len(list(creados))
+\end{lstlisting}
+
+% =====================================================================
+\section{Hallazgos y priorización}
+
+La revisión produjo 12 hallazgos (\ev{E-04}). La Tabla~3, en la página siguiente, los presenta ordenados por prioridad con su severidad, su evidencia por archivo y línea, la decisión y el estado. La misma matriz, con las fórmulas de priorización, está en la hoja «Hallazgos» de \cod{Matriz\_Hallazgos\_OLA.xlsx}.
+
+\afterpage{\paginafigura{tabla3.pdf}{}}
+\refstepcounter{table}
+
+\negrita{Regla de priorización.} Cada hallazgo se puntuó de 1 a 5 en impacto (cuánto dificulta cambiar o probar el módulo) y en esfuerzo de corrección. Se ordenó primero por impacto y, a igual impacto, por menor esfuerzo. La severidad resume el impacto: alta para 4 y 5, media para 3 y baja para 1 y 2. Los cinco hallazgos priorizados son H-01, H-02, H-05, H-03 y H-04. Los cinco afectan a la misma unidad y comparten causa, de modo que se resuelven con dos refactorizaciones:
+
+\begin{itemize}
+  \item \negrita{R1, canales de aviso:} resuelve H-02.
+  \item \negrita{R2, almacén, despachador y reloj:} resuelve H-01, H-03, H-04 y H-05.
+\end{itemize}
+
+Los otros siete quedan registrados con su decisión: cinco pendientes (H-06, H-07, H-09, H-10 y H-12) y dos aceptados (H-08, por ahora, y H-11).
+
+% =====================================================================
+\section{Mejora: rediseño y refactorización}
+
+Las dos refactorizaciones se implementaron sobre una copia del repositorio y están completas en \cod{refactorizacion\_avisos.patch}, que se aplica sin conflictos sobre el commit \cod{d5c054f}. Las Figuras~2a y~2b (\ev{E-06}) muestran el diseño resultante: en verde los elementos nuevos, en ámbar los módulos modificados y en rosa los hallazgos que siguen pendientes.
+
+\afterpage{%
+\paginafigura{../diagramas/E-06a_diseno_propuesto_modulo.pdf}{\textbf{Figura 2a: E-06.} Diagrama de clases del diseño propuesto del módulo «Alertas y avisos». Verde: nuevo; ámbar: modificado; rosa: hallazgos pendientes.}%
+\paginafigura{../diagramas/E-06b_diseno_propuesto_db_models.pdf}{\textbf{Figura 2b: E-06.} Las clases de \texttt{db.models} en el diseño propuesto: los enumerados de los avisos pasan a \texttt{domain.notices}.}}
+
+\subsection{R1: canales de aviso}
+
+\negrita{Problema.} Que el sistema tenga dos canales está escrito en tres sitios: la tupla \cod{CANALES}, el cuerpo de \cod{send\_pending} y los filtros del repositorio. Incumple el principio abierto-cerrado: añadir un canal obliga a modificar código que ya funciona.
+
+\negrita{Cambio.} Se introduce el contrato \cod{Channel} (Fragmento~\ref{frag:canal}, \ev{E-07}). Cada canal sabe entregar un aviso y declara si requiere envío: el correo sí; el aviso dentro de la aplicación no, porque el registro guardado ya es la entrega. \cod{ChannelRegistry} indexa los canales y \cod{default\_channels} es el único punto donde se decide cuáles tiene el sistema.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-07}. Contrato de canal y canal de correo (\cod{services/channels.py}).},label=frag:canal]
+class Channel(Protocol):
+    @property
+    def code(self) -> NotificationChannel: ...
+
+    @property
+    def requires_dispatch(self) -> bool:
+        """Falso en los canales de consulta, donde el aviso guardado ya es la entrega."""
+        ...
+
+    def deliver(self, notice: OutboundNotice) -> None:
+        """Entrega el aviso. Lanza una excepcion si falla; quien llama la registra."""
+        ...
+
+
+class EmailChannel:
+    code = NotificationChannel.EMAIL
+    requires_dispatch = True
+
+    def __init__(self, mailer: Mailer) -> None:
+        self._mailer = mailer
+
+    def deliver(self, notice: OutboundNotice) -> None:
+        self._mailer.send(
+            Email(to=notice.recipient.email, subject=notice.message.subject,
+                  body=notice.message.body)
+        )
+
+
+def default_channels(mailer: Mailer) -> ChannelRegistry:
+    """Punto unico donde se decide que canales tiene el sistema."""
+    return ChannelRegistry([EmailChannel(mailer), InAppChannel()])
+\end{lstlisting}
+
+El mismo criterio se aplicó al texto del aviso. El condicional de \cod{\_mensaje} se sustituye por la tabla \cod{COMPOSERS} de \cod{domain/notices.py}, que asocia cada tipo de aviso con su redactor. Un tipo nuevo se añade en esa tabla.
+
+\subsection{R2: almacén, despachador y reloj}
+
+\negrita{Problema.} La decisión de qué hacer cuando un envío falla está mezclada con las consultas a la base y con el reloj del sistema, así que no puede probarse de forma aislada.
+
+\negrita{Cambio.} La lógica de envío pasa a \cod{NotificationDispatcher} (Fragmento~\ref{frag:despachador}, \ev{E-07}). El despachador recibe por el constructor tres colaboradores definidos como protocolos: el almacén de avisos, el registro de canales y el reloj. No importa directamente SQLAlchemy, FastAPI ni \cod{smtplib}. La implementación real del almacén, \cod{SqlNotificationStore}, vive en el repositorio junto con \cod{insert\_pending}, que concentra la inserción antes duplicada.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-07}. Despachador con dependencias inyectadas (\cod{services/notification\_dispatcher.py}).},label=frag:despachador]
+class NotificationStore(Protocol):
+    def pending(
+        self, channels: Sequence[NotificationChannel], *, limit: int
+    ) -> list[OutboundNotice]: ...
+
+    def mark_sent(self, notice_id: int, at: datetime) -> None: ...
+
+    def mark_failed(self, notice_id: int, reason: str) -> None: ...
+
+
+class NotificationDispatcher:
+    def __init__(self, store: NotificationStore, channels: ChannelRegistry, clock: Clock) -> None:
+        self._store = store
+        self._channels = channels
+        self._clock = clock
+
+    def send_pending(self, *, limit: int = 200) -> SendSummary:
+        codigos = [canal.code for canal in self._channels.dispatchable()]
+        pendientes = self._store.pending(codigos, limit=limit)
+        enviados = fallidos = 0
+
+        for aviso in pendientes:
+            try:
+                self._channels.get(aviso.channel).deliver(aviso)
+            except Exception as exc:
+                self._store.mark_failed(aviso.id, str(exc)[:MAX_ERROR_LENGTH])
+                fallidos += 1
+            else:
+                self._store.mark_sent(aviso.id, self._clock.now())
+                enviados += 1
+
+        return SendSummary(attempted=len(pendientes), sent=enviados, failed=fallidos)
+\end{lstlisting}
+
+\cod{notification\_service} queda como coordinador (Fragmento~\ref{frag:coordinador}): compone el despachador, fija el límite de la transacción y conserva sus firmas públicas; \cod{send\_pending} sigue existiendo y delega en \cod{dispatch\_pending}. Por eso las 34 pruebas de integración existentes no necesitaron cambios. El único router que cambia es \cod{routers/alerts.py}, en 3 líneas: el envío recibe los canales por inyección (\cod{ChannelsDep}, definido en \cod{api/deps.py}) en lugar del \cod{Mailer}. Los enumerados de canal, tipo y estado se movieron de \cod{db/models.py} a \cod{domain/notices.py}; la capa de persistencia los importa del dominio, y no al revés.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-07}. El servicio como coordinador (\cod{services/notification\_service.py}).},label=frag:coordinador]
+def notify_open_alerts_of(session: Session, user_id: int, laboratory_id: int) -> int:
+    vigentes = alerts_repo.open_event_ids(session, laboratory_id)
+    filas = plan_rows(
+        ((event_id, user_id) for event_id in vigentes), NotificationKind.OPENED, CANALES
+    )
+    return notifications_repo.insert_pending(session, filas)
+
+
+def dispatch_pending(
+    session: Session, channels: ChannelRegistry, *, limit: int = 200, clock: Clock | None = None
+) -> SendSummary:
+    despachador = NotificationDispatcher(
+        SqlNotificationStore(session), channels, clock or SystemClock()
+    )
+    resumen = despachador.send_pending(limit=limit)
+    session.commit()
+    return resumen
+\end{lstlisting}
+
+\subsection{Métricas después del cambio}
+
+\begin{table}[ht]
+\centering\small
+\caption{\textsf{\textbf{E-08.}} Métricas antes $\rightarrow$ después de los módulos afectados}\label{tab:despues}
+\rowcolors{2}{white}{fondotenue}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{L{6.05cm}*{6}{C{1.45cm}}}
+\filacab \cab{Módulo} & \cab{LOC} & \cab{NOM} & \cab{Ce} & \cab{Ca} & \cab{CCmáx} & \cab{CCsum}\\
+\cod{services.notification\_service} & 141 → 73 & 7 → 6 & 5 → 8 & 2 → 2 & 5 → 4 & 20 → 12\\
+\cod{services.notification\_dispatcher} & — → 40 & — → 5 & — → 3 & — → 1 & — → 4 & — → 8\\
+\cod{services.channels} & — → 55 & — → 13 & — → 2 & — → 3 & — → 3 & — → 16\\
+\cod{domain.notices} & — → 72 & — → 4 & — → 1 & — → 5 & — → 1 & — → 4\\
+\cod{repositories.notifications\_repo} & 65 → 115 & 5 → 11 & 1 → 2 & 3 → 3 & 2 → 2 & 6 → 14\\
+\cod{repositories.alerts\_repo} & 25 → 41 & 3 → 5 & 1 → 1 & 3 → 4 & 3 → 3 & 5 → 8\\
+\cod{db.models} & 229 → 222 & 9 → 9 & 0 → 1 & 20 → 19 & 1 → 1 & 9 → 9\\
+\cod{clock} & 13 → 13 & 4 → 4 & 0 → 0 & 0 → 2 & 1 → 1 & 4 → 4\\
+\cod{mail} & 36 → 36 & 5 → 5 & 1 → 1 & 2 → 3 & 3 → 3 & 8 → 8\\
+\cod{api.deps} & 57 → 61 & 4 → 5 & 7 → 8 & 9 → 9 & 4 → 4 & 8 → 9\\
+\filatotal \textsf{\textbf{Total medido}} & \textbf{1011 → 1173} & \textbf{61 → 91} & & & & \textbf{106 → 138}\\
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \cod{notification\_service} baja de 141 a 73 líneas y su complejidad acumulada de 20 a 12. Deja de construir sentencias SQL (de 4 a 0).
+  \item \cod{domain.notices} y \cod{clock} se importan sin ninguna biblioteca externa, y el despachador y los canales se cargan sin SQLAlchemy, FastAPI, Starlette ni psycopg; se comprobó importándolos con esas bibliotecas bloqueadas (\ev{E-07}). No son del todo independientes de la infraestructura: \cod{channels} importa \cod{mail}, que importa la configuración, así que el despachador y los canales cargan pydantic y \cod{smtplib}. Es el acoplamiento que describe H-07.
+  \item \cod{clock} pasa de $Ca = 0$ a $Ca = 2$: la abstracción que existía empieza a usarse.
+  \item El costo es más código. Los módulos medidos pasan de 1\,011 líneas en 13 módulos a 1\,173 en 16 (+16\,\%), y \cod{notification\_service} depende ahora de 8 módulos internos en lugar de 5, porque coordina piezas que antes contenía. El acoplamiento no desaparece: cambia de dependencias sobre detalles (sentencias SQL, reloj del sistema) a dependencias sobre contratos.
+\end{itemize}
+
+\subsection{Pruebas}
+
+\begin{table}[ht]
+\centering\small
+\caption{\textsf{\textbf{E-09.}} Pruebas, cobertura y análisis estático, antes y después}\label{tab:pruebas}
+\rowcolors{2}{white}{fondotenue}
+\begin{tabular}{L{6.2cm}L{4.1cm}L{4.4cm}}
+\filacab \cab{Comprobación} & \cab{Antes (\texttt{d5c054f})} & \cab{Después (parche)}\\
+Pruebas unitarias & 212 pasan & 242 pasan (212 previas y 30 nuevas)\\
+Pruebas de integración & 230 pasan, 0 omitidas & 230 pasan, 0 omitidas\\
+Pruebas unitarias de la lógica de envío & 0 & 12\\
+Tiempo de las pruebas del envío (5 ejecuciones) & 12.5--12.9 s (34 de integración) & 0.02 s (12 del despachador); 0.04 s (las 30 nuevas)\\
+Cobertura de sentencias del backend & 95.11\,\% & 95.39\,\%\\
+Cobertura de los 16 módulos del alcance & 95.63\,\% & 96.32\,\%\\
+\cod{ruff check .} & Sin observaciones & Sin observaciones\\
+\cod{mypy src} (estricto, con el complemento de pydantic) & 0 errores en 61 archivos & 0 errores en 64 archivos\\
+Parche aplicado sobre \cod{d5c054f} & — & \cod{git apply -{}-check} sin conflictos; 472 pasan\\
+\end{tabular}
+\end{table}
+
+Las dos pruebas que dependen del dataset real se ejecutan, porque \cod{dataset/} está montado en \cod{/dataset} como en el contenedor del proyecto. \cod{ruff format -{}-check} señala un único archivo sin formatear, \cod{tests/integration/test\_auth\_service.py}, ajeno al módulo e igual antes y después. Las 34 pruebas de integración del envío tardan lo mismo antes y después: el cambio no las acelera, sino que añade 12 pruebas que comprueban la misma lógica sin base de datos, en una fracción del tiempo.
+
+% =====================================================================
+\section{Comparación mediante un escenario de cambio}
+
+\negrita{Escenario.} «Añadir un tercer canal de aviso: una pasarela de mensajería externa a la que el sistema entrega cada aviso mediante una petición HTTP (\emph{webhook}).» Se eligió porque la SRS ya retiró un canal (el SMS) por su costo y un canal distinto del correo es el cambio más previsible del módulo.
+
+\negrita{Especificación.} Para que la comparación sea justa, las dos implementaciones cumplen la misma especificación. Cada episodio registra también un aviso para el canal \cod{WEBHOOK}. El envío que dispara el administrador lo entrega por HTTP POST, con la misma política de fallos y reintentos que el correo. Si \cod{OLA\_WEBHOOK\_URL} no está configurada, la entrega falla con «pasarela no configurada» y el aviso queda para reintento, como si el servidor de correo estuviera caído.
+
+\negrita{Método.} El mismo cambio se implementó dos veces, sobre el diseño actual y sobre el propuesto, y se midió con \cod{git diff -{}-numstat} y con la suite existente, sin modificarla y con la base de pruebas recreada (\ev{E-10}). El cliente de la pasarela (\cod{webhook.py}, 49 líneas) y el parámetro de configuración son idénticos en ambos diseños. Los dos cambios se entregan como parches aplicables en \cod{escenario\_webhook/}.
+
+\begin{table}[ht]
+\centering\small
+\caption{\textsf{\textbf{E-10.}} El mismo cambio en los dos diseños}\label{tab:escenario}
+\rowcolors{2}{white}{fondotenue}
+\begin{tabular}{L{9.4cm}C{2.4cm}C{2.4cm}}
+\filacab \cab{Indicador} & \cab{Diseño actual} & \cab{Diseño propuesto}\\
+Módulos existentes modificados & 6 & 4\\
+Líneas añadidas & 88 & 87\\
+Líneas de código existente eliminadas o reescritas & 13 & 4\\
+Líneas tocadas en el servicio de avisos, que contiene el bucle de envío & 28 & 0\\
+Líneas tocadas en el repositorio de avisos & 6 & 0\\
+Líneas tocadas en el router & 6 & 0\\
+Complejidad ciclomática del bucle de envío (era 4 en ambos) & 6 & 4\\
+Pruebas existentes que dejan de pasar & 11 de 442 & 12 de 472\\
+\quad de ellas, cuentan los avisos registrados por episodio & 6 & 6\\
+\quad de ellas, comprueban el resumen del envío & 5 & 5\\
+\quad de ellas, fijan qué canales requieren envío & 0 & 1\\
+\end{tabular}
+\end{table}
+
+\negrita{Clases afectadas.} En el diseño actual cambian \cod{db/models.py} (un miembro del enumerado), \cod{notification\_service.py} (tupla de canales, firma y cuerpo de \cod{send\_pending}), \cod{notifications\_repo.py} (la consulta de pendientes), \cod{api/deps.py} (la dependencia de la pasarela), \cod{routers/alerts.py} (un parámetro nuevo) y \cod{config.py}. En el diseño propuesto cambian \cod{domain/notices.py} (un miembro del enumerado), \cod{services/channels.py} (la clase \cod{WebhookChannel} y su registro en \cod{default\_channels}), \cod{api/deps.py} y \cod{config.py}. El despachador, el servicio, el repositorio y el router quedan intactos. Los Fragmentos~\ref{frag:esc-actual} y~\ref{frag:esc-propuesto} muestran dónde entra el canal en cada diseño.
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-10}. El canal nuevo en el diseño actual: una rama más en el bucle de envío (\cod{escenario\_webhook/diseno\_actual.patch}).},label=frag:esc-actual]
+try:
+    if notificacion.channel is NotificationChannel.WEBHOOK:
+        if webhook is None:
+            raise WebhookNotConfiguredError
+        webhook.send(
+            WebhookMessage(
+                recipient=notificacion.user.email,
+                subject=mensaje.subject,
+                body=mensaje.body,
+            )
+        )
+    else:
+        mailer.send(
+            Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
+        )
+\end{lstlisting}
+
+\begin{lstlisting}[float=htbp,caption={\ev{E-10}. El canal nuevo en el diseño propuesto: una clase que cumple el contrato y se registra (\cod{escenario\_webhook/diseno\_propuesto.patch}).},label=frag:esc-propuesto]
+class WebhookChannel:
+    """Entrega el aviso a la pasarela de mensajeria externa."""
+
+    code = NotificationChannel.WEBHOOK
+    requires_dispatch = True
+
+    def __init__(self, sender: WebhookSender | None) -> None:
+        self._sender = sender
+
+    def deliver(self, notice: OutboundNotice) -> None:
+        if self._sender is None:
+            raise WebhookNotConfiguredError
+        self._sender.send(
+            WebhookMessage(
+                recipient=notice.recipient.email,
+                subject=notice.message.subject,
+                body=notice.message.body,
+            )
+        )
+\end{lstlisting}
+
+\negrita{Interpretación.} La mejora en modificabilidad es real, pero moderada, y se ve en la localidad del cambio: dos módulos existentes menos, nueve líneas reescritas menos y ninguna línea tocada en el servicio, el repositorio ni el router. La diferencia más clara está en la complejidad. En el diseño actual cada canal nuevo añade ramas al bucle de envío, que pasa de 4 a 6; en el propuesto, la lógica del canal vive en \cod{WebhookChannel.deliver} y el despachador no cambia.
+
+En cambio, el rediseño no reduce las pruebas que hay que actualizar. En ambos diseños dejan de pasar las mismas 11, porque cuentan los avisos de cada episodio o el resumen del envío, que cambian por especificación al añadir un canal siempre activo. El diseño propuesto suma una más, \cod{test\_solo\_el\_correo\_requiere\_envio}, que fija qué canales requieren envío y también debe actualizarse. Ninguna de esas pruebas falla por un defecto: describen un comportamiento que el cambio modifica a propósito.
+
+\negrita{Lo que el rediseño no resuelve.} En ambos diseños hace falta una migración de Alembic para el tipo enumerado \cod{notification\_channel} (H-11).
+
+% =====================================================================
+\section{Documentación}
+
+\subsection{Registro de decisión de arquitectura}
+
+La decisión principal se documenta en \cod{ADR-001-canales-y-despachador-de-avisos.md} (\ev{E-11}). Su contenido, en resumen:
+
+\begin{itemize}
+  \item \negrita{Contexto.} \cod{notification\_service} reúne cinco responsabilidades; los canales no son extensibles, el servicio construye SQL, el envío no se prueba sin PostgreSQL y \cod{Clock} no se usa.
+  \item \negrita{Opciones.} A, puertos y canales; B, cambio mínimo (mover el SQL y añadir un condicional por canal); C, cola asíncrona con un trabajador.
+  \item \negrita{Decisión.} Opción A, con 4.25 puntos en la matriz ponderada frente a 3.55 y 3.20.
+  \item \negrita{Consecuencias positivas.} Un canal nuevo no toca el servicio, el despachador, el repositorio ni el router, y la complejidad del bucle de envío no crece; 30 pruebas unitarias sin base de datos; el servicio baja a la mitad de líneas.
+  \item \negrita{Consecuencias negativas.} 16\,\% más de código, más indirección y un registro de canales que hay que mantener. No reduce las pruebas que hay que actualizar al añadir un canal.
+  \item \negrita{Estado.} Aceptado el 06/10/2026 por el Product Owner; queda pendiente aplicar el parche en una rama.
+\end{itemize}
+
+\subsection{Registro de evidencias}
+
+Las salidas en bruto de las mediciones (pytest, ruff, mypy, cobertura, tiempos y métricas) están en la carpeta \cod{evidencias/}, nombradas con el identificador de la evidencia que respaldan.
+
+\begin{center}
+\small
+\rowcolors{2}{white}{fondotenue}
+\begin{tabularx}{\textwidth}{L{1.0cm}L{4.3cm}YL{3.4cm}}
+\filacab \cab{ID} & \cab{Evidencia} & \cab{Archivo o ubicación} & \cab{Cómo se obtuvo}\\
+\ev{E-01} & Diagrama de clases del diseño actual & Figuras 1a y 1b; \cod{diagramas/E-01a…}, \cod{E-01b…} & Generador propio con el sistema visual de Archify\\
+\ev{E-02} & Lista de revisión de 14 unidades & Tabla~\ref{tab:lista}; hoja «Lista de revisión» & Lectura del código\\
+\ev{E-03} & Métricas de diseño antes & Tabla~\ref{tab:metricas}; hoja «Métricas»; \cod{E-03\_metricas\_antes.txt} & \cod{metricas.py}, ruff\\
+\ev{E-04} & Matriz de hallazgos & Tabla~3; hoja «Hallazgos» & Revisión estructurada\\
+\ev{E-05} & Fragmentos de código antes & Fragmentos~\ref{frag:envio} y~\ref{frag:insercion} & Commit \cod{d5c054f}\\
+\ev{E-06} & Diagrama de clases del diseño propuesto & Figuras 2a y 2b; \cod{diagramas/E-06a…}, \cod{E-06b…} & Generador propio con el sistema visual de Archify\\
+\ev{E-07} & Código después e importaciones sin infraestructura & Fragmentos~\ref{frag:canal} a~\ref{frag:coordinador}; \cod{refactorizacion\_avisos.patch}; \cod{E-07\_importaciones…} & Refactorización; importación con bibliotecas bloqueadas\\
+\ev{E-08} & Métricas de diseño después & Tabla~\ref{tab:despues}; hoja «Métricas»; \cod{E-08\_metricas\_despues.txt} & \cod{metricas.py}, ruff\\
+\ev{E-09} & Pruebas, cobertura y análisis estático & Tabla~\ref{tab:pruebas}; hoja «Pruebas y cobertura»; \cod{E-09\_*} & pytest, pytest-cov, ruff, mypy\\
+\ev{E-10} & Escenario de cambio en ambos diseños & Tabla~\ref{tab:escenario}; Fragmentos~\ref{frag:esc-actual} y~\ref{frag:esc-propuesto}; \cod{escenario\_webhook/}; \cod{E-10\_*} & \cod{git diff -{}-numstat}, pytest\\
+\ev{E-11} & Registro de decisión de arquitectura & Archivo ADR-001 (Markdown) & Redacción en Markdown\\
+\end{tabularx}
+\end{center}
+
+\subsection{Limitaciones de la evaluación}\label{sec:limitaciones}
+
+\begin{itemize}
+  \item \negrita{Base de datos fuera de Compose.} PostgreSQL~17.11 corrió en un contenedor desechable con la imagen de la API del proyecto, no en el servicio \cod{db} de \cod{compose.yml}; la versión mayor es la misma.
+  \item \negrita{Configuración de plantilla.} Se usó \cod{.env.example} con secretos propios. Con los valores de la plantilla falla una prueba de configuración ajena al módulo.
+  \item \negrita{Sin extremo a extremo.} No se ejecutaron las pruebas de Playwright.
+  \item \negrita{Métricas por módulo.} Al tratar los módulos como clases no se calculó una métrica formal de cohesión (LCOM); la cohesión se evaluó con la lista de revisión.
+  \item \negrita{Escenario prototipo.} El canal por \emph{webhook} no incluye la migración de la base ni una pasarela real; sirve para medir el cambio, no para desplegarse. La especificación elegida (canal siempre activo) determina qué pruebas existentes fallan.
+  \item \negrita{Tiempos.} Dependen de la máquina; se informan como el rango de cinco ejecuciones.
+  \item \negrita{Diagramas.} Omiten las dependencias hacia \cod{api.deps} y hacia módulos fuera del alcance; Ce las cuenta.
+  \item \negrita{Puntuaciones.} El impacto y el esfuerzo de cada hallazgo son estimaciones del equipo.
+\end{itemize}
+
+% =====================================================================
+\section{Verificación de cierre}
+
+\begin{center}
+\small
+\rowcolors{2}{white}{fondotenue}
+\begin{tabularx}{\textwidth}{L{6.0cm}C{1.7cm}Y}
+\filacab \cab{Comprobación} & \cab{Resultado} & \cab{Detalle}\\
+Los resultados corresponden al alcance y la versión declarados & Cumple & Las mediciones «antes» se tomaron del commit \cod{d5c054f}, que sigue siendo la versión de \cod{main}; el parche y los escenarios se validaron con \cod{git apply -{}-check} sobre su base.\\
+Cada evidencia es legible, está numerada y se cita en el análisis & Cumple & \ev{E-01} a \ev{E-11}, citadas en las secciones 2 a 6, listadas en la sección 6.2 y con su salida en bruto en \cod{evidencias/}.\\
+Las limitaciones y los datos faltantes están registrados & Cumple & Sección~\ref{sec:limitaciones}.\\
+Las acciones pendientes están registradas & Cumple & Lista siguiente.\\
+\end{tabularx}
+\end{center}
+
+\negrita{Acciones pendientes}
+\begin{enumerate}
+  \item Aplicar \cod{refactorizacion\_avisos.patch} en una rama del repositorio y fusionarla, según el ADR-001 aceptado.
+  \item Mover el SQL de \cod{alert\_service} a \cod{alerts\_repo} (H-06).
+  \item Fijar el límite de las transacciones en un solo nivel (H-12).
+  \item Crear una dependencia común para la búsqueda de laboratorio en los routers (H-10).
+  \item Dar a \cod{SmtpMailer} una configuración SMTP propia (H-07) y unificar \cod{AlertState} con \cod{ThermalState} (H-09).
+  \item Hacer que \cod{count\_by\_status} cuente todos los canales que se envían.
+\end{enumerate}
+
+% =====================================================================
+\section{Ejercicios propuestos}
+
+\subsection{Aplicar el diseño a un nuevo escenario de cambio}
+
+\negrita{Escenario.} «Avisar cuando una alerta vigente se intensifica», es decir, añadir un tercer tipo de aviso además de inicio y fin.
+
+En el diseño propuesto el cambio se localiza así:
+\begin{itemize}
+  \item \cod{domain/notices.py}: un miembro nuevo en \cod{NotificationKind} y una entrada en \cod{COMPOSERS}.
+  \item \cod{domain/messages.py}: la función que redacta el texto.
+  \item \cod{alert\_service}: detectar la intensificación, igual en ambos diseños.
+  \item No cambian el despachador, los canales, el repositorio ni el servicio de avisos. La prueba parametrizada \cod{test\_todos\_los\_momentos\_tienen\_texto} falla si se añade el tipo y se olvida su texto.
+\end{itemize}
+
+En el diseño actual habría que modificar además \cod{notification\_service.\_mensaje}. Esa función trata como aviso de fin todo lo que no sea un aviso de inicio, de modo que, si se olvidara actualizarla, el tipo nuevo enviaría el texto «terminó la alerta» sin que fallara ninguna prueba. El rediseño convierte ese error silencioso en un fallo visible.
+
+\subsection{Proponer una prueba que evidencie comprobabilidad}
+
+La prueba del Fragmento~\ref{frag:prueba} comprueba una regla de negocio de RF-03: un envío fallido no detiene a los demás. No usa base de datos, servidor de correo ni el reloj del sistema; los tres colaboradores son dobles en memoria. Forma parte de las 30 pruebas nuevas, que pasan en 0.04 s.
+
+\begin{lstlisting}[float=htbp,caption={Prueba aislada con dobles (\cod{tests/unit/test\_notification\_dispatcher.py}).},label=frag:prueba]
+def test_un_fallo_no_detiene_los_demas_envios(self):
+    almacen = AlmacenEnMemoria([aviso(1), aviso(2), aviso(3)])
+    canal = CanalQueFallaCon({2})
+
+    resumen = despachador(almacen, [canal]).send_pending()
+
+    assert (resumen.sent, resumen.failed) == (2, 1)
+    assert canal.entregados == [1, 3]
+\end{lstlisting}
+
+La prueba equivalente del diseño actual (\cod{test\_un\_fallo\_no\_detiene\_los\_demas\_envios}, en las pruebas de integración) necesita seis \emph{fixtures}: cliente HTTP, sesión de base de datos, datos de muestra, configuración, cabeceras de usuario y buzón. Además no puede provocar que falle solo el segundo envío, porque el doble de correo falla siempre o nunca.
+
+\subsection{Comparar dos alternativas de refactorización con una matriz ponderada}
+
+Se compararon tres alternativas: A, puertos y canales (la implementada); B, cambio mínimo, que mueve el SQL al repositorio y añade un condicional por canal; y C, una cola asíncrona con un trabajador en segundo plano. La puntuación va de 1 a 5; en esfuerzo y riesgo, 5 significa menor esfuerzo y menor riesgo.
+
+\begin{table}[ht]
+\centering\small
+\caption{Matriz ponderada de alternativas}\label{tab:alternativas}
+\rowcolors{2}{white}{fondotenue}
+\begin{tabular}{L{6.6cm}C{1.3cm}C{2.0cm}C{1.8cm}C{1.8cm}}
+\filacab \cab{Criterio} & \cab{Peso} & \cab{A. Puertos y canales} & \cab{B. Cambio mínimo} & \cab{C. Cola asíncrona}\\
+Modificabilidad (canal o tipo de aviso nuevo) & 30\,\% & 5 & 3 & 5\\
+Comprobabilidad (pruebas sin infraestructura) & 25\,\% & 5 & 2 & 4\\
+Esfuerzo de implementación & 20\,\% & 3 & 5 & 1\\
+Riesgo de regresión & 15\,\% & 4 & 5 & 2\\
+Comprensibilidad para el equipo & 10\,\% & 3 & 4 & 2\\
+\filatotal \textsf{\textbf{Total ponderado}} & \textbf{100\,\%} & \textbf{4.25} & \textbf{3.55} & \textbf{3.20}\\
+\end{tabular}
+\end{table}
+
+La alternativa A obtiene la mayor puntuación porque es la única que mejora a la vez los dos atributos con más peso. B es la más barata y segura, pero deja intactos H-02 y H-05. C iguala a A en modificabilidad, pero su costo y su riesgo no se justifican para un envío que hoy dispara un administrador a mano. Las puntuaciones de B y C son estimaciones: solo A se implementó y se midió. La matriz, con sus fórmulas, está en la hoja «Alternativas» del libro de Excel.
+
+% =====================================================================
+\section{Conclusiones}
+
+\begin{enumerate}
+  \item El módulo «Alertas y avisos» tiene un dominio bien diseñado (funciones puras, complejidad máxima de 8) y una capa de servicios con problemas concentrados: 8 de los 9 incumplimientos de la lista de revisión están en dos unidades.
+  \item El problema no era la complejidad, sino la cohesión y la dirección de las dependencias. Ninguna función superaba el umbral de 10, y aun así el servicio de avisos reunía cinco responsabilidades y no podía probarse sin base de datos.
+  \item Dos refactorizaciones resolvieron los cinco hallazgos priorizados sin modificar ninguna de las 442 pruebas existentes, que siguen pasando en el entorno del proyecto, con mypy estricto sin errores y una cobertura del módulo que sube de 95.63\,\% a 96.32\,\%.
+  \item La mejora se midió con un escenario de cambio implementado en ambos diseños con la misma especificación: el canal nuevo toca dos módulos existentes menos y no aumenta la complejidad del bucle de envío. La misma medición mostró su límite: no reduce las pruebas que hay que actualizar.
+  \item El rediseño tiene un costo, 16\,\% más de código y más indirección, y deja pendientes siete hallazgos, registrados con su decisión.
+\end{enumerate}
+
+% =====================================================================
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
+
+\begin{itemize}[label={}, leftmargin=1.2em, itemindent=-1.2em, before=\raggedright]
+  \item ISO/IEC. (2023). \emph{ISO/IEC 25010: Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model}.
+  \item Martin, R.~C. (2017). \emph{Clean Architecture: A Craftsman's Guide to Software Structure and Design}. Pearson.
+  \item McCabe, T.~J. (1976). A complexity measure. \emph{IEEE Transactions on Software Engineering, SE-2}(4), 308--320.
+  \item Nygard, M. (2011). \emph{Documenting architecture decisions}. \url{https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions}
+  \item Pressman, R. (2010). \emph{Ingeniería del software: un enfoque práctico} (7.ª ed.). McGraw-Hill.
+  \item Sommerville, I. (2011). \emph{Ingeniería de software} (9.ª ed.). Pearson.
+  \item tt-a1i. (2026). \emph{Archify} (versión 3.0.1) [Software]. \url{https://github.com/tt-a1i/archify}
+  \item Equipo OLA. (2026). \emph{Repositorio del proyecto OLA}, commit \cod{d5c054f}. \url{https://github.com/Miguel777-rgb/Proyecto_Calidad_de_Software}
+\end{itemize}
+
+\end{document}

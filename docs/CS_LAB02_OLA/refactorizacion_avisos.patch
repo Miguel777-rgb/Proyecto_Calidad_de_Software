@@ -1,0 +1,1122 @@
+diff --git a/backend/src/ola/api/deps.py b/backend/src/ola/api/deps.py
+index e971453..8454122 100644
+--- a/backend/src/ola/api/deps.py
++++ b/backend/src/ola/api/deps.py
+@@ -16,6 +16,7 @@ from ola.mail import Mailer, SmtpMailer
+ from ola.repositories import users_repo
+ from ola.security import decode_access_token
+ from ola.services import settings_service
++from ola.services.channels import ChannelRegistry, default_channels
+ from ola.services.settings_service import EffectiveSettings
+ 
+ bearer_scheme = HTTPBearer(auto_error=False)
+@@ -81,3 +82,11 @@ def get_mailer(settings: SettingsDep) -> Mailer:
+ 
+ 
+ MailerDep = Annotated[Mailer, Depends(get_mailer)]
++
++
++def get_channels(mailer: MailerDep) -> ChannelRegistry:
++    """Canales de aviso del sistema. Aqui se conecta cada canal con lo que necesita."""
++    return default_channels(mailer)
++
++
++ChannelsDep = Annotated[ChannelRegistry, Depends(get_channels)]
+diff --git a/backend/src/ola/api/routers/alerts.py b/backend/src/ola/api/routers/alerts.py
+index e9c4a88..7f93ba6 100644
+--- a/backend/src/ola/api/routers/alerts.py
++++ b/backend/src/ola/api/routers/alerts.py
+@@ -6,7 +6,7 @@ from typing import Annotated
+ 
+ from fastapi import APIRouter, HTTPException, Query, status
+ 
+-from ola.api.deps import AdminUser, EffectiveSettingsDep, MailerDep, SessionDep
++from ola.api.deps import AdminUser, ChannelsDep, EffectiveSettingsDep, SessionDep
+ from ola.api.schemas.alerts import AlertEventOut, EvaluationSummaryOut, StreakOut
+ from ola.api.schemas.notifications import SendSummaryOut
+ from ola.domain.streaks import detect_streaks
+@@ -101,10 +101,10 @@ def laboratory_streaks(
+     summary="Envia los avisos pendientes por correo",
+ )
+ def send_notifications(
+-    session: SessionDep, mailer: MailerDep, admin: AdminUser, limit: int = 200
++    session: SessionDep, channels: ChannelsDep, admin: AdminUser, limit: int = 200
+ ) -> SendSummaryOut:
+     """Segundo paso del envio. Reintenta tambien los que fallaron antes."""
+-    resumen = notification_service.send_pending(session, mailer, limit=limit)
++    resumen = notification_service.dispatch_pending(session, channels, limit=limit)
+     return SendSummaryOut(
+         attempted=resumen.attempted,
+         sent=resumen.sent,
+diff --git a/backend/src/ola/db/models.py b/backend/src/ola/db/models.py
+index 05f748b..3937a36 100644
+--- a/backend/src/ola/db/models.py
++++ b/backend/src/ola/db/models.py
+@@ -23,6 +23,11 @@ from sqlalchemy import (
+ from sqlalchemy.dialects.postgresql import JSONB
+ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+ 
++# Los conceptos de los avisos viven en el dominio; aqui solo se guardan.
++from ola.domain.notices import NotificationChannel as NotificationChannel
++from ola.domain.notices import NotificationKind as NotificationKind
++from ola.domain.notices import NotificationStatus as NotificationStatus
++
+ 
+ class Base(DeclarativeBase):
+     """Base declarativa comun. Alembic lee su metadata para autogenerar."""
+@@ -239,24 +244,6 @@ class AppSetting(Base):
+         return f"<AppSetting {self.key}>"
+ 
+ 
+-class NotificationChannel(enum.StrEnum):
+-    EMAIL = "email"
+-    IN_APP = "in_app"
+-
+-
+-class NotificationKind(enum.StrEnum):
+-    """Momento del episodio que motiva el aviso."""
+-
+-    OPENED = "opened"
+-    CLOSED = "closed"
+-
+-
+-class NotificationStatus(enum.StrEnum):
+-    PENDING = "pending"
+-    SENT = "sent"
+-    FAILED = "failed"
+-
+-
+ class Subscription(Base):
+     """Zona de interes de un usuario (RF-07)."""
+ 
+diff --git a/backend/src/ola/domain/notices.py b/backend/src/ola/domain/notices.py
+new file mode 100644
+index 0000000..b8029f6
+--- /dev/null
++++ b/backend/src/ola/domain/notices.py
+@@ -0,0 +1,117 @@
++"""Conceptos de los avisos a usuarios (RF-03).
++
++Sin dependencias de base de datos, de FastAPI ni de correo: aqui vive lo que
++un aviso ES. Como se guarda lo decide `repositories`, y como se entrega,
++`services.channels`. La capa de persistencia importa estos tipos, y no al
++reves, de modo que la logica de avisos se prueba sin levantar PostgreSQL.
++"""
++
++from __future__ import annotations
++
++import enum
++from collections.abc import Callable, Iterable, Sequence
++from dataclasses import dataclass
++from datetime import date
++from decimal import Decimal
++from typing import NamedTuple
++
++from ola.domain.messages import AlertMessage, alert_closed, alert_opened
++
++
++class NotificationChannel(enum.StrEnum):
++    EMAIL = "email"
++    IN_APP = "in_app"
++
++
++class NotificationKind(enum.StrEnum):
++    """Momento del episodio que motiva el aviso."""
++
++    OPENED = "opened"
++    CLOSED = "closed"
++
++
++class NotificationStatus(enum.StrEnum):
++    PENDING = "pending"
++    SENT = "sent"
++    FAILED = "failed"
++
++
++class PendingRow(NamedTuple):
++    """Un aviso por registrar: episodio, destinatario, canal y momento."""
++
++    alert_event_id: int
++    user_id: int
++    channel: NotificationChannel
++    kind: NotificationKind
++
++
++def plan_rows(
++    pairs: Iterable[tuple[int, int]],
++    kind: NotificationKind,
++    channels: Sequence[NotificationChannel],
++) -> list[PendingRow]:
++    """Un aviso por cada par (episodio, usuario) y por cada canal."""
++    return [
++        PendingRow(alert_event_id=event_id, user_id=user_id, channel=channel, kind=kind)
++        for event_id, user_id in pairs
++        for channel in channels
++    ]
++
++
++@dataclass(frozen=True)
++class AlertFacts:
++    """Datos del episodio que necesita el texto de un aviso."""
++
++    zona: str
++    state: str
++    started_on: date
++    ended_on: date
++    streak_length: int
++    peak_anomaly_c: Decimal
++
++
++def _opened(facts: AlertFacts) -> AlertMessage:
++    return alert_opened(
++        zona=facts.zona,
++        state=facts.state,
++        started_on=facts.started_on,
++        streak_length=facts.streak_length,
++        peak_anomaly_c=facts.peak_anomaly_c,
++    )
++
++
++def _closed(facts: AlertFacts) -> AlertMessage:
++    return alert_closed(
++        zona=facts.zona,
++        state=facts.state,
++        started_on=facts.started_on,
++        ended_on=facts.ended_on,
++    )
++
++
++# Un tipo de aviso nuevo se anade aqui, sin tocar a quien envia.
++COMPOSERS: dict[NotificationKind, Callable[[AlertFacts], AlertMessage]] = {
++    NotificationKind.OPENED: _opened,
++    NotificationKind.CLOSED: _closed,
++}
++
++
++def compose(kind: NotificationKind, facts: AlertFacts) -> AlertMessage:
++    """Redacta el aviso que corresponde a ese momento del episodio."""
++    return COMPOSERS[kind](facts)
++
++
++@dataclass(frozen=True)
++class Recipient:
++    user_id: int
++    email: str
++
++
++@dataclass(frozen=True)
++class OutboundNotice:
++    """Un aviso listo para entregar, ya separado de como esta guardado."""
++
++    id: int
++    channel: NotificationChannel
++    recipient: Recipient
++    message: AlertMessage
+diff --git a/backend/src/ola/repositories/alerts_repo.py b/backend/src/ola/repositories/alerts_repo.py
+index d8c2302..e26d848 100644
+--- a/backend/src/ola/repositories/alerts_repo.py
++++ b/backend/src/ola/repositories/alerts_repo.py
+@@ -2,6 +2,8 @@
+ 
+ from __future__ import annotations
+ 
++from collections.abc import Sequence
++
+ from sqlalchemy import delete, desc, func, select
+ from sqlalchemy.orm import Session, joinedload
+ 
+@@ -30,6 +32,27 @@ def open_events(session: Session) -> dict[int, AlertEvent]:
+     return {evento.laboratory_id: evento for evento in eventos}
+ 
+ 
++def laboratories_of(session: Session, event_ids: Sequence[int]) -> list[tuple[int, int]]:
++    """Pares (episodio, laboratorio) de los episodios indicados."""
++    if not event_ids:
++        return []
++    filas = session.execute(
++        select(AlertEvent.id, AlertEvent.laboratory_id).where(AlertEvent.id.in_(event_ids))
++    )
++    return [(event_id, laboratory_id) for event_id, laboratory_id in filas]
++
++
++def open_event_ids(session: Session, laboratory_id: int) -> list[int]:
++    """Identificadores de los episodios vigentes de una zona."""
++    return list(
++        session.scalars(
++            select(AlertEvent.id).where(
++                AlertEvent.laboratory_id == laboratory_id, AlertEvent.is_open.is_(True)
++            )
++        )
++    )
++
++
+ def delete_all(session: Session) -> int:
+     """Borra el historico de episodios.
+ 
+diff --git a/backend/src/ola/repositories/notifications_repo.py b/backend/src/ola/repositories/notifications_repo.py
+index 7a49bc2..a78b257 100644
+--- a/backend/src/ola/repositories/notifications_repo.py
++++ b/backend/src/ola/repositories/notifications_repo.py
+@@ -2,14 +2,22 @@
+ 
+ from __future__ import annotations
+ 
++from collections.abc import Sequence
++from datetime import datetime
++
+ from sqlalchemy import desc, func, select
++from sqlalchemy.dialects.postgresql import insert
+ from sqlalchemy.orm import Session, joinedload
+ 
+-from ola.db.models import (
+-    AlertEvent,
+-    Notification,
++from ola.db.models import AlertEvent, Notification
++from ola.domain.notices import (
++    AlertFacts,
+     NotificationChannel,
+     NotificationStatus,
++    OutboundNotice,
++    PendingRow,
++    Recipient,
++    compose,
+ )
+ 
+ 
+@@ -52,23 +60,81 @@ def get_for_user(session: Session, notification_id: int, user_id: int) -> Notifi
+     )
+ 
+ 
+-def pending_emails(session: Session, *, limit: int = 200) -> list[Notification]:
+-    """Correos por enviar, incluidos los que fallaron en un intento anterior."""
+-    return list(
+-        session.scalars(
++def insert_pending(session: Session, rows: Sequence[PendingRow]) -> int:
++    """Registra avisos pendientes y devuelve cuantos se crearon realmente.
++
++    La restriccion de unicidad descarta los que ya existian, de modo que
++    registrar dos veces el mismo episodio no duplica nada.
++    """
++    if not rows:
++        return 0
++    creados = session.execute(
++        insert(Notification)
++        .values([{**row._asdict(), "status": NotificationStatus.PENDING} for row in rows])
++        .on_conflict_do_nothing(constraint="uq_notification_unica")
++        .returning(Notification.id)
++    ).scalars()
++    return len(list(creados))
++
++
++def _to_notice(notificacion: Notification) -> OutboundNotice:
++    evento = notificacion.alert_event
++    hechos = AlertFacts(
++        zona=evento.laboratory.name,
++        state=evento.state.value,
++        started_on=evento.started_on,
++        ended_on=evento.ended_on,
++        streak_length=evento.streak_length,
++        peak_anomaly_c=evento.peak_anomaly_c,
++    )
++    return OutboundNotice(
++        id=notificacion.id,
++        channel=notificacion.channel,
++        recipient=Recipient(user_id=notificacion.user_id, email=notificacion.user.email),
++        message=compose(notificacion.kind, hechos),
++    )
++
++
++class SqlNotificationStore:
++    """Almacen de avisos sobre PostgreSQL: lo que el despachador necesita y nada mas."""
++
++    def __init__(self, session: Session) -> None:
++        self._session = session
++
++    def pending(
++        self, channels: Sequence[NotificationChannel], *, limit: int
++    ) -> list[OutboundNotice]:
++        if not channels:
++            return []
++        filas = self._session.scalars(
+             select(Notification)
+             .options(
+                 joinedload(Notification.alert_event).joinedload(AlertEvent.laboratory),
+                 joinedload(Notification.user),
+             )
+             .where(
+-                Notification.channel == NotificationChannel.EMAIL,
++                Notification.channel.in_(channels),
+                 Notification.status.in_([NotificationStatus.PENDING, NotificationStatus.FAILED]),
+             )
+             .order_by(Notification.id)
+             .limit(limit)
+         )
+-    )
++        return [_to_notice(fila) for fila in filas]
++
++    def _get(self, notice_id: int) -> Notification:
++        # Ya esta en la sesion desde `pending`, asi que no vuelve a consultar.
++        return self._session.get_one(Notification, notice_id)
++
++    def mark_sent(self, notice_id: int, at: datetime) -> None:
++        notificacion = self._get(notice_id)
++        notificacion.status = NotificationStatus.SENT
++        notificacion.error = None
++        notificacion.sent_at = at
++
++    def mark_failed(self, notice_id: int, reason: str) -> None:
++        notificacion = self._get(notice_id)
++        notificacion.status = NotificationStatus.FAILED
++        notificacion.error = reason
+ 
+ 
+ def count_by_status(session: Session) -> dict[str, int]:
+diff --git a/backend/src/ola/services/channels.py b/backend/src/ola/services/channels.py
+new file mode 100644
+index 0000000..e0eb3c6
+--- /dev/null
++++ b/backend/src/ola/services/channels.py
+@@ -0,0 +1,94 @@
++"""Canales de entrega de los avisos (RF-03).
++
++Cada canal sabe entregar un aviso y nada mas. Quien envia (el despachador)
++solo conoce el contrato `Channel`, asi que un canal nuevo se anade
++escribiendo una clase y registrandola en `default_channels`, sin modificar
++el envio, el repositorio ni los routers.
++"""
++
++from __future__ import annotations
++
++from collections.abc import Iterable
++from typing import Protocol
++
++from ola.domain.notices import NotificationChannel, OutboundNotice
++from ola.mail import Email, Mailer
++
++
++class Channel(Protocol):
++    @property
++    def code(self) -> NotificationChannel: ...
++
++    @property
++    def requires_dispatch(self) -> bool:
++        """Falso en los canales de consulta, donde el aviso guardado ya es la entrega."""
++        ...
++
++    def deliver(self, notice: OutboundNotice) -> None:
++        """Entrega el aviso. Lanza una excepcion si falla; quien llama la registra."""
++        ...
++
++
++class EmailChannel:
++    code = NotificationChannel.EMAIL
++    requires_dispatch = True
++
++    def __init__(self, mailer: Mailer) -> None:
++        self._mailer = mailer
++
++    def deliver(self, notice: OutboundNotice) -> None:
++        self._mailer.send(
++            Email(
++                to=notice.recipient.email,
++                subject=notice.message.subject,
++                body=notice.message.body,
++            )
++        )
++
++
++class InAppChannel:
++    """El aviso se lee desde la aplicacion: no hay nada que empujar."""
++
++    code = NotificationChannel.IN_APP
++    requires_dispatch = False
++
++    def deliver(self, notice: OutboundNotice) -> None:
++        return None
++
++
++class DuplicateChannelError(ValueError):
++    def __init__(self, code: NotificationChannel) -> None:
++        super().__init__(f"El canal '{code.value}' esta registrado mas de una vez.")
++
++
++class UnknownChannelError(LookupError):
++    def __init__(self, code: NotificationChannel) -> None:
++        super().__init__(f"No hay ningun canal registrado para '{code.value}'.")
++
++
++class ChannelRegistry:
++    """Los canales disponibles, indexados por su codigo."""
++
++    def __init__(self, channels: Iterable[Channel]) -> None:
++        self._by_code: dict[NotificationChannel, Channel] = {}
++        for channel in channels:
++            if channel.code in self._by_code:
++                raise DuplicateChannelError(channel.code)
++            self._by_code[channel.code] = channel
++
++    def codes(self) -> tuple[NotificationChannel, ...]:
++        return tuple(self._by_code)
++
++    def dispatchable(self) -> tuple[Channel, ...]:
++        return tuple(c for c in self._by_code.values() if c.requires_dispatch)
++
++    def get(self, code: NotificationChannel) -> Channel:
++        try:
++            return self._by_code[code]
++        except KeyError:
++            raise UnknownChannelError(code) from None
++
++
++def default_channels(mailer: Mailer) -> ChannelRegistry:
++    """Punto unico donde se decide que canales tiene el sistema."""
++    return ChannelRegistry([EmailChannel(mailer), InAppChannel()])
+diff --git a/backend/src/ola/services/notification_dispatcher.py b/backend/src/ola/services/notification_dispatcher.py
+new file mode 100644
+index 0000000..ca3ffaa
+--- /dev/null
++++ b/backend/src/ola/services/notification_dispatcher.py
+@@ -0,0 +1,69 @@
++"""Envio de los avisos pendientes (RF-03).
++
++El despachador decide QUE se envia y que pasa cuando falla. No sabe de
++SQLAlchemy, de SMTP ni del reloj del sistema: recibe un almacen, los canales
++y un reloj. Por eso se prueba con dobles en memoria, sin base de datos.
++"""
++
++from __future__ import annotations
++
++from collections.abc import Sequence
++from dataclasses import dataclass
++from datetime import datetime
++from typing import Protocol
++
++from ola.clock import Clock
++from ola.domain.notices import NotificationChannel, OutboundNotice
++from ola.services.channels import ChannelRegistry
++
++# La columna `error` es de texto libre, pero un volcado de pila no ayuda a
++# quien revisa los fallos desde la aplicacion.
++MAX_ERROR_LENGTH = 500
++
++
++class NotificationStore(Protocol):
++    def pending(
++        self, channels: Sequence[NotificationChannel], *, limit: int
++    ) -> list[OutboundNotice]:
++        """Avisos por entregar de esos canales, incluidos los que fallaron antes."""
++        ...
++
++    def mark_sent(self, notice_id: int, at: datetime) -> None: ...
++
++    def mark_failed(self, notice_id: int, reason: str) -> None: ...
++
++
++@dataclass(frozen=True)
++class SendSummary:
++    attempted: int
++    sent: int
++    failed: int
++
++
++class NotificationDispatcher:
++    def __init__(self, store: NotificationStore, channels: ChannelRegistry, clock: Clock) -> None:
++        self._store = store
++        self._channels = channels
++        self._clock = clock
++
++    def send_pending(self, *, limit: int = 200) -> SendSummary:
++        """Entrega los avisos pendientes y los que fallaron en un intento anterior.
++
++        Un fallo no detiene la tanda ni pierde el aviso: queda marcado con su
++        motivo para que el administrador pueda reintentar.
++        """
++        codigos = [canal.code for canal in self._channels.dispatchable()]
++        pendientes = self._store.pending(codigos, limit=limit)
++        enviados = fallidos = 0
++
++        for aviso in pendientes:
++            try:
++                self._channels.get(aviso.channel).deliver(aviso)
++            except Exception as exc:
++                self._store.mark_failed(aviso.id, str(exc)[:MAX_ERROR_LENGTH])
++                fallidos += 1
++            else:
++                self._store.mark_sent(aviso.id, self._clock.now())
++                enviados += 1
++
++        return SendSummary(attempted=len(pendientes), sent=enviados, failed=fallidos)
+diff --git a/backend/src/ola/services/notification_service.py b/backend/src/ola/services/notification_service.py
+index 3244bb1..0aafea7 100644
+--- a/backend/src/ola/services/notification_service.py
++++ b/backend/src/ola/services/notification_service.py
+@@ -8,51 +8,38 @@ El envio esta separado en dos pasos a proposito:
+    caido no bloquea ni hace fallar la evaluacion, y los fallos quedan
+    visibles para reintentar.
+ 
+-La restriccion de unicidad de la tabla es la que impide repetir un aviso: por
+-mucho que se reevalue, un episodio genera un unico correo por usuario.
++Este modulo solo coordina y fija el limite de cada transaccion. Que avisos
++corresponden lo decide `domain.notices`; como se guardan, `repositories`;
++como se entregan, `services.channels`; y que pasa cuando una entrega falla,
++`services.notification_dispatcher`.
+ """
+ 
+ from __future__ import annotations
+ 
+ from collections.abc import Sequence
+-from dataclasses import dataclass
+-from datetime import UTC, datetime
+-
+-from sqlalchemy import select
+-from sqlalchemy.dialects.postgresql import insert
+-from sqlalchemy.orm import Session, joinedload
+-
+-from ola.db.models import (
+-    AlertEvent,
+-    Notification,
+-    NotificationChannel,
+-    NotificationKind,
+-    NotificationStatus,
+-)
+-from ola.domain.messages import AlertMessage, alert_closed, alert_opened
+-from ola.mail import Email, Mailer
+-from ola.repositories import notifications_repo, subscriptions_repo
+-
+-CANALES = (NotificationChannel.EMAIL, NotificationChannel.IN_APP)
+-
+-
+-@dataclass(frozen=True)
+-class SendSummary:
+-    attempted: int
+-    sent: int
+-    failed: int
+-
+-
+-def _eventos(session: Session, ids: Sequence[int]) -> list[AlertEvent]:
+-    if not ids:
+-        return []
+-    return list(
+-        session.scalars(
+-            select(AlertEvent)
+-            .options(joinedload(AlertEvent.laboratory))
+-            .where(AlertEvent.id.in_(ids))
+-        )
+-    )
++
++from sqlalchemy.orm import Session
++
++from ola.clock import Clock, SystemClock
++from ola.domain.notices import NotificationChannel, NotificationKind, plan_rows
++from ola.mail import Mailer
++from ola.repositories import alerts_repo, notifications_repo, subscriptions_repo
++from ola.repositories.notifications_repo import SqlNotificationStore
++from ola.services.channels import ChannelRegistry, default_channels
++from ola.services.notification_dispatcher import NotificationDispatcher, SendSummary
++
++__all__ = [
++    "SendSummary",
++    "create_for_events",
++    "dispatch_pending",
++    "mark_all_read",
++    "mark_read",
++    "notify_open_alerts_of",
++    "send_pending",
++]
++
++# Cada episodio se registra en todos los canales que el sistema conoce.
++CANALES: tuple[NotificationChannel, ...] = tuple(NotificationChannel)
+ 
+ 
+ def create_for_events(
+@@ -63,34 +50,18 @@ def create_for_events(
+     Devuelve cuantos se crearon realmente: los que ya existian se ignoran, de
+     modo que llamar dos veces no duplica nada.
+     """
+-    filas: list[dict[str, object]] = []
+-
++    filas = []
+     for tipo, ids in ((NotificationKind.OPENED, opened_ids), (NotificationKind.CLOSED, closed_ids)):
+-        for evento in _eventos(session, ids):
+-            for user_id in subscriptions_repo.subscribers_of(session, evento.laboratory_id):
+-                filas.extend(
+-                    {
+-                        "alert_event_id": evento.id,
+-                        "user_id": user_id,
+-                        "channel": canal,
+-                        "kind": tipo,
+-                        "status": NotificationStatus.PENDING,
+-                    }
+-                    for canal in CANALES
+-                )
++        for event_id, laboratory_id in alerts_repo.laboratories_of(session, ids):
++            suscritos = subscriptions_repo.subscribers_of(session, laboratory_id)
++            filas += plan_rows(((event_id, user_id) for user_id in suscritos), tipo, CANALES)
+ 
+     if not filas:
+         return 0
+ 
+-    creados = session.execute(
+-        insert(Notification)
+-        .values(filas)
+-        .on_conflict_do_nothing(constraint="uq_notification_unica")
+-        .returning(Notification.id)
+-    ).scalars()
+-    total = len(list(creados))
++    creados = notifications_repo.insert_pending(session, filas)
+     session.commit()
+-    return total
++    return creados
+ 
+ 
+ def notify_open_alerts_of(session: Session, user_id: int, laboratory_id: int) -> int:
+@@ -100,98 +71,54 @@ def notify_open_alerts_of(session: Session, user_id: int, laboratory_id: int) ->
+     hasta que el episodio termine, que no es lo que espera: en CALLAO hay uno
+     abierto desde abril. La restriccion de unicidad evita duplicar el aviso si
+     la persona se da de baja y se vuelve a suscribir.
++
++    No confirma la transaccion: lo hace quien registra la suscripcion.
+     """
+-    vigentes = list(
+-        session.scalars(
+-            select(AlertEvent).where(
+-                AlertEvent.laboratory_id == laboratory_id, AlertEvent.is_open.is_(True)
+-            )
+-        )
++    vigentes = alerts_repo.open_event_ids(session, laboratory_id)
++    filas = plan_rows(
++        ((event_id, user_id) for event_id in vigentes), NotificationKind.OPENED, CANALES
+     )
+-    if not vigentes:
+-        return 0
+-
+-    filas = [
+-        {
+-            "alert_event_id": evento.id,
+-            "user_id": user_id,
+-            "channel": canal,
+-            "kind": NotificationKind.OPENED,
+-            "status": NotificationStatus.PENDING,
+-        }
+-        for evento in vigentes
+-        for canal in CANALES
+-    ]
+-    creados = session.execute(
+-        insert(Notification)
+-        .values(filas)
+-        .on_conflict_do_nothing(constraint="uq_notification_unica")
+-        .returning(Notification.id)
+-    ).scalars()
+-    return len(list(creados))
+-
+-
+-def _mensaje(notificacion: Notification) -> AlertMessage:
+-    evento = notificacion.alert_event
+-    zona = evento.laboratory.name
+-    if notificacion.kind is NotificationKind.OPENED:
+-        return alert_opened(
+-            zona=zona,
+-            state=evento.state.value,
+-            started_on=evento.started_on,
+-            streak_length=evento.streak_length,
+-            peak_anomaly_c=evento.peak_anomaly_c,
+-        )
+-    return alert_closed(
+-        zona=zona,
+-        state=evento.state.value,
+-        started_on=evento.started_on,
+-        ended_on=evento.ended_on,
++    return notifications_repo.insert_pending(session, filas)
++
++
++def dispatch_pending(
++    session: Session,
++    channels: ChannelRegistry,
++    *,
++    limit: int = 200,
++    clock: Clock | None = None,
++) -> SendSummary:
++    """Entrega los avisos pendientes por los canales recibidos."""
++    despachador = NotificationDispatcher(
++        SqlNotificationStore(session), channels, clock or SystemClock()
+     )
++    resumen = despachador.send_pending(limit=limit)
++    session.commit()
++    return resumen
+ 
+ 
+-def send_pending(session: Session, mailer: Mailer, *, limit: int = 200) -> SendSummary:
+-    """Envia los correos pendientes y los que fallaron en un intento anterior.
+-
+-    Un fallo no detiene la tanda ni pierde el aviso: queda marcado con su
+-    motivo para que el administrador pueda reintentar.
+-    """
+-    pendientes = notifications_repo.pending_emails(session, limit=limit)
+-    enviados = fallidos = 0
+-
+-    for notificacion in pendientes:
+-        mensaje = _mensaje(notificacion)
+-        try:
+-            mailer.send(
+-                Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
+-            )
+-        except Exception as exc:
+-            notificacion.status = NotificationStatus.FAILED
+-            notificacion.error = str(exc)[:500]
+-            fallidos += 1
+-        else:
+-            notificacion.status = NotificationStatus.SENT
+-            notificacion.error = None
+-            notificacion.sent_at = datetime.now(UTC)
+-            enviados += 1
+-
+-    session.commit()
+-    return SendSummary(attempted=len(pendientes), sent=enviados, failed=fallidos)
++def send_pending(
++    session: Session, mailer: Mailer, *, limit: int = 200, clock: Clock | None = None
++) -> SendSummary:
++    """Envia los correos pendientes y los que fallaron en un intento anterior."""
++    return dispatch_pending(session, default_channels(mailer), limit=limit, clock=clock)
+ 
+ 
+-def mark_read(session: Session, notification_id: int, user_id: int) -> bool:
++def mark_read(
++    session: Session, notification_id: int, user_id: int, *, clock: Clock | None = None
++) -> bool:
+     notificacion = notifications_repo.get_for_user(session, notification_id, user_id)
+     if notificacion is None:
+         return False
+     if notificacion.read_at is None:
+-        notificacion.read_at = datetime.now(UTC)
++        notificacion.read_at = (clock or SystemClock()).now()
+         session.commit()
+     return True
+ 
+ 
+-def mark_all_read(session: Session, user_id: int) -> int:
++def mark_all_read(session: Session, user_id: int, *, clock: Clock | None = None) -> int:
+     pendientes = notifications_repo.list_for_user(session, user_id, only_unread=True, limit=500)
+-    ahora = datetime.now(UTC)
++    ahora = (clock or SystemClock()).now()
+     for notificacion in pendientes:
+         notificacion.read_at = ahora
+     session.commit()
+diff --git a/backend/tests/unit/test_channels.py b/backend/tests/unit/test_channels.py
+new file mode 100644
+index 0000000..bc2b3b1
+--- /dev/null
++++ b/backend/tests/unit/test_channels.py
+@@ -0,0 +1,71 @@
++"""Canales de entrega de los avisos (RF-03)."""
++
++from __future__ import annotations
++
++import pytest
++
++from ola.domain.messages import AlertMessage
++from ola.domain.notices import NotificationChannel, OutboundNotice, Recipient
++from ola.mail import RecordingMailer
++from ola.services.channels import (
++    ChannelRegistry,
++    DuplicateChannelError,
++    EmailChannel,
++    InAppChannel,
++    UnknownChannelError,
++    default_channels,
++)
++
++
++def aviso(canal: NotificationChannel = NotificationChannel.EMAIL) -> OutboundNotice:
++    return OutboundNotice(
++        id=1,
++        channel=canal,
++        recipient=Recipient(user_id=9, email="pescador@ejemplo.pe"),
++        message=AlertMessage(subject="OLA: alerta cálida en Callao", body="El mar..."),
++    )
++
++
++class TestCanalDeCorreo:
++    def test_entrega_al_correo_del_destinatario(self):
++        buzon = RecordingMailer()
++        EmailChannel(buzon).deliver(aviso())
++        assert buzon.sent[0].to == "pescador@ejemplo.pe"
++
++    def test_lleva_el_asunto_y_el_cuerpo_del_aviso(self):
++        buzon = RecordingMailer()
++        EmailChannel(buzon).deliver(aviso())
++        assert buzon.sent[0].subject == "OLA: alerta cálida en Callao"
++        assert buzon.sent[0].body == "El mar..."
++
++    def test_propaga_el_fallo_del_servidor(self):
++        canal = EmailChannel(RecordingMailer(fail_with=OSError("caido")))
++        with pytest.raises(OSError, match="caido"):
++            canal.deliver(aviso())
++
++
++class TestCanalEnLaAplicacion:
++    def test_no_requiere_envio(self):
++        assert InAppChannel().requires_dispatch is False
++
++    def test_entregar_no_hace_nada(self):
++        assert InAppChannel().deliver(aviso(NotificationChannel.IN_APP)) is None
++
++
++class TestRegistro:
++    def test_los_canales_por_defecto_cubren_todos_los_que_se_guardan(self):
++        # Un canal que se guarda pero que nadie sabe entregar dejaria avisos
++        # pendientes para siempre.
++        assert set(default_channels(RecordingMailer()).codes()) == set(NotificationChannel)
++
++    def test_solo_el_correo_requiere_envio(self):
++        canales = default_channels(RecordingMailer()).dispatchable()
++        assert [c.code for c in canales] == [NotificationChannel.EMAIL]
++
++    def test_rechaza_un_canal_repetido(self):
++        with pytest.raises(DuplicateChannelError):
++            ChannelRegistry([InAppChannel(), InAppChannel()])
++
++    def test_pedir_un_canal_no_registrado_es_un_error(self):
++        with pytest.raises(UnknownChannelError):
++            ChannelRegistry([InAppChannel()]).get(NotificationChannel.EMAIL)
+diff --git a/backend/tests/unit/test_notices.py b/backend/tests/unit/test_notices.py
+new file mode 100644
+index 0000000..074f8b5
+--- /dev/null
++++ b/backend/tests/unit/test_notices.py
+@@ -0,0 +1,66 @@
++"""Conceptos de los avisos (RF-03): que se registra y que texto lleva."""
++
++from __future__ import annotations
++
++from datetime import date
++from decimal import Decimal
++
++import pytest
++
++from ola.domain.notices import (
++    COMPOSERS,
++    AlertFacts,
++    NotificationChannel,
++    NotificationKind,
++    compose,
++    plan_rows,
++)
++
++HECHOS = AlertFacts(
++    zona="Callao",
++    state="warm",
++    started_on=date(2026, 7, 24),
++    ended_on=date(2026, 7, 31),
++    streak_length=8,
++    peak_anomaly_c=Decimal("1.9234"),
++)
++
++
++class TestPlanDeAvisos:
++    def test_un_aviso_por_cada_canal(self):
++        filas = plan_rows([(7, 1)], NotificationKind.OPENED, tuple(NotificationChannel))
++        assert {f.channel for f in filas} == set(NotificationChannel)
++
++    def test_un_aviso_por_cada_suscrito(self):
++        filas = plan_rows(
++            [(7, 1), (7, 2), (7, 3)], NotificationKind.OPENED, [NotificationChannel.EMAIL]
++        )
++        assert [f.user_id for f in filas] == [1, 2, 3]
++
++    def test_conserva_el_episodio_y_el_momento(self):
++        (fila,) = plan_rows([(7, 1)], NotificationKind.CLOSED, [NotificationChannel.IN_APP])
++        assert (fila.alert_event_id, fila.kind) == (7, NotificationKind.CLOSED)
++
++    def test_sin_suscritos_no_hay_nada_que_registrar(self):
++        assert plan_rows([], NotificationKind.OPENED, tuple(NotificationChannel)) == []
++
++    def test_sin_canales_no_hay_nada_que_registrar(self):
++        assert plan_rows([(7, 1)], NotificationKind.OPENED, []) == []
++
++
++class TestTextoDelAviso:
++    def test_el_aviso_de_inicio_nombra_la_zona_y_el_estado(self):
++        mensaje = compose(NotificationKind.OPENED, HECHOS)
++        assert "Callao" in mensaje.subject
++        assert "cálida" in mensaje.subject
++
++    def test_el_aviso_de_fin_dice_que_termino(self):
++        mensaje = compose(NotificationKind.CLOSED, HECHOS)
++        assert "terminó" in mensaje.subject
++
++    @pytest.mark.parametrize("tipo", list(NotificationKind))
++    def test_todos_los_momentos_tienen_texto(self, tipo):
++        # Si se anade un momento nuevo y se olvida su texto, falla aqui y no
++        # al enviar el primer aviso en produccion.
++        assert tipo in COMPOSERS
++        assert compose(tipo, HECHOS).body
+diff --git a/backend/tests/unit/test_notification_dispatcher.py b/backend/tests/unit/test_notification_dispatcher.py
+new file mode 100644
+index 0000000..8390bca
+--- /dev/null
++++ b/backend/tests/unit/test_notification_dispatcher.py
+@@ -0,0 +1,164 @@
++"""Envio de los avisos pendientes (RF-03), sin base de datos ni servidor de correo.
++
++El almacen y el canal son dobles en memoria y el reloj esta congelado, de
++modo que cada prueba fija por completo la situacion que comprueba.
++"""
++
++from __future__ import annotations
++
++from collections.abc import Sequence
++from datetime import UTC, datetime
++
++from ola.clock import FixedClock
++from ola.domain.messages import AlertMessage
++from ola.domain.notices import NotificationChannel, OutboundNotice, Recipient
++from ola.mail import RecordingMailer
++from ola.services.channels import ChannelRegistry, EmailChannel, InAppChannel
++from ola.services.notification_dispatcher import (
++    MAX_ERROR_LENGTH,
++    NotificationDispatcher,
++)
++
++AHORA = datetime(2026, 8, 1, 6, 30, tzinfo=UTC)
++
++
++def aviso(identificador: int, canal: NotificationChannel = NotificationChannel.EMAIL):
++    return OutboundNotice(
++        id=identificador,
++        channel=canal,
++        recipient=Recipient(user_id=identificador, email=f"usuario{identificador}@ejemplo.pe"),
++        message=AlertMessage(subject=f"Aviso {identificador}", body="..."),
++    )
++
++
++class AlmacenEnMemoria:
++    def __init__(self, avisos: Sequence[OutboundNotice]) -> None:
++        self._avisos = list(avisos)
++        self.enviados: dict[int, datetime] = {}
++        self.fallidos: dict[int, str] = {}
++        self.limite_pedido: int | None = None
++
++    def pending(self, channels, *, limit):
++        self.limite_pedido = limit
++        por_enviar = [
++            a for a in self._avisos if a.channel in channels and a.id not in self.enviados
++        ]
++        return por_enviar[:limit]
++
++    def mark_sent(self, notice_id, at):
++        self.enviados[notice_id] = at
++        self.fallidos.pop(notice_id, None)
++
++    def mark_failed(self, notice_id, reason):
++        self.fallidos[notice_id] = reason
++
++
++class CanalQueFallaCon:
++    """Canal de correo que falla para los avisos indicados."""
++
++    code = NotificationChannel.EMAIL
++    requires_dispatch = True
++
++    def __init__(self, ids_que_fallan: set[int], motivo: str = "servidor no disponible") -> None:
++        self._ids = ids_que_fallan
++        self._motivo = motivo
++        self.entregados: list[int] = []
++
++    def deliver(self, notice):
++        if notice.id in self._ids:
++            raise OSError(self._motivo)
++        self.entregados.append(notice.id)
++
++
++def despachador(almacen, canales):
++    return NotificationDispatcher(almacen, ChannelRegistry(canales), FixedClock(AHORA))
++
++
++class TestEnvio:
++    def test_entrega_cada_aviso_pendiente(self):
++        buzon = RecordingMailer()
++        almacen = AlmacenEnMemoria([aviso(1), aviso(2)])
++
++        resumen = despachador(almacen, [EmailChannel(buzon)]).send_pending()
++
++        assert (resumen.attempted, resumen.sent, resumen.failed) == (2, 2, 0)
++        assert [c.to for c in buzon.sent] == ["usuario1@ejemplo.pe", "usuario2@ejemplo.pe"]
++
++    def test_sella_el_envio_con_la_hora_del_reloj_recibido(self):
++        almacen = AlmacenEnMemoria([aviso(1)])
++        despachador(almacen, [EmailChannel(RecordingMailer())]).send_pending()
++        assert almacen.enviados == {1: AHORA}
++
++    def test_sin_pendientes_no_intenta_nada(self):
++        resumen = despachador(
++            AlmacenEnMemoria([]), [EmailChannel(RecordingMailer())]
++        ).send_pending()
++        assert resumen.attempted == 0
++
++    def test_no_reenvia_lo_ya_enviado(self):
++        buzon = RecordingMailer()
++        d = despachador(AlmacenEnMemoria([aviso(1)]), [EmailChannel(buzon)])
++        d.send_pending()
++        segundo = d.send_pending()
++        assert segundo.attempted == 0
++        assert len(buzon.sent) == 1
++
++    def test_respeta_el_limite_de_la_tanda(self):
++        almacen = AlmacenEnMemoria([aviso(i) for i in range(1, 6)])
++        resumen = despachador(almacen, [EmailChannel(RecordingMailer())]).send_pending(limit=2)
++        assert almacen.limite_pedido == 2
++        assert resumen.attempted == 2
++
++
++class TestCanales:
++    def test_los_canales_de_consulta_no_se_despachan(self):
++        buzon = RecordingMailer()
++        almacen = AlmacenEnMemoria([aviso(1), aviso(2, NotificationChannel.IN_APP)])
++
++        resumen = despachador(almacen, [EmailChannel(buzon), InAppChannel()]).send_pending()
++
++        assert resumen.attempted == 1
++        assert 2 not in almacen.enviados
++
++    def test_acepta_cualquier_canal_que_cumpla_el_contrato(self):
++        # Sustituir el canal no exige tocar el despachador.
++        canal = CanalQueFallaCon(set())
++        despachador(AlmacenEnMemoria([aviso(1)]), [canal]).send_pending()
++        assert canal.entregados == [1]
++
++
++class TestFallos:
++    def test_un_fallo_se_registra_con_su_motivo(self):
++        almacen = AlmacenEnMemoria([aviso(1)])
++        resumen = despachador(almacen, [CanalQueFallaCon({1})]).send_pending()
++        assert resumen.failed == 1
++        assert almacen.fallidos == {1: "servidor no disponible"}
++
++    def test_un_fallo_no_detiene_los_demas_envios(self):
++        almacen = AlmacenEnMemoria([aviso(1), aviso(2), aviso(3)])
++        canal = CanalQueFallaCon({2})
++
++        resumen = despachador(almacen, [canal]).send_pending()
++
++        assert (resumen.sent, resumen.failed) == (2, 1)
++        assert canal.entregados == [1, 3]
++
++    def test_un_aviso_fallido_no_queda_marcado_como_enviado(self):
++        almacen = AlmacenEnMemoria([aviso(1)])
++        despachador(almacen, [CanalQueFallaCon({1})]).send_pending()
++        assert almacen.enviados == {}
++
++    def test_el_motivo_se_recorta_para_no_guardar_un_volcado(self):
++        almacen = AlmacenEnMemoria([aviso(1)])
++        despachador(almacen, [CanalQueFallaCon({1}, motivo="x" * 2000)]).send_pending()
++        assert len(almacen.fallidos[1]) == MAX_ERROR_LENGTH
++
++    def test_un_aviso_fallido_se_reintenta_en_el_siguiente_envio(self):
++        almacen = AlmacenEnMemoria([aviso(1)])
++        despachador(almacen, [CanalQueFallaCon({1})]).send_pending()
++
++        buzon = RecordingMailer()
++        resumen = despachador(almacen, [EmailChannel(buzon)]).send_pending()
++
++        assert resumen.sent == 1
++        assert almacen.fallidos == {}

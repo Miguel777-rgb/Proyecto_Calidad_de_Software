@@ -1,0 +1,156 @@
+% Estilo común del informe y del cuestionario de la Práctica de Laboratorio 02 (proyecto OLA).
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\DeclareUnicodeCharacter{2212}{\textminus}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+\usepackage[spanish,es-tabla,es-nodecimaldot,es-noindentfirst]{babel}
+\usepackage[sc]{mathpazo}
+\usepackage[scaled=0.92]{helvet}
+\renewcommand{\ttdefault}{txtt}
+\linespread{1.05}
+\usepackage[a4paper,left=2.3cm,right=2.3cm,top=2.7cm,bottom=2.5cm,headsep=0.9cm]{geometry}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{array,tabularx,longtable,multirow,makecell}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[font=small,labelfont={sf,bf},labelsep=colon,skip=6pt]{caption}
+\usepackage{pdfpages}
+\usepackage{afterpage}
+\usepackage[hidelinks,pdfusetitle]{hyperref}
+\usepackage{xurl}
+\setlength{\emergencystretch}{3em}
+
+% ------------------------------------------------------------------ colores
+\definecolor{azul}{HTML}{0F3849}
+\definecolor{verdeazul}{HTML}{1F6F80}
+\definecolor{fondo}{HTML}{E3EEF0}
+\definecolor{fondotenue}{HTML}{F3F7F8}
+\definecolor{borde}{HTML}{B9CBCC}
+\definecolor{gris}{HTML}{465B62}
+\definecolor{rosa}{HTML}{E11D48}
+\definecolor{ambar}{HTML}{D97706}
+\definecolor{verde}{HTML}{059669}
+
+% ------------------------------------------------------------------ títulos
+\titleformat{\section}{\sffamily\bfseries\Large\color{azul}}{\thesection.}{0.6em}{}[{\color{verdeazul}\titlerule[0.6pt]}]
+\titleformat{\subsection}{\sffamily\bfseries\large\color{verdeazul}}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}{\sffamily\bfseries\normalsize\color{azul}}{\thesubsubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{1.6em}{0.9em}
+\titlespacing*{\subsection}{0pt}{1.3em}{0.6em}
+\setcounter{tocdepth}{2}
+
+% ------------------------------------------------------------------ encabezado y pie
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{{\color{borde}\hrule width\headwidth height\headrulewidth}}
+\fancyhead[L]{\sffamily\footnotesize\color{gris}Calidad de Software · Práctica de Laboratorio 02}
+\fancyhead[R]{\sffamily\footnotesize\color{gris}Proyecto OLA}
+\fancyfoot[C]{\sffamily\footnotesize\color{gris}Página \thepage\ de \pageref*{LastPage}}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+  \fancyfoot[C]{\sffamily\footnotesize\color{gris}\thepage}}
+
+% ------------------------------------------------------------------ texto
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlist{itemsep=0.25em,topsep=0.3em}
+\newcommand{\ev}[1]{\textsf{\textbf{#1}}}                 % identificador de evidencia
+\newcommand{\cod}[1]{\texttt{#1}}                          % código en línea
+\newcommand{\negrita}[1]{\textbf{#1}}
+
+% ------------------------------------------------------------------ flotantes
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}
+\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{4}
+\makeatletter\setlength{\@fptop}{0pt}\setlength{\@fpbot}{0pt plus 1fil}\setlength{\@fpsep}{16pt}\makeatother
+\usepackage[section]{placeins}
+
+% ------------------------------------------------------------------ tablas
+\setlength{\arrayrulewidth}{0.4pt}
+\arrayrulecolor{borde}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\cab}[1]{\textsf{\bfseries\color{white}#1}}    % celda de cabecera
+\newcommand{\filacab}{\rowcolor{azul}}
+\newcommand{\filatotal}{\rowcolor{fondo}}
+\newcommand{\clave}[1]{\cellcolor{fondo}\textsf{\bfseries\small #1}}
+
+% ------------------------------------------------------------------ fragmentos de código
+\lstdefinestyle{ola}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{verdeazul}\bfseries,
+  stringstyle=\color{azul},
+  commentstyle=\color{gris}\itshape,
+  numbers=left, numberstyle=\ttfamily\tiny\color{gris}, numbersep=8pt,
+  frame=single, rulecolor=\color{borde}, backgroundcolor=\color{fondotenue},
+  xleftmargin=1.6em, framexleftmargin=1.4em, aboveskip=0.8em, belowskip=0.4em,
+  columns=fullflexible, keepspaces=true, showstringspaces=false,
+  breaklines=true, breakatwhitespace=true, tabsize=4,
+  float=htbp, floatplacement=htbp,
+  morekeywords={self,None,True,False,Protocol},
+}
+\lstset{style=ola}
+\renewcommand{\lstlistingname}{Fragmento}
+
+% ------------------------------------------------------------------ figuras en página horizontal
+% \paginafigura{archivo}{pie}: inserta un PDF A4 horizontal como página propia, con su pie y su número.
+\newcommand{\paginafigura}[2]{%
+  \includepdf[fitpaper, pagecommand={\thispagestyle{empty}}, picturecommand*={%
+    \put(42,13){\parbox{690bp}{\sffamily\footnotesize\color{gris}#2}}%
+    \put(800,13){\makebox[0pt][r]{\sffamily\footnotesize\color{gris}Página \thepage\ de \pageref*{LastPage}}}%
+  }]{#1}}
+
+% ------------------------------------------------------------------ portada
+% \portada{título del documento}{descripción}
+\newcommand{\portada}[2]{%
+  \hypersetup{pageanchor=false}% la portada no lleva número ni ancla propia
+  \begin{titlepage}
+    \centering\sffamily\setlength{\parskip}{0pt}
+    {\large\bfseries\color{azul}UNIVERSIDAD LA SALLE\par}
+    \vspace{0.7cm}
+    \includegraphics[width=3.2cm]{figuras/logo_lasalle.png}\par
+    \vspace{0.6cm}
+    {\large Facultad de Ingenierías y Arquitectura\par}
+    \vspace{0.15cm}
+    {\large Escuela Profesional de Ingeniería de Software\par}
+    \vspace{0.45cm}
+    {Curso: Calidad de Software\par}
+    \vspace{0.15cm}
+    {Docente: Maribel Molina Barriga\par}
+    \vspace{1.1cm}
+    {\color{verdeazul}\rule{0.62\textwidth}{0.8pt}\par}
+    \vspace{0.7cm}
+    {\LARGE\bfseries\color{azul}PRÁCTICA DE LABORATORIO 02\par}
+    \vspace{0.5cm}
+    {\huge\bfseries\color{azul}\begin{minipage}{0.75\textwidth}\centering #1\end{minipage}\par}
+    \vspace{0.6cm}
+    {\Large\color{verdeazul}\begin{minipage}{0.62\textwidth}\centering Proyecto OLA — Observatorio Litoral de Anomalías térmicas\end{minipage}\par}
+    \vspace{0.7cm}
+    {\color{verdeazul}\rule{0.62\textwidth}{0.8pt}\par}
+    \vspace{0.6cm}
+    {\rmfamily\itshape\color{gris}\begin{minipage}{0.66\textwidth}\centering #2\end{minipage}\par}
+    \vspace{0.9cm}
+    {\bfseries Integrantes\par}
+    \vspace{0.35cm}
+    {\renewcommand{\baselinestretch}{1.25}\selectfont
+    Frederick Mares Graos\par
+    Jhordan Huamani Huamani\par
+    Jorge Ortiz Castañeda\par
+    Miguel Angel Flores Leon\par
+    Piero Adrian Delgado Chipana\par}
+    \vfill
+    Arequipa, octubre de 2026\par
+  \end{titlepage}\hypersetup{pageanchor=true}}

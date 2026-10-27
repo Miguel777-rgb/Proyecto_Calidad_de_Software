@@ -20,8 +20,23 @@ export function MapContainer({ children }: ConHijos) {
   return <div data-testid="mapa-leaflet">{children}</div>
 }
 
-export function TileLayer({ attribution }: { url: string; attribution?: string }) {
-  return <div data-testid="mapa-mosaicos" data-attribution={attribution} />
+export function TileLayer({
+  url,
+  attribution,
+  subdomains,
+}: {
+  url: string
+  attribution?: string
+  subdomains?: string | string[]
+}) {
+  return (
+    <div
+      data-testid="mapa-mosaicos"
+      data-url={url}
+      data-attribution={attribution}
+      data-subdomains={subdomains === undefined ? undefined : String(subdomains)}
+    />
+  )
 }
 
 interface MarkerProps extends ConHijos {

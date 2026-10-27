@@ -12,7 +12,9 @@ import { limitesDe } from '@ola/compartido/mapa/paleta'
 // Mosaicos de OpenStreetMap pasados a gris claro con CSS (mapa.css), para que
 // los colores de estado sean lo unico con color. Se descarto CARTO Positron:
 // exige una clave de API. La licencia de OSM obliga a atribuirlo.
-const MOSAICOS = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+// Sin subdominios: con {s} y "abcd", Leaflet pedia parte de los mosaicos a
+// d.tile.openstreetmap.org, que no existe, y el mapa quedaba con huecos.
+const MOSAICOS = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATRIBUCION =
   '&copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
@@ -95,7 +97,7 @@ export function MapaZonas({ zonas, seleccionada, alSeleccionar, conEtiquetas }: 
         style={{ height: '100%', width: '100%' }}
         {...OPCIONES_GESTOS}
       >
-        <TileLayer url={MOSAICOS} subdomains="abcd" attribution={ATRIBUCION} />
+        <TileLayer url={MOSAICOS} attribution={ATRIBUCION} />
 
         {zonas.map((zona) => {
           const code = zona.laboratory.code

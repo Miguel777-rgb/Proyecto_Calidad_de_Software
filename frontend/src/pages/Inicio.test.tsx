@@ -367,6 +367,18 @@ describe('Inicio — mapa (RF-04)', () => {
     expect(screen.getByText(textos.mapa.atribucionMapa)).toBeInTheDocument()
   })
 
+  it('pide los mosaicos al servidor de OpenStreetMap sin subdominios', async () => {
+    // Con {s} y "abcd" Leaflet repartia las peticiones entre a, b, c y d, y
+    // d.tile.openstreetmap.org no existe: una de cada cuatro fallaba.
+    simularApi(ESTADO_MUESTRA)
+    renderConProveedores(<Inicio />)
+
+    const mosaicos = await screen.findByTestId('mapa-mosaicos')
+    expect(mosaicos.getAttribute('data-url')).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png')
+    expect(mosaicos.getAttribute('data-url')).not.toContain('{s}')
+    expect(mosaicos.hasAttribute('data-subdomains')).toBe(false)
+  })
+
   it('al pulsar una zona se abre su detalle', async () => {
     simularApi(ESTADO_MUESTRA)
     const user = userEvent.setup()

@@ -8,51 +8,38 @@ El envio esta separado en dos pasos a proposito:
    caido no bloquea ni hace fallar la evaluacion, y los fallos quedan
    visibles para reintentar.
 
-La restriccion de unicidad de la tabla es la que impide repetir un aviso: por
-mucho que se reevalue, un episodio genera un unico correo por usuario.
+Este modulo solo coordina y fija el limite de cada transaccion. Que avisos
+corresponden lo decide `domain.notices`; como se guardan, `repositories`;
+como se entregan, `services.channels`; y que pasa cuando una entrega falla,
+`services.notification_dispatcher`.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
-from datetime import UTC, datetime
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
-from ola.db.models import (
-    AlertEvent,
-    Notification,
-    NotificationChannel,
-    NotificationKind,
-    NotificationStatus,
-)
-from ola.domain.messages import AlertMessage, alert_closed, alert_opened
-from ola.mail import Email, Mailer
-from ola.repositories import notifications_repo, subscriptions_repo
+from ola.clock import Clock, SystemClock
+from ola.domain.notices import NotificationChannel, NotificationKind, plan_rows
+from ola.mail import Mailer
+from ola.repositories import alerts_repo, notifications_repo, subscriptions_repo
+from ola.repositories.notifications_repo import SqlNotificationStore
+from ola.services.channels import ChannelRegistry, default_channels
+from ola.services.notification_dispatcher import NotificationDispatcher, SendSummary
 
-CANALES = (NotificationChannel.EMAIL, NotificationChannel.IN_APP)
+__all__ = [
+    "SendSummary",
+    "create_for_events",
+    "dispatch_pending",
+    "mark_all_read",
+    "mark_read",
+    "notify_open_alerts_of",
+    "send_pending",
+]
 
-
-@dataclass(frozen=True)
-class SendSummary:
-    attempted: int
-    sent: int
-    failed: int
-
-
-def _eventos(session: Session, ids: Sequence[int]) -> list[AlertEvent]:
-    if not ids:
-        return []
-    return list(
-        session.scalars(
-            select(AlertEvent)
-            .options(joinedload(AlertEvent.laboratory))
-            .where(AlertEvent.id.in_(ids))
-        )
-    )
+# Cada episodio se registra en todos los canales que el sistema conoce.
+CANALES: tuple[NotificationChannel, ...] = tuple(NotificationChannel)
 
 
 def create_for_events(
@@ -63,34 +50,18 @@ def create_for_events(
     Devuelve cuantos se crearon realmente: los que ya existian se ignoran, de
     modo que llamar dos veces no duplica nada.
     """
-    filas: list[dict[str, object]] = []
-
+    filas = []
     for tipo, ids in ((NotificationKind.OPENED, opened_ids), (NotificationKind.CLOSED, closed_ids)):
-        for evento in _eventos(session, ids):
-            for user_id in subscriptions_repo.subscribers_of(session, evento.laboratory_id):
-                filas.extend(
-                    {
-                        "alert_event_id": evento.id,
-                        "user_id": user_id,
-                        "channel": canal,
-                        "kind": tipo,
-                        "status": NotificationStatus.PENDING,
-                    }
-                    for canal in CANALES
-                )
+        for event_id, laboratory_id in alerts_repo.laboratories_of(session, ids):
+            suscritos = subscriptions_repo.subscribers_of(session, laboratory_id)
+            filas += plan_rows(((event_id, user_id) for user_id in suscritos), tipo, CANALES)
 
     if not filas:
         return 0
 
-    creados = session.execute(
-        insert(Notification)
-        .values(filas)
-        .on_conflict_do_nothing(constraint="uq_notification_unica")
-        .returning(Notification.id)
-    ).scalars()
-    total = len(list(creados))
+    creados = notifications_repo.insert_pending(session, filas)
     session.commit()
-    return total
+    return creados
 
 
 def notify_open_alerts_of(session: Session, user_id: int, laboratory_id: int) -> int:
@@ -100,98 +71,54 @@ def notify_open_alerts_of(session: Session, user_id: int, laboratory_id: int) ->
     hasta que el episodio termine, que no es lo que espera: en CALLAO hay uno
     abierto desde abril. La restriccion de unicidad evita duplicar el aviso si
     la persona se da de baja y se vuelve a suscribir.
+
+    No confirma la transaccion: lo hace quien registra la suscripcion.
     """
-    vigentes = list(
-        session.scalars(
-            select(AlertEvent).where(
-                AlertEvent.laboratory_id == laboratory_id, AlertEvent.is_open.is_(True)
-            )
-        )
+    vigentes = alerts_repo.open_event_ids(session, laboratory_id)
+    filas = plan_rows(
+        ((event_id, user_id) for event_id in vigentes), NotificationKind.OPENED, CANALES
     )
-    if not vigentes:
-        return 0
-
-    filas = [
-        {
-            "alert_event_id": evento.id,
-            "user_id": user_id,
-            "channel": canal,
-            "kind": NotificationKind.OPENED,
-            "status": NotificationStatus.PENDING,
-        }
-        for evento in vigentes
-        for canal in CANALES
-    ]
-    creados = session.execute(
-        insert(Notification)
-        .values(filas)
-        .on_conflict_do_nothing(constraint="uq_notification_unica")
-        .returning(Notification.id)
-    ).scalars()
-    return len(list(creados))
+    return notifications_repo.insert_pending(session, filas)
 
 
-def _mensaje(notificacion: Notification) -> AlertMessage:
-    evento = notificacion.alert_event
-    zona = evento.laboratory.name
-    if notificacion.kind is NotificationKind.OPENED:
-        return alert_opened(
-            zona=zona,
-            state=evento.state.value,
-            started_on=evento.started_on,
-            streak_length=evento.streak_length,
-            peak_anomaly_c=evento.peak_anomaly_c,
-        )
-    return alert_closed(
-        zona=zona,
-        state=evento.state.value,
-        started_on=evento.started_on,
-        ended_on=evento.ended_on,
+def dispatch_pending(
+    session: Session,
+    channels: ChannelRegistry,
+    *,
+    limit: int = 200,
+    clock: Clock | None = None,
+) -> SendSummary:
+    """Entrega los avisos pendientes por los canales recibidos."""
+    despachador = NotificationDispatcher(
+        SqlNotificationStore(session), channels, clock or SystemClock()
     )
-
-
-def send_pending(session: Session, mailer: Mailer, *, limit: int = 200) -> SendSummary:
-    """Envia los correos pendientes y los que fallaron en un intento anterior.
-
-    Un fallo no detiene la tanda ni pierde el aviso: queda marcado con su
-    motivo para que el administrador pueda reintentar.
-    """
-    pendientes = notifications_repo.pending_emails(session, limit=limit)
-    enviados = fallidos = 0
-
-    for notificacion in pendientes:
-        mensaje = _mensaje(notificacion)
-        try:
-            mailer.send(
-                Email(to=notificacion.user.email, subject=mensaje.subject, body=mensaje.body)
-            )
-        except Exception as exc:
-            notificacion.status = NotificationStatus.FAILED
-            notificacion.error = str(exc)[:500]
-            fallidos += 1
-        else:
-            notificacion.status = NotificationStatus.SENT
-            notificacion.error = None
-            notificacion.sent_at = datetime.now(UTC)
-            enviados += 1
-
+    resumen = despachador.send_pending(limit=limit)
     session.commit()
-    return SendSummary(attempted=len(pendientes), sent=enviados, failed=fallidos)
+    return resumen
 
 
-def mark_read(session: Session, notification_id: int, user_id: int) -> bool:
+def send_pending(
+    session: Session, mailer: Mailer, *, limit: int = 200, clock: Clock | None = None
+) -> SendSummary:
+    """Envia los correos pendientes y los que fallaron en un intento anterior."""
+    return dispatch_pending(session, default_channels(mailer), limit=limit, clock=clock)
+
+
+def mark_read(
+    session: Session, notification_id: int, user_id: int, *, clock: Clock | None = None
+) -> bool:
     notificacion = notifications_repo.get_for_user(session, notification_id, user_id)
     if notificacion is None:
         return False
     if notificacion.read_at is None:
-        notificacion.read_at = datetime.now(UTC)
+        notificacion.read_at = (clock or SystemClock()).now()
         session.commit()
     return True
 
 
-def mark_all_read(session: Session, user_id: int) -> int:
+def mark_all_read(session: Session, user_id: int, *, clock: Clock | None = None) -> int:
     pendientes = notifications_repo.list_for_user(session, user_id, only_unread=True, limit=500)
-    ahora = datetime.now(UTC)
+    ahora = (clock or SystemClock()).now()
     for notificacion in pendientes:
         notificacion.read_at = ahora
     session.commit()

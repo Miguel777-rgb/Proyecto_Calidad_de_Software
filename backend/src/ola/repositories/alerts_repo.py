@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sqlalchemy import delete, desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -28,6 +30,27 @@ def open_events(session: Session) -> dict[int, AlertEvent]:
     """Episodios vigentes, indexados por laboratorio."""
     eventos = session.scalars(select(AlertEvent).where(AlertEvent.is_open.is_(True)))
     return {evento.laboratory_id: evento for evento in eventos}
+
+
+def laboratories_of(session: Session, event_ids: Sequence[int]) -> list[tuple[int, int]]:
+    """Pares (episodio, laboratorio) de los episodios indicados."""
+    if not event_ids:
+        return []
+    filas = session.execute(
+        select(AlertEvent.id, AlertEvent.laboratory_id).where(AlertEvent.id.in_(event_ids))
+    )
+    return [(event_id, laboratory_id) for event_id, laboratory_id in filas]
+
+
+def open_event_ids(session: Session, laboratory_id: int) -> list[int]:
+    """Identificadores de los episodios vigentes de una zona."""
+    return list(
+        session.scalars(
+            select(AlertEvent.id).where(
+                AlertEvent.laboratory_id == laboratory_id, AlertEvent.is_open.is_(True)
+            )
+        )
+    )
 
 
 def delete_all(session: Session) -> int:

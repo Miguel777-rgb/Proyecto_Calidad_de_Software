@@ -23,6 +23,11 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+# Los conceptos de los avisos viven en el dominio; aqui solo se guardan.
+from ola.domain.notices import NotificationChannel as NotificationChannel
+from ola.domain.notices import NotificationKind as NotificationKind
+from ola.domain.notices import NotificationStatus as NotificationStatus
+
 
 class Base(DeclarativeBase):
     """Base declarativa comun. Alembic lee su metadata para autogenerar."""
@@ -265,24 +270,6 @@ class AppSetting(Base):
 
     def __repr__(self) -> str:
         return f"<AppSetting {self.key}>"
-
-
-class NotificationChannel(enum.StrEnum):
-    EMAIL = "email"
-    IN_APP = "in_app"
-
-
-class NotificationKind(enum.StrEnum):
-    """Momento del episodio que motiva el aviso."""
-
-    OPENED = "opened"
-    CLOSED = "closed"
-
-
-class NotificationStatus(enum.StrEnum):
-    PENDING = "pending"
-    SENT = "sent"
-    FAILED = "failed"
 
 
 class Subscription(Base):

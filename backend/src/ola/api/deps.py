@@ -16,6 +16,7 @@ from ola.mail import Mailer, SmtpMailer
 from ola.repositories import users_repo
 from ola.security import decode_access_token
 from ola.services import auth_service, settings_service
+from ola.services.channels import ChannelRegistry, default_channels
 from ola.services.settings_service import EffectiveSettings
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -84,3 +85,11 @@ def get_mailer(settings: SettingsDep) -> Mailer:
 
 
 MailerDep = Annotated[Mailer, Depends(get_mailer)]
+
+
+def get_channels(mailer: MailerDep) -> ChannelRegistry:
+    """Canales de aviso del sistema. Aqui se conecta cada canal con lo que necesita."""
+    return default_channels(mailer)
+
+
+ChannelsDep = Annotated[ChannelRegistry, Depends(get_channels)]

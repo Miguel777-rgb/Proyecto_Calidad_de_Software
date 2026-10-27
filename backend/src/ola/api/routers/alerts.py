@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from ola.api.deps import AdminUser, EffectiveSettingsDep, MailerDep, SessionDep
+from ola.api.deps import AdminUser, ChannelsDep, EffectiveSettingsDep, SessionDep
 from ola.api.schemas.alerts import AlertEventOut, EvaluationSummaryOut, StreakOut
 from ola.api.schemas.notifications import SendSummaryOut
 from ola.domain.streaks import detect_streaks
@@ -101,10 +101,10 @@ def laboratory_streaks(
     summary="Envia los avisos pendientes por correo",
 )
 def send_notifications(
-    session: SessionDep, mailer: MailerDep, admin: AdminUser, limit: int = 200
+    session: SessionDep, channels: ChannelsDep, admin: AdminUser, limit: int = 200
 ) -> SendSummaryOut:
     """Segundo paso del envio. Reintenta tambien los que fallaron antes."""
-    resumen = notification_service.send_pending(session, mailer, limit=limit)
+    resumen = notification_service.dispatch_pending(session, channels, limit=limit)
     return SendSummaryOut(
         attempted=resumen.attempted,
         sent=resumen.sent,

@@ -1,5 +1,5 @@
 import { ChartColumnBig, ChartLine, Map as IconoMapa, TrendingUp, type LucideIcon } from 'lucide-react'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export interface Pestana {
   ruta: string

@@ -1,0 +1,29 @@
+# Las cuatro pestanas navegan y marcan la actual.
+appId: pe.ola.app
+name: Las pestanas llevan a su pantalla
+tags: [marco]
+---
+- launchApp
+- tapOn:
+    id: pestana-historico
+- assertVisible: Histórico por zona
+- assertVisible: El histórico de cada zona llega en la próxima versión de la app.
+- assertVisible:
+    id: pestana-historico
+    selected: true
+- tapOn:
+    id: pestana-comparar
+- assertVisible: Comparar zonas
+- assertVisible:
+    id: pestana-comparar
+    selected: true
+- tapOn:
+    id: pestana-proyeccion
+- assertVisible: Proyección de tendencia
+- assertVisible:
+    id: pestana-proyeccion
+    selected: true
+- takeScreenshot: informes/capturas/proximos-dias
+- tapOn:
+    id: pestana-index
+- assertVisible: Estado del mar en la costa

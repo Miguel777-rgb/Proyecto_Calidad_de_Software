@@ -1,7 +1,7 @@
 import type { EstadoZona } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { InsigniaEstado } from './inicio/Estado'
-import { fechaCorta, gradosConSigno } from './inicio/datos'
+import { fechaCorta, gradosConSigno } from '@ola/compartido/inicio/datos'
 
 interface Props {
   /** Ya ordenadas: alertas primero y luego de norte a sur. */

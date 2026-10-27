@@ -1,4 +1,4 @@
-import { trazadoForma, type FormaMarcador } from './paletaSeries'
+import { trazadoForma, type FormaMarcador } from '@ola/compartido/graficos/paletaSeries'
 
 interface Props {
   forma: FormaMarcador

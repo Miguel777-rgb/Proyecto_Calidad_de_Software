@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { escaparHtml, htmlMarcador, nombreMarcador } from './marcador'
-import { COLORES } from './paleta'
+import { COLORES } from '@ola/compartido/mapa/paleta'
 import type { EstadoZona } from '../../api/client'
 import { ESTADO_MUESTRA } from '../../test-utils'
 

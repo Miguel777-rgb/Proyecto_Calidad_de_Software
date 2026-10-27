@@ -1,0 +1,6 @@
+{
+  "name": "ola",
+  "private": true,
+  "description": "Workspace de OLA: la web, la app móvil y el paquete que comparten. El backend (Python) no forma parte.",
+  "packageManager": "pnpm@9.15.2"
+}

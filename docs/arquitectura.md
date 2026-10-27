@@ -1,0 +1,122 @@
+# Modelo del sistema
+## Proyecto OLA — Observatorio Litoral de Anomalías térmicas
+
+Diagramas C4 de contexto y de contenedores. La aplicación móvil (RF-09) se construye por fases
+según el plan de calidad ([calidad.md](calidad.md)); lo marcado como **en construcción** todavía
+no existe. Este documento se actualiza al cerrar la fase 4 (notificaciones push) y la fase 6
+(cierre).
+
+---
+
+## 1. Contexto
+
+Quién usa OLA y con qué sistemas externos se comunica.
+
+```mermaid
+C4Context
+  title Contexto del sistema OLA
+
+  Person(pescador, "Pescador artesanal", "Consulta el estado de su zona y recibe alertas")
+  Person(admin, "Administrador", "Importa el dataset y ajusta los parámetros de detección")
+
+  System(ola, "OLA", "Clasifica la anomalía térmica por zona, detecta tendencias sostenidas y avisa a los suscritos")
+
+  System_Ext(imarpe, "Datos abiertos del Estado", "Publica el CSV de ATSM de IMARPE")
+  System_Ext(smtp, "Servidor de correo", "Entrega los avisos por correo")
+  System_Ext(fcm, "Firebase Cloud Messaging", "Entrega las notificaciones push (en construcción)")
+  System_Ext(mapas, "Mapa base", "OpenStreetMap para la web, OpenFreeMap para la app")
+
+  Rel(pescador, ola, "Consulta y se suscribe", "Web o app Android")
+  Rel(admin, imarpe, "Descarga el CSV", "HTTPS")
+  Rel(admin, ola, "Importa el CSV y configura", "Web")
+  Rel(ola, smtp, "Envía avisos", "SMTP")
+  Rel(ola, fcm, "Envía notificaciones", "HTTPS")
+  Rel(fcm, pescador, "Muestra la notificación en el celular")
+  Rel(ola, mapas, "Pide el mapa de fondo", "HTTPS")
+```
+
+OLA no descarga el dataset por su cuenta: la importación es manual (RF-08, SRS versión 1.2),
+porque IMARPE no garantiza una frecuencia de publicación.
+
+---
+
+## 2. Contenedores
+
+```mermaid
+C4Container
+  title Contenedores de OLA
+
+  Person(pescador, "Pescador artesanal")
+  Person(admin, "Administrador")
+
+  System_Boundary(sistema, "OLA") {
+    Container(web, "Aplicación web", "React, Vite, TypeScript. Nginx en producción", "Mapa, históricos, comparación, proyección, cuenta y administración")
+    Container(app, "App Android", "Expo (React Native), TypeScript, MapLibre", "Funciones del usuario final, modo sin conexión y push (en construcción)")
+    Container(api, "API", "Python 3.13, FastAPI", "Clasificación, rachas, proyección, sesiones, suscripciones y avisos")
+    ContainerDb(db, "Base de datos", "PostgreSQL 17", "Mediciones, episodios, parámetros, usuarios, suscripciones y avisos")
+  }
+
+  System_Ext(smtp, "Servidor de correo")
+  System_Ext(fcm, "Firebase Cloud Messaging")
+  System_Ext(osm, "OpenStreetMap", "Mosaicos del mapa de la web")
+  System_Ext(ofm, "OpenFreeMap", "Estilo y mosaicos del mapa de la app")
+
+  Rel(pescador, web, "Usa", "HTTPS")
+  Rel(pescador, app, "Usa")
+  Rel(admin, web, "Importa y configura", "HTTPS")
+  Rel(web, api, "Consume", "JSON sobre HTTPS")
+  Rel(app, api, "Consume", "JSON sobre HTTPS")
+  Rel(api, db, "Lee y escribe", "SQL")
+  Rel(api, smtp, "Envía correos", "SMTP")
+  Rel(api, fcm, "Envía notificaciones", "HTTPS")
+  Rel(fcm, app, "Entrega la notificación")
+  Rel(web, osm, "Pide mosaicos", "HTTPS")
+  Rel(app, ofm, "Pide estilo y mosaicos", "HTTPS")
+```
+
+| Contenedor | Responsabilidad | Dónde está |
+|---|---|---|
+| API | Toda la lógica de negocio. La web y la app no clasifican ni calculan alertas por su cuenta | [backend/](../backend/) |
+| Base de datos | Única fuente de verdad. Las migraciones las aplica la API al arrancar | [backend/alembic/](../backend/alembic/) |
+| Aplicación web | Interfaz para pescadores y administradores | [frontend/](../frontend/) |
+| App Android | Interfaz nativa para el usuario final, con push y datos guardados sin conexión. Guarda el último estado en el celular (AsyncStorage) y lo muestra si la API no responde. El token de la sesión, que dura 30 días, va cifrado con el Keystore de Android (`expo-secure-store`) | [mobile/](../mobile/) |
+
+### Código compartido entre la web y la app
+
+La web y la app no se hablan entre sí, pero usan el mismo paquete
+[`@ola/compartido`](../packages/compartido/). El paquete tiene:
+
+- los tipos y el cliente de la API;
+- la lógica de presentación sin interfaz: orden de las zonas, fechas, paletas validadas, agrupado de series y tramo proyectado;
+- los textos en español.
+
+Así, si una ruta de la API o un color de estado cambia, se corrige en un solo lugar. Las
+pruebas del contrato con la API también viven ahí. El paquete no depende de React ni del
+navegador; guardar el token queda a cargo de cada cliente: localStorage en la web, almacenamiento
+cifrado en la app.
+
+---
+
+## 3. Entornos
+
+| Pieza | Desarrollo y pruebas (`compose.yml`) | Producción (`compose.prod.yml`) |
+|---|---|---|
+| Correo | Mailpit captura los mensajes sin enviarlos | Servidor SMTP real |
+| Push | FCM simulado en Docker (desde la fase 4) | Firebase Cloud Messaging |
+| Pruebas E2E web | Contenedor de Playwright contra el stack completo | — |
+| Pruebas E2E móvil | Maestro en el celular por cable; la app ve la API del equipo con `adb reverse` | — |
+| Disponibilidad | Uptime Kuma consulta `/api/health/ready` del equipo y del VPS cada minuto | — |
+| Entrada | Puertos publicados en el equipo | Traefik de Dokploy con HTTPS: web y API en el mismo dominio, la API bajo `/api` (rama `deploy`) |
+
+La aplicación web se compila con la dirección de la API escrita dentro del JavaScript. La app
+Android hace lo mismo, con tres variantes (`mobile/app.config.ts`):
+
+| Variante | Paquete | API | Uso |
+|---|---|---|---|
+| `desarrollo` | `pe.ola.app.dev` | `http://localhost:18000/api` por el cable | Programar con recarga en caliente |
+| `e2e` | `pe.ola.app` | `http://localhost:18000/api` por el cable | APK de release que prueba Maestro |
+| `demo` | `pe.ola.app` | `https://olachilindrina.wayrasimi.tech/api` | Instalar sin cable, contra el VPS |
+
+Solo `demo` prohíbe el tráfico sin cifrar: las otras dos hablan con el Docker del equipo, que no
+tiene HTTPS. `adb reverse` lleva el puerto 18000 del celular al 8000 del equipo; no se usa el
+8000 en el celular porque en el de pruebas ya lo ocupaba otra app.

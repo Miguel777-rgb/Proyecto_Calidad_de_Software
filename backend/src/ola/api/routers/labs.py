@@ -23,6 +23,6 @@ def get_laboratory(code: str, session: SessionDep) -> LaboratoryOut:
     if lab is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No existe un laboratorio con el codigo '{code}'.",
+            detail=f"No existe un laboratorio con el código '{code}'.",
         )
     return LaboratoryOut.model_validate(lab)

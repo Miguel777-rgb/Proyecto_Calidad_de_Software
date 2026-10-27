@@ -8,13 +8,13 @@ import { ResumenEstado } from '../components/inicio/ResumenEstado'
 import { TituloInicio } from '../components/inicio/TituloInicio'
 import { ENVOLTURA_INICIO } from '../components/inicio/estructura'
 import { TarjetasZonas } from '../components/inicio/TarjetasZonas'
-import { ordenarZonas } from '../components/inicio/datos'
+import { ordenarZonas } from '@ola/compartido/inicio/datos'
 import { DetalleZona } from '../components/mapa/DetalleZona'
 import { HojaInferior } from '../components/mapa/HojaInferior'
 import { MapaZonas } from '../components/mapa/MapaZonas'
 import { PanelZona } from '../components/mapa/PanelZona'
 import { ESCRITORIO, useMediaQuery } from '../hooks/useMediaQuery'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 // Vigencia por defecto de la SRS si la configuracion no llega.
 const VIGENCIA_POR_DEFECTO = 7

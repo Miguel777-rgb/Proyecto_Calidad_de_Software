@@ -1,0 +1,58 @@
+# Los errores de los formularios se explican en espanol y a tiempo.
+appId: pe.ola.app
+name: Los errores de cuenta se explican
+tags: [cuenta]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: entrar
+    timeout: 20000
+- tapOn:
+    id: entrar
+- tapOn:
+    id: crear-cuenta
+- tapOn:
+    id: registro-correo
+- inputText: sin-arroba
+- tapOn:
+    id: registro-contrasena
+- inputText: miclave123
+- hideKeyboard
+- tapOn:
+    id: registro-enviar
+- assertVisible: Escribe un correo válido, como nombre@ejemplo.pe.
+# El administrador ya existe: su correo esta registrado.
+- tapOn:
+    id: registro-correo
+- eraseText: 20
+- inputText: admin@ola.pe
+- hideKeyboard
+- tapOn:
+    id: registro-enviar
+- extendedWaitUntil:
+    visible: Ya existe una cuenta registrada con ese correo.
+    timeout: 10000
+- tapOn:
+    id: registro-contrasena
+- eraseText: 20
+- inputText: corta
+- hideKeyboard
+- tapOn:
+    id: registro-enviar
+- assertVisible: La contraseña debe tener al menos 8 caracteres.
+- takeScreenshot: informes/capturas/registro-error
+- back
+- tapOn:
+    id: entrar-correo
+- inputText: admin@ola.pe
+- tapOn:
+    id: entrar-contrasena
+- inputText: noeslaclave
+- hideKeyboard
+- tapOn:
+    id: entrar-enviar
+- extendedWaitUntil:
+    visible: Correo o contraseña incorrectos.
+    timeout: 10000

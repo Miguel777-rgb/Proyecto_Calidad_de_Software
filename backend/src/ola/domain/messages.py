@@ -77,3 +77,20 @@ def alert_closed(*, zona: str, state: str, started_on: date, ended_on: date) -> 
             f"{dias} días." + _pie(zona)
         ),
     )
+
+
+def password_reset_code(*, code: str, minutes: int) -> AlertMessage:
+    """Correo con el codigo para cambiar la contrasena (RF-07). Sin enlaces:
+    el codigo se escribe en la app o en la web."""
+    return AlertMessage(
+        subject="Tu código para cambiar la contraseña de OLA",
+        body=(
+            "Hola:\n\n"
+            "Alguien pidió cambiar la contraseña de tu cuenta de OLA. Escribe este código "
+            "en la app o en la web:\n\n"
+            f"    {code}\n\n"
+            f"Vale {minutes} minutos. Si no fuiste tú, ignora este correo: tu contraseña "
+            "no cambia.\n\n"
+            "OLA · Datos abiertos del IMARPE\n"
+        ),
+    )

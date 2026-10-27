@@ -2,8 +2,8 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import Comparacion from './Comparacion'
-import { MAX_SERIES } from '../components/graficos/paletaSeries'
-import { textos } from '../i18n/textos'
+import { MAX_SERIES } from '@ola/compartido/graficos/paletaSeries'
+import { textos } from '@ola/compartido/i18n/textos'
 import { LABORATORIOS, renderConProveedores, respuesta, seriesDe } from '../test-utils'
 
 vi.mock('../components/graficos/GraficoSerie', async () => await import('../test-mocks/GraficoSerie'))

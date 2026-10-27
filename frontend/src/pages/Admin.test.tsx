@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Admin from './Admin'
 import type { Importacion } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { renderConProveedores, respuesta } from '../test-utils'
 
 const IMPORTACION: Importacion = {
@@ -109,7 +109,7 @@ describe('Admin', () => {
             ...IMPORTACION,
             rows_rejected: 2,
             error_sample: [
-              { line: 3, reason: 'Fecha invalida: 31-07-2026.', content: '31-07-2026,CALLAO,1.5' },
+              { line: 3, reason: 'Fecha inválida: 31-07-2026.', content: '31-07-2026,CALLAO,1.5' },
               { line: 9, reason: 'Laboratorio costero desconocido: HUANCHACO.', content: '' },
             ],
           },

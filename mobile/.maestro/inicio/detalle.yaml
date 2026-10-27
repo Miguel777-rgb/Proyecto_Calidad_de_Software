@@ -1,0 +1,76 @@
+# El detalle se abre desde una tarjeta o un marcador y se cierra con «atras»,
+# deslizando hacia abajo o con la X.
+appId: pe.ola.app
+name: El detalle de una zona abre y cierra
+tags: [inicio]
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-CALLAO
+- extendedWaitUntil:
+    visible:
+      id: detalle-zona
+    timeout: 5000
+- assertVisible: "En alerta cálida desde el 16/04/2026"
+- assertVisible: "107 mediciones seguidas fuera de lo normal .*"
+- assertVisible: "Entra para recibir avisos"
+- takeScreenshot: informes/capturas/detalle-callao
+- back
+- assertNotVisible:
+    id: detalle-zona
+# Una zona que ya no mide: sin promedio ni avisos. Se cierra deslizando.
+- scrollUntilVisible:
+    element:
+      id: tarjeta-MATARANI
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-MATARANI
+- assertVisible: "No hay mediciones desde el 31/12/2016: no se puede saber cómo está el mar aquí."
+- assertNotVisible: "Entra para recibir avisos"
+- takeScreenshot: informes/capturas/detalle-matarani
+- swipe:
+    from:
+      id: detalle-zona
+    direction: DOWN
+- assertNotVisible:
+    id: detalle-zona
+# Cálida pero sin alerta. Se cierra con la X.
+- scrollUntilVisible:
+    element:
+      id: tarjeta-SAN JOSE
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-SAN JOSE
+- assertVisible: "Sin alerta: el mar no se mantiene fuera de lo normal."
+- tapOn:
+    id: cerrar-detalle
+- assertNotVisible:
+    id: detalle-zona
+# Desde el mapa.
+- scrollUntilVisible:
+    element:
+      id: mapa-zonas
+    direction: UP
+    timeout: 60000
+    centerElement: true
+- tapOn:
+    id: marcador-PISCO
+- extendedWaitUntil:
+    visible:
+      id: detalle-zona
+    timeout: 5000
+- assertVisible: Pisco
+- back
+- assertNotVisible:
+    id: detalle-zona

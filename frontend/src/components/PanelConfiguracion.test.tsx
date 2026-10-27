@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PanelConfiguracion } from './PanelConfiguracion'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { renderConProveedores, respuesta } from '../test-utils'
 
 const CONFIG = {
@@ -105,7 +105,7 @@ describe('PanelConfiguracion', () => {
   })
 
   it('avisa si la reevaluacion falla', async () => {
-    simularApi(undefined, () => respuesta({ detail: 'Esta accion requiere permisos.' }, 403))
+    simularApi(undefined, () => respuesta({ detail: 'Esta acción requiere permisos.' }, 403))
     const user = userEvent.setup()
     renderConProveedores(<PanelConfiguracion />)
 

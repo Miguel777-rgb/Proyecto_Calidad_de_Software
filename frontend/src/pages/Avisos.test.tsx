@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Avisos from './Avisos'
 import type { Aviso } from '../api/client'
 import { AvisosContext } from '../avisos/contexto'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { USUARIO, conSesionIniciada, renderConProveedores, respuesta } from '../test-utils'
 
 const aviso = (cambios: Partial<Aviso> = {}): Aviso => ({

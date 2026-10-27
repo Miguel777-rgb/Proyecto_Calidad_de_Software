@@ -4,6 +4,18 @@ import react from '@vitejs/plugin-react'
 // bloque `test` de la configuracion.
 import { defineConfig } from 'vitest/config'
 
+// Lo generado no debe vigilarse: cada archivo nuevo recarga las paginas
+// abiertas. El informe HTML de cobertura (unos 60 archivos) dejaba a las E2E
+// esperando una pagina que no paraba de recargarse.
+const NO_VIGILAR = [
+  '**/.pnpm-store/**',
+  '**/dist/**',
+  '**/coverage/**',
+  '**/playwright-report/**',
+  '**/test-results/**',
+  '**/capturas/**',
+]
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -22,18 +34,8 @@ export default defineConfig({
     // pagina.
     watch:
       process.env.VITE_WATCH_POLLING === 'true'
-        ? {
-            usePolling: true,
-            interval: 300,
-            ignored: [
-              '**/.pnpm-store/**',
-              '**/dist/**',
-              '**/playwright-report/**',
-              '**/test-results/**',
-              '**/capturas/**',
-            ],
-          }
-        : undefined,
+        ? { usePolling: true, interval: 300, ignored: NO_VIGILAR }
+        : { ignored: NO_VIGILAR },
     // Dentro de Docker, `api` es el nombre del servicio en compose.yml.
     proxy: {
       '/api': {
@@ -49,8 +51,11 @@ export default defineConfig({
     // e2e/ lo ejecuta Playwright, no Vitest.
     exclude: ['node_modules/**', 'e2e/**', 'dist/**'],
     coverage: {
-      reporter: ['text', 'html'],
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
       include: ['src/**'],
+      // Solo se excluye la infraestructura de pruebas; el resto cuenta.
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test-setup.ts', 'src/test-utils.tsx', 'src/test-mocks/**'],
     },
   },
 })

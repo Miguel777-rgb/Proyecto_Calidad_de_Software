@@ -24,18 +24,36 @@ class PasswordField(BaseModel):
         # El limite de bcrypt es en bytes, no en caracteres: una contrasena
         # con acentos o emoji ocupa mas de un byte por caracter.
         if len(value.encode("utf-8")) > BCRYPT_MAX_BYTES:
-            raise ValueError(f"La contrasena es demasiado larga (maximo {BCRYPT_MAX_BYTES} bytes).")
+            raise ValueError(f"La contraseña es demasiado larga (máximo {BCRYPT_MAX_BYTES} bytes).")
         return value
 
 
-class UserRegister(PasswordField):
+class SesionLarga(BaseModel):
+    # La app Android pide sesiones de 30 dias; la web no manda el campo.
+    mantener_sesion: bool = False
+
+
+class UserRegister(PasswordField, SesionLarga):
     email: EmailStr
     full_name: str | None = Field(default=None, max_length=120)
 
 
-class UserLogin(BaseModel):
+class UserLogin(SesionLarga):
     email: EmailStr
     password: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(PasswordField, SesionLarga):
+    email: EmailStr
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class MensajeOut(BaseModel):
+    detail: str
 
 
 class UserOut(BaseModel):

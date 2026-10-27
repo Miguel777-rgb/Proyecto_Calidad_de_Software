@@ -2,10 +2,12 @@
 
 Proyecto académico del curso **Calidad de Software**. OLA es una aplicación web que transforma el dataset público de anomalía de la temperatura superficial del mar (ATSM), publicado por IMARPE/PRODUCE, en información sencilla para consultar el estado térmico de los laboratorios costeros del litoral peruano.
 
-> Sistema completo y verificado: 943 pruebas automatizadas, 95% de cobertura en el backend,
+> Web completa y verificada: 1,168 pruebas automatizadas, 95 % de cobertura en el backend,
 > accesibilidad WCAG 2.2 AA comprobada en cada pantalla y el stack probado de extremo a extremo
-> en escritorio y celular. Ver
-> [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito.
+> en escritorio y celular. La aplicación Android (RF-09) está en construcción por fases; su
+> marco y la pestaña Mapa ya funcionan en un celular real. Ver
+> [la matriz de trazabilidad](docs/trazabilidad.md) para la evidencia por requisito y
+> [el plan de calidad](docs/calidad.md) para las metas y las métricas.
 
 ## Objetivo
 
@@ -29,15 +31,19 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 | RF-04 | Mostrar el estado vigente de los 10 laboratorios costeros en un mapa interactivo. |
 | RF-05 | Graficar el histórico de anomalías por laboratorio y rango de fechas. |
 | RF-06 | Comparar las series de dos o más laboratorios en un mismo periodo. |
-| RF-07 | Permitir registro, autenticación y suscripción a zonas de interés. |
+| RF-07 | Permitir registro, autenticación, recuperación de contraseña y suscripción a zonas de interés. |
 | RF-08 | Importar y actualizar el CSV de ATSM validando sus columnas. |
+| RF-09 | Ofrecer una aplicación para Android 10 o superior con las funciones del usuario final y avisos push. |
 
 ## Tecnologías
 
 - **Backend:** Python 3.13 con FastAPI, SQLAlchemy y Alembic.
 - **Base de datos:** PostgreSQL 17.
 - **Frontend:** React con Vite y TypeScript; Tailwind CSS; Leaflet para el mapa y Recharts para los gráficos; fuentes autoalojadas (Inter, Space Grotesk, JetBrains Mono) e iconos lucide.
+- **Aplicación móvil:** Expo (React Native) con TypeScript, para Android 10 o superior (en construcción).
+- **Código compartido:** `@ola/compartido`, con los tipos y el cliente de la API, la lógica de presentación y los textos que usan la web y la app.
 - **Pruebas:** pytest, Vitest y Playwright, con axe para accesibilidad y capturas para regresión visual.
+- **Calidad:** Uptime Kuma para medir la disponibilidad del backend.
 - **Despliegue:** Docker sobre un VPS Linux administrado con Dokploy.
 - **Comunicación:** API REST propia mediante HTTPS.
 - **Fuente de datos:** dataset abierto de IMARPE/PRODUCE.
@@ -53,16 +59,31 @@ OLA es una herramienta complementaria. No reemplaza los boletines técnicos de I
 ├── frontend/                        # Interfaz web (React + Vite + TypeScript)
 │   ├── src/                         # Código fuente
 │   └── e2e/                         # Pruebas de extremo a extremo (Playwright)
+├── mobile/                          # App Android (Expo + React Native + TypeScript)
+│   ├── src/app/                     # Pantallas (rutas de expo-router)
+│   ├── modules/                     # Módulos nativos propios (autocompletado)
+│   ├── .maestro/                    # Pruebas de extremo a extremo (Maestro)
+│   └── scripts/                     # Compilar, probar en el celular y medir el arranque
+├── packages/
+│   └── compartido/                  # Tipos y cliente de la API, lógica y textos (web y app)
+├── tools/
+│   └── uptime-kuma/                 # Configuración e informe de disponibilidad
 ├── dataset/
 │   └── IMARPE_Anomalia_TSM.csv      # Dataset base para desarrollo
 ├── docs/
 │   ├── requisitos.md                # Especificación de Requisitos de Software
+│   ├── calidad.md                   # Plan de aseguramiento de la calidad (SQA)
+│   ├── defectos.md                  # Bitácora de defectos
 │   ├── trazabilidad.md              # Matriz de trazabilidad y evidencia de pruebas
+│   ├── arquitectura.md              # Modelo del sistema (C4)
 │   ├── decisiones.md                # Registro de decisiones de diseño
 │   ├── diseno.md                    # Guía de diseño de la interfaz
 │   └── presentacion-ola.html        # Presentación del proyecto
-├── compose.yml                      # Entorno de desarrollo
+├── compose.yml                      # Entorno de desarrollo y pruebas
 ├── compose.prod.yml                 # Despliegue en el VPS con Dokploy
+├── package.json                     # Workspace de pnpm (web, paquete compartido y app)
+├── pnpm-workspace.yaml
+├── pnpm-lock.yaml                   # Un solo lockfile para todo el JavaScript
 ├── .env.example                     # Plantilla de configuración
 └── README.md
 ```
@@ -100,11 +121,16 @@ El número de días consecutivos para considerar una tendencia sostenida tendrá
 - [x] Proyección de tendencia a corto plazo.
 - [x] Suscripciones y notificaciones por correo.
 - [x] Despliegue en VPS con Dokploy.
+- [x] Plan de aseguramiento de la calidad con metas, métricas, riesgos y bitácora de defectos.
+- [ ] Aplicación móvil Android (RF-09), en construcción por fases.
 
 ## Documentación
 
 - [Especificación de Requisitos de Software](docs/requisitos.md)
+- [Plan de aseguramiento de la calidad](docs/calidad.md)
+- [Bitácora de defectos](docs/defectos.md)
 - [Matriz de trazabilidad y evidencia de pruebas](docs/trazabilidad.md)
+- [Modelo del sistema](docs/arquitectura.md)
 - [Registro de decisiones de diseño](docs/decisiones.md)
 - [Guía de diseño de la interfaz](docs/diseno.md)
 - [Presentación del proyecto OLA](docs/presentacion-ola.html)
@@ -123,8 +149,9 @@ Puedes generar secretos con `openssl rand -hex 32`. Si algún puerto choca con u
 ya tengas corriendo (es frecuente con PostgreSQL en el 5432), cámbialo en el mismo archivo.
 
 ```bash
-docker compose up -d --build                  # 2. levanta db, api, web y mailpit
-docker compose exec api alembic upgrade head  # 3. aplica las migraciones
+docker compose up -d --build                  # 2. levanta db, api, web, mailpit y uptime-kuma
+docker compose exec api alembic upgrade head  # 3. aplica las migraciones (repítelo al traer cambios del backend)
+docker compose --profile calidad run --rm calidad configurar.py   # 4. prepara el monitor de disponibilidad
 ```
 
 | Servicio | URL por defecto |
@@ -133,6 +160,7 @@ docker compose exec api alembic upgrade head  # 3. aplica las migraciones
 | API | http://localhost:8000/api |
 | Documentación de la API | http://localhost:8000/api/docs |
 | Bandeja de correo (Mailpit) | http://localhost:8025 |
+| Disponibilidad (Uptime Kuma) | http://localhost:3001 |
 
 La base de datos arranca **vacía**. Para cargar datos, inicia sesión con el administrador
 definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicación (RF-08).
@@ -140,16 +168,22 @@ definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicaci
 ### Pruebas
 
 ```bash
-docker compose exec api pytest --cov=ola      # unitarias e integración del backend
-docker compose exec web pnpm test             # unitarias del frontend
-docker compose --profile e2e run --rm e2e     # extremo a extremo: escritorio, celular, axe y capturas
+docker compose exec api pytest --cov=ola                          # backend: unitarias e integración
+docker compose exec -w /repo/packages/compartido web pnpm test    # paquete compartido
+docker compose exec web pnpm test                                 # web: unitarias
+docker compose --profile e2e run --rm e2e                         # web: escritorio, celular, axe y capturas
+docker compose --profile calidad run --rm calidad -m pytest       # herramientas de calidad
 ```
+
+Para medir la cobertura, usa `pnpm test:cobertura` en lugar de `pnpm test`. En Git Bash para
+Windows, antepón `MSYS_NO_PATHCONV=1` a los comandos con `-w`: si no, la ruta se convierte a una
+de Windows y el contenedor no la encuentra.
 
 La medición de rendimiento compila la build de producción y comprueba que el mapa carga en
 menos de 3 s con 4G normal (SRS, sección 3.3). Va aparte porque tarda más:
 
 ```bash
-docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm test:rendimiento"
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile --filter ola-frontend... && pnpm test:rendimiento"
 ```
 
 Las capturas de regresión visual se generan y comparan **dentro del contenedor de Playwright**.
@@ -159,10 +193,67 @@ Si un cambio visual es intencionado, se regeneran con `pnpm exec playwright test
 
 > **Docker en Windows o macOS:** los contenedores no reciben avisos de cambios en los archivos.
 > Vite usa sondeo (`VITE_WATCH_POLLING` en `compose.yml`); el backend no, así que tras cambiar su
-> código hay que ejecutar `docker compose restart api`.
+> código hay que ejecutar `docker compose restart api`. Cambiar `.env` también reinicia la API
+> en el siguiente `docker compose up` o `run`: no lo edites mientras corren pruebas.
+
+La web y la app comparten `packages/compartido`, así que los contenedores `web` y `e2e` montan el
+repositorio entero y la imagen web se construye desde la raíz. Instalan solo la web y lo que
+necesita (`--filter ola-frontend...`); sus `node_modules` viven en volúmenes de Docker.
 
 No se deben incluir credenciales reales en el repositorio: `.env` está en `.gitignore` y solo
 se versiona `.env.example`.
+
+## App Android
+
+La app (`mobile/`) se compila y se prueba en el equipo, no en Docker: necesita el Android SDK y
+un celular. Hoy tiene el marco completo, la pestaña Mapa (resumen, mapa con las 10 zonas,
+tarjetas, detalle de cada zona y lectura sin conexión) y la cuenta: entrar, crear la cuenta,
+recuperar la contraseña con un código que llega por correo y elegir las zonas de las que se
+reciben avisos. La sesión dura 30 días y el token se guarda cifrado con `expo-secure-store`. El
+resto de las pantallas se completa fase a fase (ver [el plan de calidad](docs/calidad.md),
+sección 13).
+
+**Requisitos:** Node 24, pnpm (Corepack usa la versión 9.15.2 del repositorio), Android SDK con
+`ANDROID_HOME` definida, JDK 17 en `JAVA_HOME`, [Maestro](https://maestro.mobile.dev) y un
+celular con Android 10 o superior, la depuración USB activada y autorizada para este equipo.
+Del SDK hacen falta el NDK 27.1 y CMake 3.31.6; en Windows, además, las rutas largas activadas
+(`LongPathsEnabled`):
+
+```bash
+android sdk install ndk/27.1.12297006 cmake/3.31.6   # el CLI nuevo del SDK; sdkmanager ya no instala
+```
+
+```bash
+cd mobile
+pnpm install --filter ola-mobile...   # dependencias de la app y del paquete compartido
+pnpm test                             # pruebas unitarias (Jest)
+pnpm lint && pnpm typecheck
+```
+
+Con el backend levantado (`docker compose up -d`) y el celular conectado:
+
+```bash
+adb reverse tcp:18000 tcp:8000  # el celular ve la API del equipo en su localhost:18000, por el cable
+pnpm android                    # build de desarrollo con recarga en caliente (paquete pe.ola.app.dev)
+pnpm e2e                        # compila el APK de pruebas, lo instala y corre Maestro
+pnpm e2e --sin-compilar --solo .maestro/inicio   # solo un flujo o una carpeta
+pnpm medir                      # tiempo hasta ver el estado del mar, mediana de 3 arranques
+pnpm compilar demo              # APK contra el VPS, en mobile/informes/ola-demo.apk
+```
+
+`pnpm e2e` prepara el celular entre flujos: corta el acceso a la API para probar el error de
+conexión y los datos guardados, activa el modo avión para probar la reconexión y sube la letra
+al 200 %. Al terminar deja la letra, las animaciones y el modo avión como estaban. Los flujos de
+cuenta crean una cuenta nueva en cada corrida y leen el código de recuperación en Mailpit, así
+que Mailpit tiene que estar levantado en el puerto 8025. Los informes y capturas quedan en
+`mobile/informes/`, que no se versiona.
+
+> **pnpm en Windows** enlaza `node_modules` con uniones de directorio que apuntan a rutas de
+> Windows. Un contenedor Linux no puede seguirlas, así que los scripts de la app corren en el
+> equipo. La primera compilación nativa tarda más de una hora: compila el C++ de React Native.
+> Las siguientes reutilizan `mobile/.cxx/`, que no se versiona. `pnpm compilar` solo rehace
+> `android/` si cambió algo nativo (dependencias, configuración, plugins, recursos o módulos propios); si solo
+> cambió JavaScript, compila en unos minutos. `--limpio` lo rehace siempre.
 
 ## Despliegue en un VPS con Dokploy
 
@@ -261,12 +352,17 @@ alertas solo viven en la base.
 
 ## Calidad de software
 
-El proyecto se desarrolló aplicando prácticas de calidad durante todo el ciclo de vida.
+El proyecto se desarrolla con un plan de aseguramiento de la calidad
+([docs/calidad.md](docs/calidad.md)): metas por atributo, puertas de calidad al cerrar cada
+fase, métricas medidas, costo de calidad, autoevaluación CMMI e ISO/IEC 15504, riesgos y una
+retrospectiva por fase.
 
 | Evidencia | Estado |
 |---|---|
-| Pruebas automatizadas | **688** en tres capas |
-| Cobertura del backend | **95%** de las sentencias |
+| Pruebas automatizadas | **1,302** en backend, paquete compartido, web, app móvil, E2E y herramientas |
+| Cobertura de sentencias | **95 %** backend · **97.7 %** paquete compartido · **90.4 %** web · **95.9 %** app |
+| Defectos | 33 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
+| Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto |
 | Análisis estático | ruff y mypy en modo estricto, sin observaciones |
 | Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |
 | Control de cambios | toda desviación de la SRS registrada con fecha y motivo en su sección 5 |
@@ -285,6 +381,8 @@ Otras prácticas aplicadas:
 - validación del formato y del contenido del dataset, con importación parcial y reporte de
   errores por fila;
 - contraseñas con bcrypt y negativa a arrancar en producción con secretos débiles;
+- recuperación de contraseña con un código de un solo uso que se guarda como HMAC, vence a los
+  15 minutos y no revela qué correos tienen cuenta;
 - código versionado con commits descriptivos;
 - documentación actualizada junto con cada avance.
 

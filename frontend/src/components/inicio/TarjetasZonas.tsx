@@ -1,10 +1,10 @@
 import { TriangleAlert } from 'lucide-react'
 import { useId } from 'react'
 import type { EstadoZona } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { TINTES } from '../mapa/paleta'
+import { textos } from '@ola/compartido/i18n/textos'
+import { TINTES } from '@ola/compartido/mapa/paleta'
 import { InsigniaEstado } from './Estado'
-import { fechaCorta, gradosConSigno } from './datos'
+import { fechaCorta, gradosConSigno } from '@ola/compartido/inicio/datos'
 
 function lineaDelDato(zona: EstadoZona): string | null {
   if (zona.last_measured_on === null) return null

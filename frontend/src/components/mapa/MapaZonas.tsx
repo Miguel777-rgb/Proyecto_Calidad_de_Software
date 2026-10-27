@@ -7,7 +7,7 @@ import { MapContainer, Marker, TileLayer, Tooltip } from 'react-leaflet'
 import type { EstadoZona } from '../../api/client'
 import { OPCIONES_GESTOS } from './gestos'
 import { htmlMarcador } from './marcador'
-import { limitesDe } from './paleta'
+import { limitesDe } from '@ola/compartido/mapa/paleta'
 
 // Mosaicos de OpenStreetMap pasados a gris claro con CSS (mapa.css), para que
 // los colores de estado sean lo unico con color. Se descarto CARTO Positron:

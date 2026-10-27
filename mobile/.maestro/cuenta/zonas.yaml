@@ -1,0 +1,67 @@
+# Suscribirse desde el detalle y verlo en Mis zonas; seguir otra desde ahi.
+appId: pe.ola.app
+name: Seguir zonas desde el detalle y desde Mis zonas
+tags: [cuenta]
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- runFlow: ../comun/registrarse.yaml
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-CALLAO
+- tapOn:
+    id: recibir-avisos
+- extendedWaitUntil:
+    visible: Recibes avisos de Callao
+    timeout: 10000
+- takeScreenshot: informes/capturas/detalle-suscrito
+- back
+- scrollUntilVisible:
+    element:
+      id: boton-cuenta
+    direction: UP
+    timeout: 60000
+- tapOn:
+    id: boton-cuenta
+- tapOn: Mis zonas
+- extendedWaitUntil:
+    visible:
+      id: lista-zonas
+    timeout: 10000
+- assertVisible:
+    id: seguir-CALLAO
+    checked: true
+- assertVisible:
+    id: seguir-HUACHO
+    checked: false
+- tapOn:
+    id: seguir-HUACHO
+- extendedWaitUntil:
+    visible:
+      id: seguir-HUACHO
+      checked: true
+    timeout: 10000
+- takeScreenshot: informes/capturas/mis-zonas
+- back
+- scrollUntilVisible:
+    element:
+      id: tarjeta-HUACHO
+    direction: DOWN
+    timeout: 60000
+- tapOn:
+    id: tarjeta-HUACHO
+- assertVisible: Recibes avisos de Huacho
+- tapOn:
+    id: dejar-de-recibir
+- extendedWaitUntil:
+    visible:
+      id: recibir-avisos
+    timeout: 10000

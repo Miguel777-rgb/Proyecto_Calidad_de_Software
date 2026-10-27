@@ -9,7 +9,7 @@ import {
 import { GraficoSerie } from '../components/graficos/GraficoSerie'
 import { SelectorRango } from '../components/graficos/SelectorRango'
 import { TablaSerie } from '../components/graficos/TablaSerie'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function Historico() {
   const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([])

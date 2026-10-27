@@ -6,7 +6,7 @@ import {
   type Proyeccion as DatosProyeccion,
 } from '../api/client'
 import { GraficoProyeccion } from '../components/graficos/GraficoProyeccion'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 const HORIZONTES = [3, 4, 5, 6, 7]
 const HORIZONTE_POR_DEFECTO = 5

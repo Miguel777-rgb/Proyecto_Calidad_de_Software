@@ -83,6 +83,12 @@ const REVISIONES: Revision[] = [
     lista: (page) => page.getByRole('button', { name: 'Registrarme' }).waitFor(),
   },
   {
+    nombre: 'Recuperar contraseña',
+    ruta: '/recuperar',
+    bloquea: true,
+    lista: (page) => page.getByRole('button', { name: 'Enviar código' }).waitFor(),
+  },
+  {
     nombre: 'Histórico',
     ruta: '/historico',
     bloquea: true,

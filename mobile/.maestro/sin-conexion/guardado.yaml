@@ -1,0 +1,44 @@
+# Sin API y con datos guardados, la app los muestra y dice de cuando son; al
+# volver la API, «Reintentar» los actualiza.
+appId: pe.ola.app
+name: Sin API muestra lo guardado y al reintentar se actualiza
+tags: [sin-conexion]
+env:
+  CONTROL: http://127.0.0.1:18999
+---
+- evalScript: "${http.post(CONTROL + '/conectar-api', { body: '' }).status}"
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- evalScript: "${http.post(CONTROL + '/desconectar-api', { body: '' }).status}"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: aviso-guardado
+    timeout: 20000
+- assertVisible: "Sin conexión. Datos guardados el [0-9]{2}/[0-9]{2}/[0-9]{4} a las [0-9]{2}:[0-9]{2}."
+- assertVisible:
+    id: fecha-referencia
+- assertNotVisible: No pudimos cargar el estado del mar.
+- takeScreenshot: informes/capturas/sin-conexion-guardado
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- evalScript: "${http.post(CONTROL + '/conectar-api', { body: '' }).status}"
+- scrollUntilVisible:
+    element:
+      id: reintentar-guardado
+    direction: UP
+    timeout: 60000
+- tapOn:
+    id: reintentar-guardado
+- extendedWaitUntil:
+    notVisible:
+      id: aviso-guardado
+    timeout: 15000

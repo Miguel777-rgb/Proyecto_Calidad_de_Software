@@ -11,7 +11,7 @@ from decimal import Decimal
 
 import pytest
 
-from ola.domain.messages import ATRIBUCION, alert_closed, alert_opened
+from ola.domain.messages import ATRIBUCION, alert_closed, alert_opened, password_reset_code
 
 D = Decimal
 
@@ -102,3 +102,24 @@ def test_ningun_aviso_menciona_sms(mensaje):
     # RF-03 se redujo a correo y avisos dentro de la aplicacion.
     assert "SMS" not in mensaje.body
     assert "mensaje de texto" not in mensaje.body.lower()
+
+
+class TestCorreoDeRecuperacion:
+    def test_lleva_el_codigo_y_cuanto_vale(self):
+        mensaje = password_reset_code(code="482913", minutes=15)
+
+        assert mensaje.subject == "Tu código para cambiar la contraseña de OLA"
+        assert "482913" in mensaje.body
+        assert "Vale 15 minutos" in mensaje.body
+
+    def test_explica_que_hacer_si_no_lo_pidio(self):
+        assert (
+            "Si no fuiste tú, ignora este correo"
+            in password_reset_code(code="000001", minutes=15).body
+        )
+
+    def test_no_lleva_enlaces(self):
+        cuerpo = password_reset_code(code="000001", minutes=15).body
+
+        assert "http" not in cuerpo
+        assert "www." not in cuerpo

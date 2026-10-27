@@ -2,10 +2,10 @@ import { Bell, Check, ChartLine, CircleCheck, Clock, LogIn, TriangleAlert, X } f
 import { Link } from 'react-router-dom'
 import type { EstadoZona } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import { InsigniaEstado } from '../inicio/Estado'
-import { fechaCorta, gradosConSigno } from '../inicio/datos'
-import { TINTES } from './paleta'
+import { fechaCorta, gradosConSigno } from '@ola/compartido/inicio/datos'
+import { TINTES } from '@ola/compartido/mapa/paleta'
 import { useSuscripcionZona } from './useSuscripcionZona'
 
 const FOCO = 'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-marea'

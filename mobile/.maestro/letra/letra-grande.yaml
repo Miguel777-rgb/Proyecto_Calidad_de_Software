@@ -1,0 +1,45 @@
+# El script sube la letra del celular al 200 % (font_scale 2.0) antes.
+appId: pe.ola.app
+name: Con la letra al 200 % no se pierde nada
+tags: [letra]
+---
+- launchApp:
+    stopApp: true
+- assertVisible: Estado del mar en la costa
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 15000
+# Las cuatro pestanas siguen a la vista y con su nombre completo.
+- assertVisible: Mapa
+- assertVisible: Histórico
+- assertVisible: Comparar
+- assertVisible: Próximos días
+- assertVisible:
+    id: entrar
+- takeScreenshot: informes/capturas/letra-200
+# El resumen y las tarjetas crecen y se leen completos desplazando.
+- scrollUntilVisible:
+    element:
+      id: tarjeta-CALLAO
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: informes/capturas/letra-200-tarjetas
+- scrollUntilVisible:
+    element:
+      id: atribucion
+    direction: DOWN
+    timeout: 60000
+# Con el teclado y la letra al 200 %, el formulario se desplaza y el boton se alcanza.
+- tapOn:
+    id: entrar
+- tapOn:
+    id: entrar-correo
+- inputText: pescador@ejemplo.pe
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: entrar-enviar
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: informes/capturas/letra-200-entrar

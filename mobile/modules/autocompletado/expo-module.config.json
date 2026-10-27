@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["pe.ola.autocompletado.AutocompletadoModule"]
+  }
+}

@@ -44,7 +44,7 @@ class StreakConfig:
         if self.threshold_c <= 0:
             raise ValueError("El umbral debe ser mayor que cero.")
         if self.min_records < 2:
-            raise ValueError("La racha minima debe ser de al menos 2 registros.")
+            raise ValueError("La racha mínima debe ser de al menos 2 registros.")
         if self.max_gap_days < 0:
             raise ValueError("La tolerancia de huecos no puede ser negativa.")
 

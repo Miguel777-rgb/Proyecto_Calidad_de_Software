@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiError, enviarAvisosPendientes, type ResumenEnvio } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 /** Segundo paso del envio (RF-03). La evaluacion registra los avisos; aqui
  *  salen los correos, de modo que un servidor caido no bloquee aquella. */

@@ -12,7 +12,10 @@ from ola.security import (
     PasswordTooLongError,
     create_access_token,
     decode_access_token,
+    generate_reset_code,
     hash_password,
+    hash_reset_code,
+    reset_code_matches,
     verify_password,
 )
 
@@ -111,3 +114,28 @@ class TestTokens:
     def test_un_texto_cualquiera_no_es_un_token(self):
         with pytest.raises(jwt.PyJWTError):
             decode_access_token("no.es.un.token", secret=SECRETO, algorithm=ALGORITMO)
+
+
+class TestCodigoDeRecuperacion:
+    def test_son_6_digitos(self):
+        codigos = {generate_reset_code() for _ in range(200)}
+
+        assert all(len(c) == 6 and c.isdigit() for c in codigos)
+        # Al azar: 200 codigos no pueden salir todos iguales.
+        assert len(codigos) > 150
+
+    def test_el_hash_no_contiene_el_codigo(self):
+        assert "123456" not in hash_reset_code("123456", user_id=1, secret="s" * 32)
+
+    def test_el_mismo_codigo_de_dos_personas_se_guarda_distinto(self):
+        uno = hash_reset_code("123456", user_id=1, secret="s" * 32)
+        otro = hash_reset_code("123456", user_id=2, secret="s" * 32)
+
+        assert uno != otro
+
+    def test_reconoce_el_codigo_correcto_y_rechaza_otro(self):
+        guardado = hash_reset_code("482913", user_id=7, secret="s" * 32)
+
+        assert reset_code_matches("482913", guardado, user_id=7, secret="s" * 32)
+        assert not reset_code_matches("482914", guardado, user_id=7, secret="s" * 32)
+        assert not reset_code_matches("482913", guardado, user_id=8, secret="s" * 32)

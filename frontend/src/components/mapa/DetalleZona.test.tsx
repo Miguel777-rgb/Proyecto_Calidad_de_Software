@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { DetalleZona } from './DetalleZona'
 import type { EstadoZona } from '../../api/client'
 import { AvisosContext } from '../../avisos/contexto'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 import {
   ESTADO_MUESTRA,
   USUARIO,

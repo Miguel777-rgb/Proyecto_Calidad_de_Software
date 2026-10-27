@@ -44,6 +44,7 @@ color fuera del sistema no compila.
 | `realce` | `#edf3f2` | Fondo al pasar el cursor |
 | `atencion-fondo` / `atencion-borde` | `#fbf1d9` / `#e2c378` | Dato atrasado, zona sin datos recientes |
 | `alerta` | `#b4531f` | Icono de alerta |
+| `error` / `error-fondo` | `#b3261e` / `#fdecea` | Mensaje de error de un formulario: correo o contraseña incorrectos, código vencido |
 
 **Reglas**
 
@@ -228,5 +229,89 @@ fijo: `page.clock.setFixedTime(HOY_FIJO)`.
 Para regenerar las referencias visuales **solo tras aprobar un cambio visual**:
 
 ```bash
-docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots"
+docker compose --profile e2e run --rm e2e sh -c "corepack enable && corepack prepare pnpm@9.15.2 --activate && pnpm install --frozen-lockfile --filter ola-frontend... && pnpm exec playwright test visual.spec.ts --update-snapshots"
 ```
+
+---
+
+## 12. App Android
+
+La app (`mobile/`, RF-09) sigue esta misma guía. Lo que cambia es el material de Android, no la
+identidad. Maqueta aprobada en su fase 1.
+
+**De dónde salen los valores**
+
+- **Colores:** `@ola/compartido/tema/colores` (`PALETA`). La web los declara en `tema.css` y la
+  prueba `frontend/src/tema.test.ts` exige que las dos fuentes digan lo mismo. Los colores de estado
+  siguen viniendo de `mapa/paleta.ts`.
+- **Fuentes:** las mismas tres familias, incrustadas al compilar con `expo-font`. No hay descarga ni
+  carga al abrir la app, así que el primer cuadro ya sale con la tipografía correcta. En los estilos
+  se usan `fontFamily` (`Inter`, `SpaceGrotesk`, `JetBrainsMono`) y `fontWeight`, desde
+  `mobile/src/tema.ts`.
+- **Textos:** `textos` de `@ola/compartido`. Lo que solo existe en la app va en el bloque
+  `textos.movil`.
+
+**Marco**
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Banda | Abisal, 56 dp más la zona de la hora (la app se dibuja de borde a borde). Logotipo como encabezado; «Entrar» en dorado o el botón de cuenta con el número de avisos | `componentes/marco/Banda.tsx` |
+| Barra inferior | Blanca, pestañas de 64 dp con píldora abisal en la activa; se extiende bajo la zona de gestos | `componentes/marco/BarraInferior.tsx` |
+| Cuenta | Hoja que sube desde abajo, en su propia ventana (`Modal`); se cierra deslizando, con «atrás», tocando fuera o al elegir | `componentes/marco/HojaCuenta.tsx` |
+| Pantalla | Título como encabezado, contenido y el pie con la atribución a IMARPE al final de cada pestaña | `componentes/pantalla/Pantalla.tsx` |
+| Errores | Sin conexión: mismo texto que la web y «Reintentar». Fallo inesperado: límite de errores de expo-router con «Volver al mapa» | `componentes/pantalla/` |
+
+**Tamaño de letra.** Los tamaños van en sp y siguen la letra que la persona eligió en su celular. El
+contenido crece sin límite (Android llega al 200 %). La banda se limita al 130 % y las etiquetas de
+la barra al 150 % (`LETRA_MAXIMA`): a 200 % las cuatro pestañas no caben en un cuarto de pantalla.
+Por eso las etiquetas admiten dos líneas.
+
+**Solo vertical y solo tema claro**, igual que la web, aunque el celular esté en modo oscuro.
+
+**Ícono y arranque.** Se generan con `mobile/scripts/generar-recursos.py` desde la fuente del
+logotipo: ícono adaptativo (logotipo en espuma sobre abisal, dentro de la zona segura de 66 dp),
+versión monocroma para los íconos temáticos y arranque abisal con el lema «Datos abiertos del
+IMARPE». En ícono y arranque el espaciado del logotipo se abre a -0.005 em: con el -0.035 em de la
+banda, la L y la A se tocan en cuanto el logotipo pasa de unos 60 px.
+
+**Pruebas.** Jest y Testing Library consultan por rol y nombre accesible, como TalkBack. Maestro
+recorre la app instalada en el celular y además prueba sin conexión y con la letra al 200 %. Ver
+`mobile/.maestro/` y el README.
+
+### 12.1 Pestaña Mapa
+
+Maqueta aprobada en la fase 2. Una sola pantalla que se desplaza, como la web en celular: resumen,
+mapa y tarjetas. Los textos son los de la web (secciones 6, 7 y 9).
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Resumen | El de la web apilado en tres bloques: fecha del dato con su antigüedad (fondo de atención si pasa la vigencia), zonas en alerta con nombre y conteo por estado, que incluye los estados sin zonas | `componentes/inicio/ResumenEstado.tsx` |
+| Mapa | 340 dp de alto, encuadre fijo de toda la costa, estilo Positron de OpenFreeMap. Sin nombres de zonas. Un dedo desplaza la pantalla y muestra 1.5 s «Usa dos dedos para mover el mapa»; con dos dedos se acerca, y entonces aparece «Ver toda la costa» | `componentes/mapa/MapaZonas.tsx` |
+| Marcadores | Círculo del color del estado con su símbolo. En alerta: 32 dp, con anillo del color y encima de los demás. Sin datos: blanco con el círculo punteado. La zona elegida lleva borde abisal. El dibujo lo pinta MapLibre; encima, un botón transparente de 48 dp por zona es lo que se toca y lo que lee TalkBack | `MapaZonas.tsx` |
+| Atribución del mapa | «OpenFreeMap © OpenMapTiles · © OpenStreetMap» en la esquina inferior derecha; TalkBack lee la versión completa | `MapaZonas.tsx` |
+| Tarjetas | Las de la web, en el mismo orden: alertas primero y luego de norte a sur. Son la alternativa accesible al mapa: en un celular vertical la tabla de la web no cabe con la letra al 200 % | `componentes/inicio/TarjetasZonas.tsx` |
+| Detalle | Hoja nativa que crece según su contenido, con asa y esquinas de 22 dp. Mismo contenido que la web; se cierra con «atrás», deslizando o con ✕ | `app/zona/[code].tsx`, `componentes/zona/DetalleZona.tsx` |
+| Sin conexión | Aviso en tono de atención sobre el título: «Sin conexión. Datos guardados el 23/09/2026 a las 08:46.» y «Reintentar». El resto de la pantalla no cambia | `componentes/inicio/AvisoGuardado.tsx` |
+| Primera carga | Esqueleto con la forma del resumen y del mapa. Late despacio, salvo que el celular pida menos movimiento. Después de la primera vez la app abre con lo guardado | `componentes/inicio/Esqueleto.tsx` |
+| Actualizar | Tirar hacia abajo, con el indicador de Android en color marea | `componentes/pantalla/Pantalla.tsx` |
+
+Los colores y símbolos de estado salen de `@ola/compartido/mapa/paleta`, igual que en la web.
+
+### 12.2 Cuenta y zonas de interés
+
+Maqueta aprobada en la fase 3. Entrar, Crear cuenta, Recuperar contraseña y Mis zonas son
+pantallas completas con flecha de «atrás», no hojas: el teclado ocupa media pantalla y una hoja
+no deja ver el campo que se escribe.
+
+| Pieza | Cómo es | Dónde |
+|---|---|---|
+| Campo | Etiqueta arriba, siempre visible, y caja blanca de 52 dp con borde marea al enfocarla. La contraseña lleva un ojo de 48 dp para mostrarla, con su nombre para TalkBack. El código usa teclado numérico, fuente de datos y 6 casillas de ancho. Sin autocompletado de Android, decisión de la fase 3: además de apagarlo, la sesión que Android 14 abre igual se cancela al enfocar cada campo y al dejar la pantalla (D-32) | `componentes/formulario/Campo.tsx` |
+| Mensaje | Franja con ícono sobre el botón: roja para un error, marea para «te enviamos un código», de atención para «Tu sesión terminó. Vuelve a entrar.» TalkBack la anuncia al aparecer; el error, interrumpiendo lo que esté leyendo | `componentes/formulario/Mensaje.tsx` |
+| Formulario | Se desplaza y sube con el teclado; «Siguiente» del teclado envía desde el último campo | `componentes/formulario/Formulario.tsx` |
+| Recuperar | Dos pasos en la misma pantalla: primero el correo; después, el código y la contraseña nueva. «Enviar otro código» espera 60 s y muestra la cuenta regresiva | `app/recuperar.tsx` |
+| Mis zonas | Las 10 zonas de norte a sur, cada una con su estado y un interruptor. Toda la fila, de 64 dp, es el interruptor: el de Android solo mide 27 dp de alto (D-33). TalkBack lee «Callao, cálido, en alerta» y si está activado. Sin sesión, una invitación a entrar | `app/mis-zonas.tsx` |
+| Avisos en el detalle | Sin sesión, «Entrar para recibir avisos». Con sesión, «Recibir avisos de esta zona» o la marca «Recibes avisos» con «Dejar de recibir» | `componentes/zona/AvisosZona.tsx` |
+
+Después de entrar, crear la cuenta o cambiar la contraseña, la persona vuelve adonde estaba: al
+detalle desde el que pidió avisos o a Mis zonas si ahí se le cerró la sesión. Salir borra la
+sesión y la lista de zonas seguidas, pero no el estado del mar guardado.

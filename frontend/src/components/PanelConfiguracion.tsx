@@ -7,7 +7,7 @@ import {
   type Configuracion,
   type ResumenEvaluacion,
 } from '../api/client'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 const ENTEROS = [
   'min_streak_records',

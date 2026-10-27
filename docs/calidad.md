@@ -1,0 +1,582 @@
+# Plan de aseguramiento de la calidad (SQA)
+## Proyecto OLA — Observatorio Litoral de Anomalías térmicas
+
+| Campo | Detalle |
+|---|---|
+| Curso | Calidad de Software (3.8.2.21) · 2026-II |
+| Versión | 1.3 (fase 3 de la aplicación móvil) |
+| Fecha | 2026-09-27 |
+| Responsable de QA | Jorge Ortiz Castañeda (Scrum Master) |
+| Aprobación | Miguel Angel Flores Leon (Product Owner) |
+
+Este plan dice qué calidad se busca en OLA, cómo se comprueba y quién responde por cada
+parte. Cubre el backend, la web, el paquete compartido y la aplicación móvil (RF-09). Es un
+documento vivo: al cerrar cada fase se añaden sus métricas (sección 7), sus defectos
+([defectos.md](defectos.md)), la revisión de riesgos (sección 10) y su retrospectiva
+(sección 12).
+
+---
+
+## 1. Objetivos de calidad
+
+Cada objetivo tiene una meta verificable. Donde la SRS fija un valor, se usa como **objetivo**
+y este plan añade un **mínimo aceptable**. Una fase que queda entre el mínimo y el objetivo se
+puede cerrar, pero su retrospectiva debe proponer una acción de mejora.
+
+| Objetivo | Mínimo | Objetivo | Cómo se comprueba |
+|---|---|---|---|
+| Clasificar bien cada registro válido del dataset | 100 % | 100 % | Casos límite de RF-01 en pytest (umbral exclusivo, rachas con huecos) |
+| Mostrar siempre la fecha del dato | Siempre | Siempre | Pruebas unitarias y E2E de la fecha de referencia en web y app |
+| Cobertura de sentencias del backend | 80 % | 90 % | pytest-cov |
+| Cobertura del paquete compartido | 80 % | 90 % | Vitest (v8) |
+| Cobertura de la web | 70 % | 80 % | Vitest (v8) |
+| Cobertura de la app móvil | 70 % | 80 % | Jest |
+| Accesibilidad WCAG 2.2 AA | 0 violaciones serias o críticas | 0 | axe en Vitest y Playwright |
+| Carga del mapa web (SRS 3.3) | 3 s | 3 s | `e2e/rendimiento.spec.ts` |
+| Estado de las zonas en la app (SRS 3.3) | 5 s | 5 s | `mobile/scripts/medir-arranque.mjs` en el celular: mediana de 5 arranques en frío |
+| Disponibilidad del backend (SRS 3.5) | 90 % | 95 % | Uptime Kuma |
+| Defectos críticos abiertos al cerrar una fase | 0 | 0 | [defectos.md](defectos.md) |
+
+---
+
+## 2. Estándares y referencias
+
+| Estándar | Para qué se usa |
+|---|---|
+| IEEE Std 830-1998 | Estructura de la SRS ([requisitos.md](requisitos.md)) |
+| ISO/IEC 25010 (SQuaRE) | Atributos de calidad del producto (SRS, sección 3.5) y clasificación de las métricas |
+| WCAG 2.2, nivel AA | Accesibilidad de la web y de la app |
+| CMMI 2.0 e ISO/IEC 15504 | Autoevaluación de la madurez del proceso (sección 9) |
+| Conventional Commits | Mensajes de commit legibles y agrupables por tipo |
+
+---
+
+## 3. Modelo de proceso: Scrum
+
+### 3.1 Por qué Scrum
+
+| Modelo | Qué habría pasado en OLA |
+|---|---|
+| Cascada | Exige congelar los requisitos antes de diseñar. En OLA cambiaron cinco RF en la primera semana (SRS 1.2 a 1.6) porque el dataset real tenía huecos, retrasos y decimales con coma. Con cascada, esos cambios habrían llegado tarde y caros |
+| Incremental sin marco | Entrega por partes, pero no obliga a revisar ni a mejorar el proceso entre una parte y otra |
+| **Scrum** | Sprints de dos semanas que caben en el calendario del curso, una revisión al final de cada uno y una retrospectiva que convierte los errores en cambios concretos |
+
+El equipo tiene cinco personas que llevan otros cursos a la vez. Sprints cortos con un objetivo
+claro reducen el riesgo de llegar a un hito sin nada que mostrar (riesgo R-02).
+
+### 3.2 Scrum como ciclo PDCA
+
+Cada sprint, y cada fase de la aplicación móvil, recorre el ciclo de Deming.
+
+| PDCA | En Scrum | En cada fase de la app móvil |
+|---|---|---|
+| **Plan** | Sprint Planning | Preguntas al PO y maqueta aprobada antes de programar |
+| **Do** | Trabajo del sprint | Implementación con sus pruebas |
+| **Check** | Sprint Review | Puertas de calidad (sección 5.2), métricas y revisión del PR por el PO |
+| **Act** | Retrospectiva | Acciones registradas en la sección 12, que la fase siguiente aplica y verifica |
+
+La mejora continua (Kaizen) está en la última columna: cambios pequeños que se proponen en una
+retrospectiva y se comprueban en la siguiente. Una acción que no se comprueba no cuenta como
+mejora.
+
+---
+
+## 4. Roles de calidad
+
+| Rol | Persona | Responsabilidad de calidad |
+|---|---|---|
+| Product Owner | Miguel Angel Flores Leon | Aprueba cada cambio de requisitos (SRS, sección 5). Revisa e integra el Pull Request de cada fase |
+| Scrum Master y responsable de QA | Jorge Ortiz Castañeda | Mantiene este plan, verifica las puertas de calidad, conduce la retrospectiva y custodia la bitácora de defectos y la tabla de riesgos |
+| Development Team | Frederick Mares Graos, Jhordan Huamani Huamani, Piero Adrian Delgado Chipana | Escriben las pruebas junto con el código y registran los defectos que encuentran. Jhordan responde por RF-09 |
+| Docente | Maribel Molina Barriga | Evaluación externa en los hitos |
+
+---
+
+## 5. Actividades de aseguramiento
+
+### 5.1 Revisiones
+
+| Revisión | Cuándo | Evidencia |
+|---|---|---|
+| Requisitos | Antes de implementar un cambio de RF | Fila en la sección 5 de la SRS con fecha, motivo y responsable (versiones 1.0 a 1.7) |
+| Diseño de interfaz | Antes de programar una fase visual | Maqueta aprobada por el PO |
+| Código | Al cerrar cada fase | Pull Request en GitHub revisado por el PO, con los resultados reales de las pruebas |
+| Regresión visual | Cuando cambia una captura de referencia | Capturas regeneradas en el contenedor de Playwright y revisadas antes de confirmarlas |
+
+### 5.2 Puertas de calidad
+
+Una fase no se cierra ni abre su Pull Request hasta cumplir todo esto. Si una puerta falla por
+una excepción justificada, la excepción se registra con su motivo en la retrospectiva.
+
+1. Todas las pruebas de las capas que la fase toca pasan.
+2. Verificación de tipos, formato y análisis estático sin errores: mypy, `ruff check`,
+   `ruff format --check`, tsc y ESLint.
+3. La cobertura de cada capa está sobre su mínimo (sección 1).
+4. axe no reporta violaciones serias ni críticas.
+5. No hay defectos críticos abiertos.
+6. El diff no incluye secretos: `.env`, credenciales de Firebase ni keystore.
+7. La documentación está al día: SRS si cambió un RF, trazabilidad, defectos, riesgos y retrospectiva.
+
+El proyecto no usa integración continua (ver [decisiones.md](decisiones.md), «Lo que quedó
+fuera»), así que las puertas se comprueban en local con los comandos de la sección 6.
+
+---
+
+## 6. Estrategia y herramientas de prueba
+
+| Capa | Herramienta | Qué verifica |
+|---|---|---|
+| Unitaria del dominio | pytest | Rachas, clasificación, proyección, agrupado y lectura del CSV, sin base de datos ni reloj |
+| Integración del backend | pytest con PostgreSQL | Endpoints, persistencia y permisos, contra una base separada de la de desarrollo |
+| Unitaria compartida | Vitest | Lógica de presentación y contrato de la API que usan la web y la app |
+| Unitaria de la web | Vitest, Testing Library y axe-core | Componentes y páginas con dobles del mapa y del gráfico |
+| E2E de la web | Playwright y axe | Escritorio y celular emulado (Pixel 7): comportamiento, accesibilidad y capturas |
+| Rendimiento de la web | Playwright | Build de producción con 4G simulado |
+| Unitaria de la app | Jest y React Native Testing Library | Configuración por variante, marco, pantallas y navegación con las rutas reales, consultando por rol y nombre como TalkBack |
+| E2E de la app | Maestro, rodeado por `mobile/scripts/e2e.mjs` | El APK de release en el celular: arranque, navegación, sin conexión y letra al 200 % |
+| Rendimiento de la app | `mobile/scripts/medir-arranque.mjs` | Tiempo desde que se abre en frío hasta ver el estado, en el celular |
+| Análisis estático | ruff, mypy (estricto), tsc y ESLint | Estilo, tipos y errores comunes |
+| Servicios simulados | Mailpit (correo) y FCM simulado (push, fase 4) | Que un aviso se entrega sin salir a internet |
+| Disponibilidad | Uptime Kuma | Chequeo de `/api/health/ready` del equipo y del VPS cada minuto |
+
+```bash
+docker compose exec api pytest --cov=ola                                   # backend
+docker compose exec api sh -c "ruff check . && ruff format --check . && mypy src"   # análisis estático
+docker compose exec -w /repo/packages/compartido web pnpm test:cobertura   # paquete compartido
+docker compose exec web pnpm test:cobertura                                # web, unitarias
+docker compose --profile e2e run --rm e2e                                  # web, E2E
+cd mobile && pnpm test:cobertura && pnpm lint && pnpm typecheck            # app, unitarias
+cd mobile && pnpm e2e && pnpm medir                                        # app, E2E y arranque
+docker compose --profile calidad run --rm calidad reporte.py --horas 168   # disponibilidad
+```
+
+### 6.1 Herramientas del sílabo que no se adoptaron por ahora
+
+| Herramienta | Qué aporta | Por qué no se usa todavía | Qué la reemplaza |
+|---|---|---|---|
+| SonarQube | Análisis estático de varios lenguajes, duplicación, deuda técnica y una puerta de calidad en un solo panel | ruff, mypy y ESLint ya cubren el análisis de cada lenguaje, y la cobertura sale de pytest-cov y Vitest. Añadiría un servicio más sin detectar, hoy, defectos que las otras no detecten | ruff, mypy, tsc, ESLint y las puertas de la sección 5.2. Se puede sumar a `compose.yml` sin tocar el código |
+| TestLink | Gestión de planes, suites y casos de prueba con su historial de ejecución | Los casos son automáticos y viven junto al código; su ejecución se repite en cada fase | [trazabilidad.md](trazabilidad.md), que une cada RF con sus pruebas, y los resultados de cada Pull Request |
+
+---
+
+## 7. Métricas de calidad
+
+| Métrica | Atributo ISO/IEC 25010 | Fórmula | Fuente |
+|---|---|---|---|
+| Cobertura de sentencias | Mantenibilidad (capacidad de ser probado) | Sentencias ejecutadas por las pruebas / sentencias totales × 100 | pytest-cov, Vitest, Jest |
+| Densidad de defectos | Fiabilidad (madurez) | Defectos encontrados / miles de líneas de código de producción (KLOC). Se desglosa por fase y por RF | [defectos.md](defectos.md) |
+| Tiempo de respuesta | Eficiencia de desempeño | Mediana de 3 cargas en frío hasta ver las 10 zonas | `e2e/rendimiento.spec.ts`; Maestro y adb para la app |
+| Disponibilidad | Fiabilidad (disponibilidad) | Chequeos correctos / chequeos con respuesta × 100 | Uptime Kuma |
+
+La disponibilidad solo mide el tiempo en que el entorno estuvo levantado. Con el equipo apagado
+no hay chequeos y ese tiempo no cuenta como caída; el informe muestra el periodo cubierto.
+
+### 7.1 Línea base (fase 0, 2026-09-14)
+
+| Métrica | Valor | Nota |
+|---|---|---|
+| Cobertura del backend | 95 % | 442 pruebas. `startup.py` figura con 0 % porque solo corre al arrancar un contenedor de producción (ver trazabilidad.md) |
+| Cobertura del paquete compartido | 97.3 % | 124 pruebas |
+| Cobertura de la web | 89.9 % | 241 pruebas unitarias |
+| Cobertura de la app móvil | — | Se mide desde la fase 1 |
+| Densidad de defectos | 2.39 por KLOC | 21 defectos en 8.8 KLOC (4,286 líneas del backend y 4,517 de la web, sin pruebas; incluye comentarios y líneas en blanco). 1 crítico, ya corregido. 1 medio abierto (D-20) |
+| Carga del mapa web | 1.10 s | Mediana medida el 2026-09-14, después de mover la lógica al paquete compartido (antes, 1.07 s). Portada de 169.8 kB comprimidos |
+| Estado de las zonas en la app | — | Se mide desde la fase 2 |
+| Disponibilidad | 100 % (3 chequeos) | Medición iniciada el 2026-09-14 a las 19:27 (hora de Lima). Todavía no es representativa |
+
+### 7.2 Medición por fase
+
+| Fase | Cierre | Cobertura backend / compartido / web / app | Defectos nuevos (críticos) | Estado en la app | Disponibilidad |
+|---|---|---|---|---|---|
+| 0 | 2026-09-14 | 95 % / 97.3 % / 89.9 % / — | 2 (0) | — | Inicio de la medición |
+| 1 | 2026-09-23 | 95 % / 97.5 % / 89.9 % / 91.1 % | 6 (0) | 0.64 s (peor de 5: 1.75 s) | Equipo 99.07 % · VPS 96.72 % |
+| 2 | 2026-09-27 | 95 % / 97.5 % / 89.9 % / 95.8 % | 2 (0) | 0.84 s (peor de 5: 1.21 s) | Equipo 99.56 % · VPS 98.63 % |
+| 3 | 2026-09-28 | 95 % / 97.7 % / 90.4 % / 95.9 % | 4 (0) | 0.81 s (peor de 5: 0.84 s) | Equipo 99.61 % · VPS 98.80 % |
+
+Notas de la fase 1:
+
+- **Densidad de defectos:** 27 defectos en 10.7 KLOC de producción, 2.51 por KLOC. Las líneas
+  son 4,286 del backend, 3,550 de la web, 1,099 del paquete compartido y 1,814 de la app
+  (pantallas, configuración, plugin y scripts de compilación y prueba). La web bajó porque su
+  lógica pasó al paquete compartido.
+- **Estado en la app:** tiempo desde que Android recibe la orden de abrir la app, cerrada, hasta
+  que la app escribe su marca `estado-visible` en el registro del sistema. Incluye la consulta a
+  la API. Medido en el Galaxy A56 con Android 16. El primer arranque tras instalar (1.75 s) es
+  el más lento porque Android optimiza la app.
+- **Disponibilidad:** semana del 16 al 23 de septiembre, solo con el equipo encendido: 642
+  chequeos del backend del equipo y 519 del VPS. En el VPS, la caída más larga fue de 39 minutos
+  (22 de septiembre, 22:21 a 23:00 UTC, conexión rechazada). Los tiempos de espera agotados entre
+  las 04:40 y las 06:34 UTC del 23 afectaron a los dos monitores a la vez, mientras la
+  compilación nativa saturaba el equipo que los mide: miden al monitor, no al backend.
+- **APK:** 66.7 MB el de pruebas, solo para arm64. El de demostración, que también incluye
+  armeabi-v7a para celulares de 32 bits, pesa 80.8 MB. El de entrega se mide en la fase 6.
+
+Notas de la fase 2:
+
+- **Densidad de defectos:** 29 defectos en 12.3 KLOC, 2.36 por KLOC. La app pasó de 1,814 a
+  3,334 líneas: 2,594 de pantallas y lógica, y 740 de configuración, plugin y scripts. El paquete
+  compartido tiene 1,117. El backend y la web no cambiaron. La densidad baja porque el código
+  creció más rápido que los defectos, no porque haya menos defectos.
+- **Estado en la app:** la marca `estado-visible` ahora espera, además del resumen, las
+  tarjetas y los 10 marcadores ya ubicados sobre el mapa, con datos recién llegados de la API.
+  Pasó de 0.64 a 0.84 s: es lo que tarda MapLibre en dibujar su primer cuadro. Los mosaicos del
+  fondo no cuentan, porque vienen de OpenFreeMap y no de OLA.
+- **Disponibilidad:** del 22 al 28 de septiembre (UTC), solo con el equipo encendido: 1,368
+  chequeos del backend del equipo y 1,238 del VPS. El equipo estuvo apagado del 24 al 27, y
+  esos días no cuentan ni a favor ni en contra. En el VPS, la única caída nueva fue de un
+  chequeo, el 23 a las 12:38 UTC: el equipo que mide no pudo resolver el nombre del dominio.
+- **APK y compilación:** 79.4 MB el de pruebas; MapLibre suma 12.7 MB. El APK de prueba con
+  las tres librerías nativas nuevas tardó 18 min 30 s. La compilación completa, con el proyecto
+  nativo generado de nuevo, 46 min 54 s. Reutilizando ese proyecto cuando solo cambia
+  JavaScript, 3 min 24 s (`scripts/compilar.mjs`).
+
+Notas de la fase 3:
+
+- **Densidad de defectos:** 33 defectos en 14.2 KLOC, 2.32 por KLOC. El backend suma 333
+  líneas (4,619), por la recuperación de contraseña; la web, 182 (3,732); el paquete compartido,
+  78 (1,195), y la app, 1,352: 3,871 de pantallas y lógica y 815 de configuración, scripts y el
+  módulo nativo de autocompletado.
+- **Cobertura:** la de la app quedó en 94.7 % con las pantallas nuevas. El informe mostró qué
+  faltaba: el correo mal escrito en Registro y Recuperar, la contraseña corta al cambiarla y el
+  error al pedir el código. Con tres pruebas más, cada una comprobada rompiendo su validación,
+  subió a 95.7 %, y a 95.9 % con las pruebas del autocompletado (D-32). Quedan sin probar el descarte de respuestas viejas en las zonas seguidas, el
+  «Reintentar» de Mis zonas y el enlace «Ya tengo cuenta» de Registro. La de la web subió de
+  89.9 a 90.4 % con la página Recuperar.
+- **Estado en la app:** 0.81 s, casi lo mismo que en la fase 2 (0.84 s): la cuenta no suma
+  trabajo antes de mostrar el estado. Se midió sin sesión iniciada; con sesión, la app además
+  confirma el token con `/auth/me`, en paralelo con la consulta del estado del mar.
+- **Disponibilidad:** del 22 al 28 de septiembre (UTC): 1,552 chequeos del backend del equipo y
+  1,420 del VPS. No hubo caídas nuevas desde la fase 2; todas las del periodo son del 22 y 23.
+- **Web:** el mapa muestra las 10 zonas en una mediana de 0.88 s con 4G normal y la portada
+  descarga 170.6 kB comprimidos: la página Recuperar se carga aparte y no pesa en la portada.
+- **APK y compilación:** 79.6 MB el de pruebas (`expo-secure-store` suma 0.2 MB). Con
+  `expo-secure-store`, el proyecto nativo se rehízo en 13 min 2 s, no en los 47 minutos que se
+  temían: `mobile/.cxx/` ya tenía compilado el C++ de React Native. Con el módulo propio de
+  autocompletado, 15 min 28 s. Sin cambios nativos, entre 2 min 12 s y 2 min 28 s.
+
+---
+
+## 8. Costo de calidad
+
+Los costos se expresan en horas estimadas y en soles, a una tarifa referencial de **S/ 25 por
+hora** (desarrollador junior en Lima). Las horas son estimaciones del esfuerzo de cada
+actividad, no un registro de tiempo.
+
+| Categoría | Qué se hizo en OLA | Horas | Costo |
+|---|---|---|---|
+| **Prevención** | Precisar la SRS antes de programar (versiones 1.2 a 1.6): rachas con huecos, fecha de referencia tomada del dato, ambos modelos de proyección | 6 | S/ 150 |
+| Prevención | Maquetas aprobadas antes de las cuatro fases del rediseño web | 4 | S/ 100 |
+| Prevención | Guía de diseño con la paleta validada a contraste 3:1 | 3 | S/ 75 |
+| Prevención | Este plan, la tabla de riesgos y la SRS 1.7 | 6 | S/ 150 |
+| Prevención | Preguntas y maqueta aprobada del marco de la app, antes de programarlo | 3 | S/ 75 |
+| Prevención | Preguntas y maqueta aprobada de la pestaña Mapa, y un APK de prueba con las librerías nativas antes de programar | 4 | S/ 100 |
+| Prevención | Cuatro rondas de preguntas y maqueta aprobada de la cuenta; SRS 1.8 antes de tocar el backend | 4 | S/ 100 |
+| **Evaluación** | Pruebas del backend: unitarias e integración | 20 | S/ 500 |
+| Evaluación | Pruebas de la web y del paquete compartido: unitarias, E2E, accesibilidad, capturas y rendimiento | 20 | S/ 500 |
+| Evaluación | Correr las suites y revisar capturas al cerrar cada fase | 6 | S/ 150 |
+| Evaluación | Pruebas de la app: Jest, flujos de Maestro en el celular y medición del arranque | 10 | S/ 250 |
+| Evaluación | Pruebas de la pestaña Mapa: Jest con mutaciones manuales, flujos de Maestro con modo avión y regresión completa | 10 | S/ 250 |
+| Evaluación | Pruebas de la cuenta: pytest de la recuperación y las sesiones, Vitest y Playwright de Recuperar con Mailpit, Jest y Maestro de la app, y regresión completa | 12 | S/ 300 |
+| **Falla interna** | 33 defectos corregidos antes de llegar a un usuario ([defectos.md](defectos.md)) | 39.5 | S/ 987.50 |
+| Falla interna | Rehacer a mano los archivos de la fase 3 que un formateador mal configurado reescribió (sección 12). No es un defecto del producto: no llegó a un commit | 2 | S/ 50 |
+| **Falla externa** | Ningún defecto llegó a producción | 0 | S/ 0 |
+
+| Resumen | Horas | Costo |
+|---|---|---|
+| Costo de conformidad (prevención + evaluación) | 108 | S/ 2,700 |
+| Costo de no conformidad (fallas) | 41.5 | S/ 1,037.50 |
+
+**Lectura.** El único defecto crítico (D-01, un decimal con coma que corrompía el valor) se
+atrapó en una prueba unitaria y costó una hora. Si hubiera llegado a producción, un pescador
+habría visto una zona clasificada con un valor falso. El costo de esa falla externa no se
+puede poner en soles con honestidad: además de corregir el importador y reimportar el dataset,
+habría que avisar a los usuarios, y la confianza perdida en una herramienta de alertas no se
+recupera con un parche. Por eso la falla externa es la categoría más cara aunque hoy valga cero.
+
+El otro dato que importa: 18 de los 33 defectos se encontraron en E2E o en revisión, que son
+etapas más caras que la unitaria. Varias retrospectivas apuntan a detectar antes (sección 12).
+
+De las 8.5 horas de falla interna sumadas desde la fase 0, un solo defecto (D-26, la
+compilación en Windows) se llevó 4. No era un error del código de la app, sino del entorno
+donde se compila: se paga igual.
+
+En la fase 2, D-28 costó 2.5 horas y no podía salir antes: las pruebas de Jest usan un mapa
+simulado, y el defecto estaba en cómo el mapa nativo mete sus marcadores en Android. Lo encontró
+Maestro en el celular.
+
+En la fase 3, el defecto más caro no está en la bitácora: un formateador corrido sin la
+configuración del proyecto reescribió 58 archivos, y rehacer los de la fase costó 2 horas.
+D-31 costó una hora y es el más serio de la fase, porque dejaba de verificar en silencio.
+D-32 costó 2.5 horas y, como D-28, solo podía salir en el celular: dependía del servicio de
+autocompletado del fabricante y de una opción de Android 14 que Jest no simula.
+
+---
+
+## 9. Madurez del proceso
+
+Autoevaluación del equipo, no certificada. Sirve para saber dónde está el proceso y qué falta
+para el siguiente nivel.
+
+### 9.1 CMMI 2.0
+
+| Área de práctica | Evidencia en el repositorio | Valoración |
+|---|---|---|
+| Desarrollo y gestión de requisitos | SRS IEEE 830 con 9 versiones justificadas; matriz de responsables; trazabilidad RF → pruebas | Implementada |
+| Gestión de la configuración | Git con Conventional Commits, un Pull Request por fase, lockfile único, migraciones versionadas, secretos fuera del repositorio | Implementada |
+| Verificación y validación | Pruebas en cuatro capas; maquetas aprobadas antes de programar; E2E contra el sistema completo con datos reales | Implementada |
+| Análisis y resolución de decisiones | [decisiones.md](decisiones.md) registra cada decisión con su motivo y la alternativa descartada | Implementada |
+| Revisiones por pares | El PO revisa el PR de cada fase desde la fase 0 de la app. Antes solo había revisión de capturas | Parcial |
+| Aseguramiento de calidad del proceso | Este plan y sus puertas de calidad, vigentes desde la fase 0 de la app | Parcial |
+| Gestión del desempeño y medición | Métricas con línea base; todavía sin historia de varias fases | Parcial |
+| Planificación y monitoreo | Sprints con hitos, Gantt planificado frente a real, retrospectiva por fase | Parcial |
+| Gestión de riesgos | Tabla de riesgos con revisión por fase, creada en la fase 0 de la app | Parcial |
+| Estimación | No hay estimación formal del esfuerzo de cada fase | No implementada |
+| Gestión de acuerdos con proveedores | No aplica: no hay proveedores contratados; IMARPE es una fuente pública | No aplica |
+
+**Conclusión.** El proceso supera el nivel 1: el trabajo no depende de heroicidades, porque
+requisitos, configuración y verificación siguen prácticas repetibles con evidencia. No alcanza
+todavía el nivel 2, que pide que las prácticas de gestión (medición, riesgos, estimación,
+revisiones) tengan historia. Para llegar hace falta estimar cada fase antes de empezarla,
+acumular al menos tres fases de métricas y documentar la revisión de cada PR. Se revisa en la
+fase 6.
+
+### 9.2 ISO/IEC 15504 (SPICE)
+
+La norma evalúa la capacidad de cada proceso por separado, de 0 (incompleto) a 5 (en
+optimización). Hoy está reemplazada por la serie ISO/IEC 33000, que conserva la escala.
+
+| Proceso | Nivel | Por qué |
+|---|---|---|
+| Gestión de requisitos | 2 · Gestionado | Los cambios se planifican, se aprueban y quedan registrados |
+| Construcción del software | 2 · Gestionado | Convenciones de código, análisis estático y commits pequeños y revisables |
+| Pruebas | 2 · Gestionado | Estrategia definida por capa y resultados registrados en cada fase |
+| Gestión de la configuración | 2 · Gestionado | Ramas, PRs, lockfile y migraciones bajo control de versiones |
+| Aseguramiento de la calidad | 1 · Realizado | Se hacía, pero sin plan hasta esta fase |
+| Resolución de problemas | 1 · Realizado | Los defectos se corregían; la bitácora con severidad y costo empieza en la fase 0 |
+| Gestión del proyecto | 1 · Realizado | Hay cronograma, pero sin estimación ni control del avance frente a lo planificado |
+
+Ningún proceso llega al nivel 3 (Establecido), que exige un proceso estándar de la organización
+aplicado en varios proyectos. Meta para la fase 6: aseguramiento de la calidad y resolución de
+problemas en nivel 2.
+
+---
+
+## 10. Gestión de riesgos
+
+Probabilidad: Baja, Media o Alta. Impacto: Bajo, Medio, Alto o Muy alto. La tabla se revisa al
+cerrar cada fase.
+
+| ID | Riesgo | P | I | Señal de alerta | Mitigación | Responsable | Estado |
+|---|---|---|---|---|---|---|---|
+| R-01 | IMARPE cambia el formato del CSV o deja de publicarlo | Media | Alto | Una importación rechaza el archivo entero o la fecha del dato envejece | RF-08 valida la cabecera y rechaza el archivo completo si no coincide. La fecha del dato siempre visible avisa a los usuarios. Revisión manual semanal de la publicación | Miguel Angel Flores Leon | Abierto |
+| R-02 | Retraso por un equipo pequeño que lleva otros cursos | Alta | Medio | Una fase no cierra en el sprint planificado (sección 13) | Fases cortas con pausa y alcance priorizado: la administración se queda en la web. El Sprint 7 queda solo para el cierre | Jorge Ortiz Castañeda | Abierto |
+| R-03 | Una alerta equivocada hace perder la confianza de los pescadores | Baja | Muy alto | OLA y el boletín de ENFEN discrepan sobre una zona | Pruebas de los límites de RF-01. Los dos modelos de proyección se muestran juntos. La fecha del dato y el aviso «no reemplaza los boletines de IMARPE» siempre visibles | Jhordan Huamani Huamani | Abierto |
+| R-04 | La notificación push no llega (FCM o el ahorro de batería del fabricante la retienen) | Media | Alto | Avisos push en estado fallido, o la prueba en celular no muestra la notificación | Correo y aviso en la app como canales redundantes (RF-03). Cada fallo queda registrado y se reintenta. Verificación en un celular real en la fase 4 | Jhordan Huamani Huamani | Abierto |
+| R-05 | Secretos subidos al repositorio (`.env`, credenciales de Firebase, keystore) | Baja | Alto | Uno de esos archivos aparece en `git status` o en el diff de un PR | `.gitignore` y puerta de calidad 6 antes de cada push. Si se filtra uno, se revoca y se genera otro | Jorge Ortiz Castañeda | Abierto |
+| R-06 | La cadena de compilación Android en Windows falla o tarda horas (rutas largas, descargas del SDK que se cortan, C++ de React Native) | Alta | Medio | Una compilación falla por el entorno y no por el código, o tarda más de una hora | Requisitos del SDK en el README; plugin `compilacion-nativa-windows.js`; APK de pruebas solo para arm64; `mobile/.cxx/` conservado entre compilaciones; desde la fase 2, `android/` se reutiliza si no cambió nada nativo | Jhordan Huamani Huamani | **Materializado** en la fase 1; mitigado en la fase 2 |
+| R-07 | Una librería nativa se comporta en el celular distinto que en su simulación de Jest | Media | Alto | Una prueba de Jest pasa y el mismo caso falla en Maestro | Un flujo de Maestro por cada elemento que se toca; revisar la jerarquía de accesibilidad en el celular (`uiautomator dump`) antes de cerrar la fase | Jorge Ortiz Castañeda | **Materializado** en la fase 2 (D-28) |
+| R-08 | Una herramienta automática (formateador, reemplazo masivo) reescribe código ya revisado de otras fases | Baja | Medio | `git status` muestra decenas de archivos cambiados que la tarea no tocaba | Revisar `git diff --stat` antes de cada commit. No correr formateadores sin la configuración del proyecto; el estilo se mantiene a mano | Jhordan Huamani Huamani | **Materializado** en la fase 3, sin llegar a un commit |
+
+**Revisiones**
+
+| Fase | Fecha | Cambios |
+|---|---|---|
+| 0 | 2026-09-14 | Tabla creada. Ningún riesgo materializado |
+| 1 | 2026-09-23 | Se añade R-06, que se materializó: tres fallas seguidas de la compilación nativa en Windows (sección 12). R-04 y R-05 sin cambios; la cuenta de servicio de Firebase todavía no existe |
+| 2 | 2026-09-27 | Se añade R-07, materializado en D-28. R-06 se mitiga: recompilar cuando solo cambia JavaScript baja de 47 a 3.5 minutos. R-04 y R-05 sin cambios |
+| 3 | 2026-09-28 | Se añade R-08, materializado. R-06 sigue mitigado: con un módulo nativo nuevo, el proyecto nativo se rehízo en 13 minutos. R-05 se revisó con más cuidado porque la fase usa el secreto del servidor para el HMAC del código: sigue solo en `.env`. R-07 se materializó otra vez (D-32): en Jest no hay servicio de autocompletado, y en el celular Samsung Pass tapaba la app |
+
+---
+
+## 11. Gestión de cambios y de la configuración
+
+### 11.1 Cambios en los requisitos
+
+1. Alguien del equipo propone el cambio y explica qué RF toca.
+2. Se evalúa el impacto: pruebas que cambian, fases afectadas, riesgos.
+3. El PO lo aprueba o lo rechaza.
+4. Si se aprueba, la fila de la sección 5 de la SRS se escribe **en el mismo avance** que
+   implementa el cambio, y se actualiza la trazabilidad.
+
+La SRS lleva 9 versiones con este flujo (1.0 a 1.8).
+
+### 11.2 Configuración
+
+| Elemento | Cómo se controla |
+|---|---|
+| Código, documentación, migraciones y capturas de referencia | Git. `main` siempre integrado; una rama `app-movil/fase-N` y un Pull Request por fase |
+| Dependencias JavaScript | Un solo `pnpm-lock.yaml` para la web, el paquete compartido y la app; las instalaciones usan `--frozen-lockfile` |
+| Dependencias Python | `pyproject.toml` del backend |
+| Entornos | `compose.yml` (desarrollo y pruebas) y `compose.prod.yml` (producción) |
+| Versión del APK | Número de versión en la configuración de la app, desde la fase 1 |
+| Fuera del control de versiones | `.env`, credenciales de Firebase y keystore de firma. Solo se versiona la plantilla `.env.example` |
+
+---
+
+## 12. Retrospectivas
+
+Cada fase responde cuatro preguntas: qué funcionó, qué falló, qué se cambia en la siguiente y
+si funcionó lo que se cambió la vez anterior.
+
+### Rediseño de la web (2026-09-13)
+
+- **Funcionó:** las maquetas aprobadas antes de programar evitaron rehacer pantallas.
+- **Falló:** dos verificaciones pasaban sin verificar nada: el servidor de Vite desactualizado
+  (D-10) y la tolerancia visual relativa (D-17).
+- **Acción:** tolerancia visual absoluta de 20 píxeles y sondeo de archivos en Docker. Al ver una
+  prueba en verde tras un cambio grande, confirmar que falla cuando debe.
+
+### Fase 0 de la app móvil (2026-09-14)
+
+- **Funcionó:** mover la lógica de la web al paquete compartido no cambió su comportamiento. Las
+  241 pruebas de la web y las 91 que se movieron siguieron en verde, y se añadieron 33 pruebas
+  del contrato con la API.
+- **Falló:** una prueba de App tardó más de 10 s y falló al medir la cobertura mientras pytest
+  corría a la vez; sola, pasó. Editar `.env` durante una corrida reinició la API y cortó
+  pytest. Docker Hub no respondió durante unos minutos. Y la puerta 1 no se cumplió del todo:
+  una prueba del backend falla en local por depender del `.env` (D-20). Se registró como
+  excepción porque el código probado está bien; la prueba es la que no es hermética. Por
+  último, el informe HTML de cobertura quedó dentro de la carpeta que vigila Vite y trabó las
+  E2E (D-21); se excluyó y la suite volvió a pasar: 167 casos, 0 fallos.
+- **Acción para la fase 1:** al cerrar una fase, correr las suites pesadas una por una y no
+  tocar `.env` mientras corren. Si esa prueba de App vuelve a fallar sin carga, se registra como
+  defecto. Todo lo que genere archivos (cobertura, compilaciones de la app) se excluye de los
+  vigilantes y de Git antes de la primera corrida.
+- **¿Funcionó la acción anterior?** Sí: la tolerancia absoluta no dejó pasar ningún cambio
+  visual en esta fase.
+
+### Fase 1 de la app móvil (2026-09-23)
+
+- **Funcionó:** la maqueta aprobada antes de programar. La app en el celular se ve como la
+  maqueta y no hubo que rehacer pantallas. Los flujos de Maestro pasaron 6 de 6 en el celular,
+  incluido el error de conexión con su «Reintentar» y la letra al 200 %.
+- **Falló:** compilar. La primera compilación nativa en Windows falló tres veces seguidas:
+  - el NDK no terminó de descargarse;
+  - rutas de 295 caracteres para CMake;
+  - rutas de 430 caracteres para ninja (D-26).
+
+  Pasar de la primera compilación a un APK instalado tomó casi un día. Además, el puerto 8000
+  del celular estaba ocupado (D-27), la API de Testing Library 14 había cambiado y un bucle en
+  `useConsulta` agotó la memoria de Jest (D-24).
+- **¿Funcionó la acción anterior?** Sí. Las suites pesadas corrieron una por una y eso dejó ver
+  que la prueba de App fallaba por su propio límite de tiempo, no por la carga del equipo
+  (D-25). La prueba de rendimiento de la importación falló mientras Gradle compilaba y pasó
+  sola: la acción evitó registrarla como defecto por error. La carpeta de cobertura de la app y
+  `mobile/.cxx` quedaron fuera de Git desde el principio.
+
+  Pero correr las suites una por una no basta si el equipo lo comparten otros procesos. En la
+  primera corrida de Playwright fallaron 3 pruebas de Comparar: la API respondía, pero el
+  gráfico seguía en «Cargando…». Coincidió con las pruebas de otro proyecto y con 227 MB de RAM
+  libres. Sola, la suite de gráficos pasó 17 de 17, y la completa, repetida, 167 de 167. No se
+  registra como defecto: el código no cambió y el fallo no se repite con el equipo libre.
+- **Acción para la fase 2:** antes de sumar una librería nativa (el mapa), comprobar primero que
+  compila en Windows con un APK de prueba. La compilación es la etapa más lenta del ciclo.
+  Registrar la hora de inicio y de fin de cada compilación para estimar mejor la fase 3. Antes
+  de correr Playwright o Maestro, detener el daemon de Gradle y comprobar que haya al menos 2 GB
+  de RAM libres.
+
+### Fase 2 de la app móvil (2026-09-27)
+
+- **Funcionó:** decidir todo antes de programar. Tres rondas de preguntas y la maqueta aprobada
+  tal cual dejaron cerradas la librería del mapa, los datos guardados y la reconexión. El
+  proveedor de estado y sus 14 pruebas salieron a la primera. Para comprobar que las pruebas
+  vigilan algo, se rompieron a mano cuatro líneas clave, una por vez; cada rotura hizo fallar
+  al menos una prueba. Los flujos sin conexión y de reconexión con modo avión pasaron en el
+  celular sin cambios.
+- **Falló:** confiar en la simulación del mapa. En Jest, cada marcador era un botón con su
+  nombre; en el celular se veía, pero TalkBack no lo encontraba y tocarlo no hacía nada (D-28).
+  Lo mostró Maestro, y el volcado de la jerarquía de accesibilidad explicó por qué. Además,
+  cuatro flujos fallaban por cómo estaban escritos, no por la app (D-29). En una de tres
+  corridas completas, el flujo de reconexión encontró la pantalla en negro; no se repitió en las
+  otras dos ni corriendo solo, y queda en observación.
+- **¿Funcionó la acción anterior?** Sí. El APK de prueba con MapLibre, AsyncStorage y NetInfo
+  compiló a la primera, en 18 min 30 s, antes de escribir una pantalla. Las horas de cada
+  compilación quedaron registradas, y eso mostró el costo real de rehacer el proyecto nativo:
+  47 minutos por cada cambio de JavaScript. Ahora solo se rehace si cambia algo nativo. Antes de
+  Playwright se detuvo Gradle: la RAM libre subió de 1.7 a 2 GB.
+- **Acción para la fase 3:** revisar en el celular la jerarquía de accesibilidad de cada
+  pantalla nueva (Entrar, Registro, Cuenta) antes de cerrar la fase, no solo en Jest.
+  `expo-secure-store` es nativo: la primera compilación de la fase 3 rehará el proyecto nativo
+  (unos 47 minutos) y conviene lanzarla al empezar, mientras se preparan las preguntas.
+
+### Fase 3 de la app móvil (2026-09-28)
+
+- **Funcionó:** preguntar antes de programar otra vez. Cuatro rondas cerraron la duración de la
+  sesión, qué pasa con un 401, qué se borra al salir y las reglas del código, y la recuperación
+  entró en el alcance con su propia versión de la SRS (1.8) antes de tocar el backend. Las
+  pruebas del backend encontraron D-31 al primer intento: sin ellas, la base de pruebas habría
+  seguido con el esquema viejo. Con las correcciones, los 17 flujos de Maestro pasaron en una
+  misma corrida en el celular, incluido recuperar la contraseña con el código real que llega a
+  Mailpit.
+- **Falló:** un formateador. Para ordenar los archivos nuevos de la app se corrió Prettier sin
+  la configuración del proyecto, que no tiene, y reescribió 58 archivos, incluidos los de las
+  fases 1 y 2. Se descartó con Git y los archivos de la fase se escribieron de nuevo (R-08).
+  Además, al corregir las tildes del backend (D-30) quedaron seis pruebas del lector de CSV
+  esperando el texto viejo; las encontró la corrida completa de pytest, no la de los archivos
+  tocados. En el celular salieron dos defectos que Jest no podía ver: Samsung Pass ofrecía
+  guardar la contraseña aunque el autocompletado estaba apagado (D-32), y el interruptor de Mis
+  zonas medía 27 dp de alto (D-33). Por último, dos flujos de Maestro de las fases 1 y 2 seguían
+  esperando el texto de la pantalla provisional de Entrar: al reemplazarla no se buscó qué
+  pruebas la mencionaban.
+- **¿Funcionó la acción anterior?** Sí. Revisar en el celular la jerarquía de accesibilidad de
+  cada pantalla nueva encontró D-33, que Jest daba por bueno porque el interruptor tenía nombre y
+  estado. La compilación con el módulo nativo nuevo tardó 13 minutos, no 47: no hizo falta
+  adelantarla.
+- **Acción para la fase 4:** después de cambiar un texto o un mensaje, correr la suite completa
+  de esa capa, no solo las pruebas de los archivos tocados. Antes de cada commit, revisar
+  `git diff --stat`. La fase 4 suma Firebase: probar su compilación con un APK de prueba antes de
+  programar, como se hizo con el mapa, y guardar `google-services.json` fuera del repositorio
+  desde el primer momento. Al reemplazar una pantalla provisional (el centro de avisos lo es),
+  buscar en `.maestro/` y en las pruebas los textos que la mencionaban.
+
+---
+
+## 13. Cronograma
+
+Sprints de dos semanas. Hito 1: semana del 12 al 17 de octubre. Hito 2: primera semana de
+diciembre. Cada fase tiene dos barras: la planificada y la real, que se completa al cerrarla.
+
+```mermaid
+gantt
+  title OLA: planificado frente a real
+  dateFormat YYYY-MM-DD
+  axisFormat %d/%m
+
+  section Hitos
+  Hito 1                      :milestone, 2026-10-12, 0d
+  Hito 2                      :milestone, 2026-12-01, 0d
+
+  section Web (plan de la SRS)
+  RF-08 planificado           :2026-09-15, 14d
+  RF-07 y RF-01 planificado   :2026-10-13, 14d
+  RF-02 planificado           :2026-10-13, 28d
+  RF-03, 04, 05, 06 planificado :2026-10-27, 14d
+  Pruebas planificado         :2026-11-10, 14d
+  Web completa real           :done, 2026-09-07, 2026-09-10
+  Rediseño real               :done, 2026-09-13, 1d
+
+  section App móvil (RF-09)
+  Fase 0 planificado          :2026-09-15, 14d
+  Fase 0 real                 :done, 2026-09-14, 1d
+  Fase 1 real                 :done, 2026-09-22, 2d
+  Fase 2 real                 :done, 2026-09-23, 2026-09-27
+  Fase 3 real                 :done, 2026-09-27, 2026-09-28
+  Fase 1 planificado          :2026-09-29, 14d
+  Fases 2 y 3 planificado     :2026-10-13, 14d
+  Fase 4 planificado          :2026-10-27, 14d
+  Fase 5 planificado          :2026-11-10, 14d
+  Fase 6 planificado          :2026-11-24, 14d
+```
+
+| Fase de la app | Sprint planificado | Responsable | Verifica | Aprueba |
+|---|---|---|---|---|
+| 0 · Proceso de calidad, SRS 1.7 y paquete compartido | 2 (15–28 sep) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 1 · Entorno Android y base de la app | 3 (29 sep–12 oct) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 2 · Estado, mapa y sin conexión | 4 (13–26 oct) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 3 · Cuenta y zonas de interés | 4 (13–26 oct) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 4 · Notificaciones push | 5 (27 oct–09 nov) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 5 · Histórico, comparación y proyección | 6 (10–23 nov) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+| 6 · Cierre | 7 (24 nov–07 dic) | Jhordan Huamani Huamani | Jorge Ortiz Castañeda | Miguel Angel Flores Leon |
+
+La web se terminó mucho antes de lo que planificaba la SRS: todos sus RF quedaron integrados el
+10 de septiembre, en el Sprint 1. La desviación a favor liberó los sprints que la app ocupa ahora.

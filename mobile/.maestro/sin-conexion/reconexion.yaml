@@ -1,0 +1,32 @@
+# Con el modo avion la app ve que no hay red. Al quitarlo, se actualiza sola:
+# nadie toca «Reintentar». El cable mantiene la API al alcance; la corta y la
+# devuelve scripts/e2e.mjs.
+appId: pe.ola.app
+name: Al volver la red se actualiza sola
+tags: [sin-conexion]
+env:
+  CONTROL: http://127.0.0.1:18999
+---
+- evalScript: "${http.post(CONTROL + '/conectar-api', { body: '' }).status}"
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: fecha-referencia
+    timeout: 20000
+- evalScript: "${http.post(CONTROL + '/desconectar-api', { body: '' }).status}"
+- evalScript: "${http.post(CONTROL + '/activar-modo-avion', { body: '' }).status}"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: aviso-guardado
+    timeout: 20000
+- evalScript: "${http.post(CONTROL + '/conectar-api', { body: '' }).status}"
+- evalScript: "${http.post(CONTROL + '/desactivar-modo-avion', { body: '' }).status}"
+- extendedWaitUntil:
+    notVisible:
+      id: aviso-guardado
+    timeout: 60000
+- assertVisible:
+    id: fecha-referencia

@@ -1,6 +1,6 @@
 import L from 'leaflet'
 import { GestureHandling } from 'leaflet-gesture-handling'
-import { textos } from '../../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 // El plugin solo declara su clase: aqui se tipan las opciones que lee del mapa.
 declare module 'leaflet' {

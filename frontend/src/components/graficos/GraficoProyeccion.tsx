@@ -10,9 +10,9 @@ import {
   YAxis,
 } from 'recharts'
 import type { Proyeccion } from '../../api/client'
-import { textos } from '../../i18n/textos'
-import { dominioVertical, etiquetaPeriodo, marcasVerticales } from './datos'
-import { aFilasDeProyeccion, inicioDelTramoEstimado } from './datosProyeccion'
+import { textos } from '@ola/compartido/i18n/textos'
+import { dominioVertical, etiquetaPeriodo, marcasVerticales } from '@ola/compartido/graficos/datos'
+import { aFilasDeProyeccion, inicioDelTramoEstimado } from '@ola/compartido/graficos/datosProyeccion'
 
 const COLOR_MEDIDO = '#12232e'
 const COLOR_TENDENCIA = '#D55E00'

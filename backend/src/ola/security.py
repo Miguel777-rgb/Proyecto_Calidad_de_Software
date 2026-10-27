@@ -6,6 +6,9 @@ falla con bcrypt >= 4.1 al intentar leer `bcrypt.__about__`.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -25,9 +28,13 @@ BCRYPT_MAX_BYTES = 72
 CLOCK_SKEW_LEEWAY = timedelta(seconds=30)
 
 
+# Digitos del codigo para recuperar la contrasena (RF-07).
+RESET_CODE_DIGITS = 6
+
+
 class PasswordTooLongError(ValueError):
     def __init__(self) -> None:
-        super().__init__(f"La contrasena no puede superar los {BCRYPT_MAX_BYTES} bytes.")
+        super().__init__(f"La contraseña no puede superar los {BCRYPT_MAX_BYTES} bytes.")
 
 
 def hash_password(password: str) -> str:
@@ -77,3 +84,20 @@ def decode_access_token(token: str, *, secret: str, algorithm: str) -> dict[str,
         token, secret, algorithms=[algorithm], leeway=CLOCK_SKEW_LEEWAY
     )
     return decoded
+
+
+def generate_reset_code() -> str:
+    """Codigo de 6 digitos al azar, con ceros a la izquierda si hace falta."""
+    return f"{secrets.randbelow(10**RESET_CODE_DIGITS):0{RESET_CODE_DIGITS}d}"
+
+
+def hash_reset_code(code: str, *, user_id: int, secret: str) -> str:
+    """HMAC del codigo. Lleva el usuario para que el mismo codigo de dos
+    personas no produzca el mismo valor guardado."""
+    mensaje = f"{user_id}:{code}".encode()
+    return hmac.new(secret.encode("utf-8"), mensaje, hashlib.sha256).hexdigest()
+
+
+def reset_code_matches(code: str, stored_hash: str, *, user_id: int, secret: str) -> bool:
+    """Compara en tiempo constante, para no revelar cuantos digitos acerto."""
+    return hmac.compare_digest(hash_reset_code(code, user_id=user_id, secret=secret), stored_hash)

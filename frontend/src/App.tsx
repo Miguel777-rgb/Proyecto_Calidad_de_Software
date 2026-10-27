@@ -8,7 +8,7 @@ import { ENVOLTURA_INICIO } from './components/inicio/estructura'
 import { BarraInferior } from './components/marco/BarraInferior'
 import { Cabecera } from './components/marco/Cabecera'
 import { Pie } from './components/marco/Pie'
-import { textos } from './i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 // Cada pantalla se descarga al abrirla: la portada no trae Recharts y las
 // pantallas de graficos no traen Leaflet. En celular es la mayor parte del peso.
@@ -20,6 +20,7 @@ const Historico = lazy(() => import('./pages/Historico'))
 const Inicio = lazy(() => import('./pages/Inicio'))
 const MisZonas = lazy(() => import('./pages/MisZonas'))
 const Proyeccion = lazy(() => import('./pages/Proyeccion'))
+const Recuperar = lazy(() => import('./pages/Recuperar'))
 const Registro = lazy(() => import('./pages/Registro'))
 
 /**
@@ -95,6 +96,7 @@ export default function App() {
               />
               <Route path="/entrar" element={<Entrar />} />
               <Route path="/registro" element={<Registro />} />
+              <Route path="/recuperar" element={<Recuperar />} />
             </Routes>
           </Suspense>
         </main>

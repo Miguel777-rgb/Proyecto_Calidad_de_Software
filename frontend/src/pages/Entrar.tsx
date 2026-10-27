@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
-import { textos } from '../i18n/textos'
+import { textos } from '@ola/compartido/i18n/textos'
 
 export default function Entrar() {
   const { usuario, entrar } = useAuth()
@@ -53,6 +53,9 @@ export default function Entrar() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <Link to="/recuperar" state={{ correo: email }} className="olvide">
+          {textos.entrar.olvide}
+        </Link>
 
         {error !== null && (
           <p className="error" role="alert">

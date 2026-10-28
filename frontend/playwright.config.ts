@@ -85,6 +85,10 @@ export default defineConfig({
           use: { ...devices['Desktop Chrome'] },
           testMatch: PESADAS,
           workers: 1,
+          // Importar y guardar los parametros reevaluan las alertas antes de
+          // responder: el doble del limite habitual deja que la espera de
+          // ESPERA_REEVALUACION se cumpla entera despues de iniciar sesion.
+          timeout: 60_000,
           dependencies: ['chromium', 'movil'],
         },
       ],

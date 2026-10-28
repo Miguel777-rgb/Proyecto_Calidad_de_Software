@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { esperarSesion } from './utilidades'
+import { ESPERA_REEVALUACION, esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -58,9 +58,13 @@ test.describe('Fase 2 — importación del dataset (RF-08)', () => {
     await entrarComoAdmin(page)
     await importar(page, csv(`${d1},CALLAO,1.5`, `${d2},PISCO,-0.8`, `${d3},ILO,0.2`))
 
-    await expect(page.getByTestId('resultado-importacion')).toBeVisible()
+    await expect(page.getByTestId('resultado-importacion')).toBeVisible(ESPERA_REEVALUACION)
     await expect(page.getByTestId('filas-insertadas')).toHaveText('3')
     await expect(page.getByTestId('filas-rechazadas')).toHaveText('0')
+    // Las mediciones nuevas llegan a las alertas sin pulsar «Reevaluar alertas».
+    await expect(page.getByTestId('evaluacion-importacion')).toContainText(
+      'Las alertas se recalcularon',
+    )
   })
 
   test('reimportar el mismo archivo no vuelve a insertar', async ({ page }) => {
@@ -69,10 +73,12 @@ test.describe('Fase 2 — importación del dataset (RF-08)', () => {
 
     await entrarComoAdmin(page)
     await importar(page, contenido)
-    await expect(page.getByTestId('filas-insertadas')).toHaveText('2')
+    await expect(page.getByTestId('filas-insertadas')).toHaveText('2', ESPERA_REEVALUACION)
 
     await importar(page, contenido)
     await expect(page.getByTestId('filas-insertadas')).toHaveText('0')
+    // Sin mediciones nuevas no hay nada que recalcular.
+    await expect(page.getByTestId('evaluacion-importacion')).toHaveCount(0)
   })
 
   test('las filas inválidas se rechazan y se explican', async ({ page }) => {
@@ -83,7 +89,7 @@ test.describe('Fase 2 — importación del dataset (RF-08)', () => {
       csv(`${d1},CALLAO,1.5`, 'fecha-mala,CALLAO,2.0', `${d2},HUANCHACO,3.0`),
     )
 
-    await expect(page.getByTestId('filas-insertadas')).toHaveText('1')
+    await expect(page.getByTestId('filas-insertadas')).toHaveText('1', ESPERA_REEVALUACION)
     await expect(page.getByTestId('filas-rechazadas')).toHaveText('2')
 
     await page.getByTestId('detalle-errores').getByText('Ver filas rechazadas').click()
@@ -109,7 +115,10 @@ test.describe('Fase 2 — importación del dataset (RF-08)', () => {
     await entrarComoAdmin(page)
     await importar(page, csv(`${d1},CALLAO,1.5`), 'historial-e2e.csv')
 
-    await expect(page.getByTestId('historial-importaciones')).toContainText('historial-e2e.csv')
+    await expect(page.getByTestId('historial-importaciones')).toContainText(
+      'historial-e2e.csv',
+      ESPERA_REEVALUACION,
+    )
     await expect(page.getByTestId('historial-importaciones')).toContainText(ADMIN_EMAIL)
   })
 

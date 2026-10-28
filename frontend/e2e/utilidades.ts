@@ -27,6 +27,15 @@ export const botonCuenta = (page: Page): Locator =>
 export const ESPERA_SESION = { timeout: 15_000 }
 
 /**
+ * Importar mediciones nuevas y guardar los parámetros reevalúan las alertas de
+ * todo el dataset antes de responder. Aquí tarda poco más de un segundo, pero
+ * en una máquina lenta se acerca a la espera por defecto de cinco. Es para las
+ * pruebas del proyecto backend-en-serie, que tienen 60 s cada una: con los 30
+ * habituales, esta espera no alcanzaria a cumplirse después de iniciar sesión.
+ */
+export const ESPERA_REEVALUACION = { timeout: 30_000 }
+
+/**
  * Espera a que la pantalla de destino termine de mostrarse.
  *
  * Tras entrar o registrarse, el boton de cuenta aparece al instante, pero la

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { esperarSesion } from './utilidades'
+import { ESPERA_REEVALUACION, esperarSesion } from './utilidades'
 
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@ola.pe'
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
@@ -80,21 +80,25 @@ test.describe('Fase 3 — parámetros de detección', () => {
     await expect(page.getByLabel('Registros seguidos para alertar')).toHaveValue(/\d/)
   })
 
-  test('se advierte que guardar no recalcula las alertas', async ({ page }) => {
+  test('se avisa que guardar recalcula las alertas', async ({ page }) => {
     await entrarComoAdmin(page)
     await page.goto('/admin')
-    await expect(page.getByText(/no recalcula las alertas ya detectadas/)).toBeVisible()
+    await expect(page.getByText(/Al guardarlos, las alertas se recalculan/)).toBeVisible()
   })
 
-  test('guardar los mismos parámetros confirma sin alterar nada', async ({ page }) => {
+  test('guardar los mismos parámetros confirma y recalcula sin alterar nada', async ({ page }) => {
     // Se reenvían los valores actuales para probar el guardado sin cambiar
-    // la configuración con la que trabaja el equipo.
+    // la configuración con la que trabaja el equipo. Con los mismos valores,
+    // recalcular deja los mismos episodios.
     await entrarComoAdmin(page)
     await page.goto('/admin')
     await page.getByLabel('Umbral de anomalía (°C)').waitFor()
     await page.getByRole('button', { name: 'Guardar parámetros' }).click()
 
-    await expect(page.getByTestId('aviso-configuracion')).toContainText('Parámetros guardados')
+    await expect(page.getByTestId('aviso-configuracion')).toContainText(
+      'Parámetros guardados y alertas recalculadas',
+      ESPERA_REEVALUACION,
+    )
   })
 
   test('un umbral fuera de rango se rechaza con un mensaje en español', async ({ page }) => {

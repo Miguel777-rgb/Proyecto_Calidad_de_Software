@@ -16,6 +16,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine, text
 
 from ola.config import get_settings
+from ola.observability import configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def run_migrations() -> None:
 
 
 def main() -> None:
-    logging.basicConfig(level=get_settings().log_level)
+    configure_logging(get_settings())
     run_migrations()
 
 

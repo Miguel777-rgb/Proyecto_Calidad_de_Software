@@ -1,0 +1,37 @@
+# Monitor externo de disponibilidad.
+#
+# Consulta la API desplegada cada 15 minutos desde los servidores de GitHub,
+# fuera del VPS y del equipo de desarrollo: si el VPS cae, Uptime Kuma (que
+# corre en el equipo) no siempre lo ve, y si el equipo esta apagado no mide.
+# Si la consulta falla, la ejecucion queda en rojo y GitHub avisa por correo a
+# quien hizo el ultimo cambio en este archivo.
+#
+# La URL se cambia con la variable del repositorio OLA_SALUD_URL (Settings ->
+# Secrets and variables -> Actions -> Variables). GitHub desactiva los
+# programados tras 60 dias sin actividad en el repositorio.
+name: Disponibilidad
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  salud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: ${{ vars.OLA_SALUD_URL || 'https://olachilindrina.wayrasimi.tech/api/health/ready' }}
+    steps:
+      - name: Consultar /api/health/ready
+        run: |
+          # Tres reintentos: un corte de red de unos segundos no es una caida.
+          respuesta=$(curl --silent --show-error --fail --retry 3 --retry-delay 10 \
+            --retry-all-errors --max-time 20 "$URL")
+          echo "$respuesta"
+          # La API responde 200 solo si tambien responde la base de datos.
+          echo "$respuesta" | jq -e '.status == "ok" and .database == "ok"' > /dev/null
+          echo "Disponible $(date -u +%FT%TZ): $respuesta" >> "$GITHUB_STEP_SUMMARY"

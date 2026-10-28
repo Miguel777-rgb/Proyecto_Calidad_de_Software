@@ -30,6 +30,10 @@ class Settings(BaseSettings):
 
     env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
+    # Texto para leer en desarrollo; json para que un recolector filtre los logs.
+    log_format: Literal["text", "json"] = "text"
+    # Rastreo de errores con Sentry o GlitchTip. Vacio, queda desactivado.
+    sentry_dsn: str = ""
     database_url: str = "postgresql+psycopg://ola:ola@db:5432/ola"
 
     jwt_secret: str = "inseguro-solo-para-desarrollo"

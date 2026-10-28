@@ -390,6 +390,19 @@ docker compose -f compose.prod.yml exec scheduler python -m ola.jobs send-notice
 docker compose -f compose.prod.yml exec scheduler python -m ola.jobs import-url --url https://...
 ```
 
+### 8. Monitoreo
+
+- **Disponibilidad desde fuera.** El flujo [`disponibilidad.yml`](.github/workflows/disponibilidad.yml)
+  consulta `/api/health/ready` cada 15 minutos desde GitHub, fuera del VPS y del equipo. Si la
+  API o la base no responden, la ejecución queda en rojo y GitHub avisa por correo a quien hizo el
+  último cambio en ese archivo. La URL se cambia con la variable de repositorio `OLA_SALUD_URL`.
+  GitHub pausa los flujos programados tras 60 días sin actividad en el repositorio.
+- **Logs.** En producción, `OLA_LOG_FORMAT=json` escribe una línea JSON por evento (fecha, nivel,
+  origen, mensaje y traza), también los de uvicorn.
+- **Errores.** Con `OLA_SENTRY_DSN`, los errores no controlados de la API y los fallos de las
+  tareas programadas llegan a Sentry o a GlitchTip, que usa el mismo SDK y puede alojarse en
+  el VPS. No se envían datos personales.
+
 ## Calidad de software
 
 El proyecto se desarrolla con un plan de aseguramiento de la calidad
@@ -402,7 +415,7 @@ retrospectiva por fase.
 | Pruebas automatizadas | **1,302** en backend, paquete compartido, web, app móvil, E2E y herramientas |
 | Cobertura de sentencias | **95 %** backend · **97.7 %** paquete compartido · **90.4 %** web · **95.9 %** app |
 | Defectos | 33 registrados con severidad, detección y costo en [docs/defectos.md](docs/defectos.md) |
-| Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto |
+| Disponibilidad | Uptime Kuma consulta la API del equipo y la del VPS cada minuto; GitHub Actions, la del VPS cada 15 minutos |
 | Análisis estático | ruff y mypy en modo estricto, sin observaciones |
 | Trazabilidad | cada RF conectado con su código y sus pruebas en [docs/trazabilidad.md](docs/trazabilidad.md) |
 | Control de cambios | toda desviación de la SRS registrada con fecha y motivo en su sección 5 |

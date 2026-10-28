@@ -40,6 +40,10 @@ x-entorno-api: &entorno-api
   OLA_SMTP_TLS: ${OLA_SMTP_TLS:-true}
   OLA_MAIL_FROM: ${OLA_MAIL_FROM}
   OLA_LOG_LEVEL: ${OLA_LOG_LEVEL:-INFO}
+  # Logs en JSON, una linea por evento; y rastreo de errores con Sentry o
+  # GlitchTip si se define el DSN (vacio, desactivado).
+  OLA_LOG_FORMAT: ${OLA_LOG_FORMAT:-json}
+  OLA_SENTRY_DSN: ${OLA_SENTRY_DSN:-}
   # Tareas programadas: envio de avisos cada N minutos (0 lo desactiva) e
   # importacion automatica, solo si se define la URL del CSV.
   OLA_SCHEDULER_SEND_MINUTES: ${OLA_SCHEDULER_SEND_MINUTES:-10}

@@ -24,6 +24,7 @@ from ola.api.routers import (
 from ola.api.routers import settings as settings_router
 from ola.config import Settings, get_settings
 from ola.db.session import SessionLocal
+from ola.observability import configure_logging, init_error_tracking
 from ola.ratelimit import AuthLimiters
 from ola.services import auth_service
 
@@ -60,7 +61,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    logging.basicConfig(level=settings.log_level)
+    configure_logging(settings)
+    init_error_tracking(settings)
 
     app = FastAPI(
         title="OLA — Observatorio Litoral de Anomalias termicas",

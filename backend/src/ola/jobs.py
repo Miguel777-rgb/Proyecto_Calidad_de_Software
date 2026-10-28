@@ -33,6 +33,7 @@ from sqlalchemy.orm import Session
 from ola.config import Settings, get_settings
 from ola.db.models import ImportRun, ImportStatus
 from ola.mail import SmtpMailer
+from ola.observability import configure_logging, init_error_tracking
 from ola.repositories import imports_repo
 from ola.services import import_service, notification_service, refresh_service, settings_service
 from ola.services.channels import ChannelRegistry, default_channels
@@ -210,9 +211,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    configure_logging(settings)
+    # Los fallos de las tareas se registran con logger.exception: con DSN, el
+    # rastreador los recibe aunque el programador siga corriendo.
+    init_error_tracking(settings)
     # Import diferido: el modulo crea el motor de la base al importarse.
     from ola.db.session import SessionLocal, engine
 

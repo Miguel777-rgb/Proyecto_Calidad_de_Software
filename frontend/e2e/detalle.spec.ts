@@ -14,7 +14,7 @@ import {
  */
 const MARCADORES = '.leaflet-marker-pane .marcador-zona'
 // Orden del catálogo, de norte a sur.
-const INDICE = { CALLAO: 6 }
+const INDICE = { CALLAO: 6, PISCO: 7 }
 
 async function preparar(page: Page) {
   await bloquearMosaicos(page)
@@ -39,9 +39,11 @@ async function deslizar(elemento: Locator, desde: number, hasta: number) {
   )
 }
 
-// Con toda la costa a la vista, en celular Huacho queda bajo Callao y Matarani
-// bajo Ilo. Solo se toca un marcador que queda encima (Callao, en alerta); las
-// demas zonas se abren como lo haria el usuario: desde su tarjeta o la direccion.
+// Con toda la costa a la vista, en celular los marcadores vecinos se solapan.
+// Leaflet apila encima los que estan en alerta y, entre ellos, el mas al sur:
+// Pisco tapa el centro de Callao, Callao a Huacho e Ilo a Matarani. Solo se
+// toca Pisco, que no queda debajo de ninguno; las demas zonas se abren como lo
+// haria el usuario: desde su tarjeta o la direccion.
 test.describe('Detalle de zona — celular', { tag: '@movil' }, () => {
   test.skip(({ isMobile }) => !isMobile, 'Solo en celular')
 
@@ -56,11 +58,11 @@ test.describe('Detalle de zona — celular', { tag: '@movil' }, () => {
 
   test('tocar un marcador abre la hoja con el detalle de la zona', async ({ page }) => {
     await abrirInicio(page)
-    await page.locator(MARCADORES).nth(INDICE.CALLAO).tap()
+    await page.locator(MARCADORES).nth(INDICE.PISCO).tap()
 
-    const hoja = page.getByRole('dialog', { name: 'Detalle de Callao' })
+    const hoja = page.getByRole('dialog', { name: 'Detalle de Pisco' })
     await expect(hoja).toBeVisible()
-    await expect(hoja.getByTestId('panel-alerta')).toContainText('En alerta cálida desde el 24/07/2026')
+    await expect(hoja.getByTestId('panel-alerta')).toContainText('En alerta fría desde el 26/07/2026')
     await expect(hoja.getByTestId('panel-ultima-medicion')).toContainText('Valor medido el 31/07/2026')
   })
 

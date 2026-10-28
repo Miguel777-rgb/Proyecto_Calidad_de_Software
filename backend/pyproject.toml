@@ -39,6 +39,9 @@ packages = ["src/ola"]
 line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
+# Copia que genera mutmut: codigo mutado a proposito. Dentro del contenedor
+# no se ve el .gitignore de la raiz, asi que se excluye aqui.
+extend-exclude = ["mutants"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]

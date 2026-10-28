@@ -42,6 +42,7 @@ RUN pnpm --filter ola-frontend build
 # --- Imagen de produccion: Nginx sirve la SPA -----------------------------
 FROM nginx:alpine AS production
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/seguridad.conf /etc/nginx/snippets/seguridad.conf
 COPY --from=build /repo/frontend/dist /usr/share/nginx/html
 EXPOSE 80
 # 127.0.0.1 y no localhost: en Alpine localhost resuelve a ::1 y nginx.conf

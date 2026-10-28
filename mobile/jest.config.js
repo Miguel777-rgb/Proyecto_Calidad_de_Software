@@ -19,6 +19,8 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/.maestro/'],
   collectCoverageFrom: ['src/**/*.{ts,tsx}', 'app.config.ts', '!src/**/*.test.{ts,tsx}'],
   coverageReporters: ['text', 'html', 'json-summary'],
+  // Minimo del plan SQA para la app: por debajo, test:cobertura falla (y la CI).
+  coverageThreshold: { global: { statements: 70 } },
   // En Windows cada proceso de Jest carga React Native entero: con mas de dos
   // el equipo se queda sin memoria.
   maxWorkers: 2,

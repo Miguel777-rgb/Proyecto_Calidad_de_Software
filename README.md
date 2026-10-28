@@ -429,6 +429,28 @@ docker compose exec web pnpm typecheck       # tipos del frontend
 docker compose --profile e2e run --rm e2e    # extremo a extremo
 ```
 
+### Integración continua
+
+[`ci.yml`](.github/workflows/ci.yml) corre en cada push a `main` o `deploy` y en cada pull
+request. Una ejecución en rojo significa que el cambio no cumple el plan SQA:
+
+| Trabajo | Qué comprueba |
+|---|---|
+| Backend | ruff, formato, mypy estricto y pytest con PostgreSQL 17; cobertura mínima del 80 % |
+| Web y paquete compartido | tsc, ESLint, Vitest con cobertura mínima del 70 % y del 80 %, build de producción |
+| App Android | tsc, ESLint y Jest con cobertura mínima del 70 % |
+| Dependencias | `pip-audit` y `pnpm audit`: falla con avisos altos o críticos en el backend o la web |
+| Extremo a extremo | levanta el sistema con Docker Compose y corre Playwright |
+
+Los avisos de las dependencias de la app (Expo) se listan en el resumen de la ejecución sin
+detenerla: se corrigen actualizando el SDK de Expo. Los mínimos de cobertura también se
+aplican en local con `pnpm test:cobertura`.
+
+Para que la CI sea una puerta y no solo un aviso, protege `main` en GitHub (**Settings →
+Branches → Add rule**): exige pull request y que pasen los trabajos de CI antes de fusionar.
+`deploy` se despliega solo con cada push, así que conviene actualizarla únicamente desde
+`main` ya verificada.
+
 Otras prácticas aplicadas:
 
 - validación del formato y del contenido del dataset, con importación parcial y reporte de

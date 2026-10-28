@@ -1,0 +1,167 @@
+# Integracion continua: cada push a main o deploy y cada pull request pasan por
+# las puertas de calidad del plan SQA: pruebas en verde en todas las capas,
+# analisis estatico sin errores, cobertura sobre el minimo del plan y ninguna
+# dependencia de la web o del backend con vulnerabilidades altas conocidas.
+#
+# Para que sea una puerta de verdad, proteger main en GitHub (Settings ->
+# Branches) exigiendo estos trabajos antes de fusionar; ver README.
+name: CI
+
+on:
+  push:
+    branches: [main, deploy]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ola
+          POSTGRES_PASSWORD: ola
+          POSTGRES_DB: ola
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ola"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      # Las pruebas crean su propia base, ola_test, a partir de esta URL.
+      OLA_DATABASE_URL: postgresql+psycopg://ola:ola@localhost:5432/ola
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.5.31"
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --frozen --all-groups
+      - name: Dataset real en /dataset
+        # La prueba de rendimiento de la importacion lo busca ahi, como en Docker.
+        run: sudo ln -s "$GITHUB_WORKSPACE/dataset" /dataset
+      - run: uv run ruff check .
+      - run: uv run ruff format --check src tests
+      - run: uv run mypy src
+      - name: Pruebas y cobertura (minimo del plan SQA, 80 %)
+        run: uv run pytest --cov=ola --cov-report=term --cov-fail-under=80
+
+  web:
+    name: Web y paquete compartido (tsc, ESLint, Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --filter "ola-frontend..."
+      - name: Paquete compartido (cobertura minima 80 %)
+        working-directory: packages/compartido
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test:cobertura
+      - name: Web (cobertura minima 70 %) y build de produccion
+        working-directory: frontend
+        env:
+          VITE_API_URL: /api
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test:cobertura
+          pnpm build
+
+  app:
+    name: App Android (tsc, ESLint, Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --filter "ola-mobile..."
+      - name: App (cobertura minima 70 %)
+        working-directory: mobile
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test:cobertura
+
+  dependencias:
+    name: Dependencias con vulnerabilidades conocidas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.5.31"
+      - name: Backend (pip-audit)
+        working-directory: backend
+        run: |
+          uv export --frozen --no-hashes --no-emit-project --format requirements-txt \
+            > "$RUNNER_TEMP/requisitos.txt"
+          uv tool run pip-audit --requirement "$RUNNER_TEMP/requisitos.txt" \
+            --no-deps --disable-pip --progress-spinner off
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --filter "ola-frontend..."
+      - name: Web y app (pnpm audit)
+        # Falla solo si un aviso alto o critico afecta a la web; los de la app
+        # (Expo) se informan en el resumen sin detener la integracion.
+        run: |
+          pnpm audit --prod --json > "$RUNNER_TEMP/auditoria.json" || true
+          pnpm list --filter "ola-frontend..." --prod --depth Infinity --json \
+            > "$RUNNER_TEMP/lista-web.json"
+          node tools/auditoria/revisar-pnpm-audit.mjs \
+            "$RUNNER_TEMP/auditoria.json" "$RUNNER_TEMP/lista-web.json"
+
+  e2e:
+    name: Extremo a extremo (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, web]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: .env con secretos desechables
+        run: |
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/" .env
+          sed -i "s/^OLA_JWT_SECRET=.*/OLA_JWT_SECRET=$(openssl rand -hex 32)/" .env
+          sed -i "s/^OLA_ADMIN_PASSWORD=.*/OLA_ADMIN_PASSWORD=$(openssl rand -hex 12)/" .env
+      - name: Levantar el sistema
+        run: docker compose up -d --build --wait db api web mailpit
+      - run: docker compose exec -T api alembic upgrade head
+      - name: Pruebas de extremo a extremo
+        run: docker compose --profile e2e run --rm e2e
+      - name: Registros del sistema
+        if: failure()
+        run: docker compose logs --no-color api web > sistema.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            sistema.log
+          retention-days: 7

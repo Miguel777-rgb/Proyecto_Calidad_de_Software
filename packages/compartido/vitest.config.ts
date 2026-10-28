@@ -19,6 +19,8 @@ export default defineConfig({
         'src/api/tipos.ts',
         'src/i18n/textos.ts',
       ],
+      // Minimo del plan SQA para el paquete compartido: por debajo, falla.
+      thresholds: { statements: 80 },
     },
   },
 })

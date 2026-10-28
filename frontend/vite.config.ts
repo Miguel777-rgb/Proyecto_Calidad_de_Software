@@ -56,6 +56,8 @@ export default defineConfig({
       include: ['src/**'],
       // Solo se excluye la infraestructura de pruebas; el resto cuenta.
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test-setup.ts', 'src/test-utils.tsx', 'src/test-mocks/**'],
+      // Minimo del plan SQA para la web: por debajo, test:cobertura falla (y la CI).
+      thresholds: { statements: 70 },
     },
   },
 })

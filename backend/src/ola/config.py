@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     smtp_tls: bool = False
     mail_from: str = "alertas@ola.pe"
 
+    # Tareas programadas (python -m ola.jobs scheduler, servicio scheduler).
+    # Cada cuantos minutos se envian los avisos pendientes y se reintentan los
+    # fallidos; 0 desactiva el envio automatico.
+    scheduler_send_minutes: int = Field(default=10, ge=0)
+    # Importacion automatica del CSV de IMARPE. Vacia, queda desactivada: la
+    # SRS 1.2 fijo la carga manual y la plataforma no publica una URL estable.
+    import_url: str = ""
+    import_every_hours: int = Field(default=24, ge=1)
+
     # NoDecode evita que pydantic-settings intente leer la variable de
     # entorno como JSON: aqui llega separada por comas.
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]

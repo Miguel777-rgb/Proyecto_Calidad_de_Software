@@ -22,6 +22,30 @@
 
 name: ola
 
+# Entorno de la API, compartido con el programador de tareas.
+x-entorno-api: &entorno-api
+  OLA_ENV: production
+  OLA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  OLA_JWT_SECRET: ${OLA_JWT_SECRET}
+  OLA_ACCESS_TOKEN_MINUTES: ${OLA_ACCESS_TOKEN_MINUTES:-60}
+  OLA_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
+  OLA_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
+  # La web llama a la API en su mismo dominio, asi que el navegador no
+  # aplica CORS. Se mantiene por si otro origen necesita consumir la API.
+  OLA_CORS_ORIGINS: ${OLA_WEB_ORIGIN}
+  OLA_SMTP_HOST: ${OLA_SMTP_HOST}
+  OLA_SMTP_PORT: ${OLA_SMTP_PORT:-587}
+  OLA_SMTP_USER: ${OLA_SMTP_USER}
+  OLA_SMTP_PASSWORD: ${OLA_SMTP_PASSWORD}
+  OLA_SMTP_TLS: ${OLA_SMTP_TLS:-true}
+  OLA_MAIL_FROM: ${OLA_MAIL_FROM}
+  OLA_LOG_LEVEL: ${OLA_LOG_LEVEL:-INFO}
+  # Tareas programadas: envio de avisos cada N minutos (0 lo desactiva) e
+  # importacion automatica, solo si se define la URL del CSV.
+  OLA_SCHEDULER_SEND_MINUTES: ${OLA_SCHEDULER_SEND_MINUTES:-10}
+  OLA_IMPORT_URL: ${OLA_IMPORT_URL:-}
+  OLA_IMPORT_EVERY_HOURS: ${OLA_IMPORT_EVERY_HOURS:-24}
+
 services:
   db:
     image: postgres:17-alpine
@@ -44,25 +68,27 @@ services:
       context: ./backend
       target: production
     restart: always
-    environment:
-      OLA_ENV: production
-      OLA_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      OLA_JWT_SECRET: ${OLA_JWT_SECRET}
-      OLA_ACCESS_TOKEN_MINUTES: ${OLA_ACCESS_TOKEN_MINUTES:-60}
-      OLA_ADMIN_EMAIL: ${OLA_ADMIN_EMAIL}
-      OLA_ADMIN_PASSWORD: ${OLA_ADMIN_PASSWORD}
-      # La web llama a la API en su mismo dominio, asi que el navegador no
-      # aplica CORS. Se mantiene por si otro origen necesita consumir la API.
-      OLA_CORS_ORIGINS: ${OLA_WEB_ORIGIN}
-      OLA_SMTP_HOST: ${OLA_SMTP_HOST}
-      OLA_SMTP_PORT: ${OLA_SMTP_PORT:-587}
-      OLA_SMTP_USER: ${OLA_SMTP_USER}
-      OLA_SMTP_PASSWORD: ${OLA_SMTP_PASSWORD}
-      OLA_SMTP_TLS: ${OLA_SMTP_TLS:-true}
-      OLA_MAIL_FROM: ${OLA_MAIL_FROM}
-      OLA_LOG_LEVEL: ${OLA_LOG_LEVEL:-INFO}
+    environment: *entorno-api
     depends_on:
       db:
+        condition: service_healthy
+
+  # Envia los avisos pendientes y, si se configura, importa el CSV solo. Va
+  # aparte de la API: sus dos workers de uvicorn repetirian cada tarea.
+  scheduler:
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    # Sin servidor ni migraciones: las aplica la API al arrancar, y este
+    # servicio espera a que este sana.
+    entrypoint: ["python", "-m", "ola.jobs", "scheduler"]
+    environment: *entorno-api
+    # El chequeo de la imagen consulta el puerto 8000, que aqui no existe.
+    healthcheck:
+      disable: true
+    depends_on:
+      api:
         condition: service_healthy
 
   web:

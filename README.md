@@ -165,6 +165,9 @@ docker compose --profile calidad run --rm calidad configurar.py   # 4. prepara e
 La base de datos arranca **vacía**. Para cargar datos, inicia sesión con el administrador
 definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicación (RF-08).
 
+El envío automático de avisos va en el perfil `tareas`, para no mandar correos sin querer:
+`docker compose --profile tareas up -d scheduler` (los correos llegan a Mailpit).
+
 ### Pruebas
 
 ```bash
@@ -350,6 +353,28 @@ docker compose -f compose.prod.yml exec -T db \
 
 El dataset siempre se puede reimportar, pero los usuarios, las suscripciones y el historial de
 alertas solo viven en la base.
+
+### 7. Tareas programadas
+
+El servicio `scheduler` de `compose.prod.yml` usa la misma imagen que la API y corre
+`python -m ola.jobs scheduler`:
+
+| Tarea | Cada | Variable |
+|---|---|---|
+| Enviar los avisos pendientes y reintentar los fallidos | 10 min | `OLA_SCHEDULER_SEND_MINUTES` (0 la desactiva) |
+| Importar el CSV publicado y recalcular las alertas | 24 h | `OLA_IMPORT_URL` (vacía la desactiva), `OLA_IMPORT_EVERY_HOURS` |
+
+Va aparte de la API porque esta arranca con dos workers y cada uno repetiría las tareas. Cada
+ejecución toma un bloqueo de PostgreSQL: si se levantan dos programadores, uno se salta la vuelta.
+Un fallo (SMTP caído, URL que no responde) queda en el log y la tarea se reintenta en su turno.
+La importación automática no registra una importación nueva si el archivo no cambió.
+
+Para ejecutar una tarea una sola vez:
+
+```bash
+docker compose -f compose.prod.yml exec scheduler python -m ola.jobs send-notices
+docker compose -f compose.prod.yml exec scheduler python -m ola.jobs import-url --url https://...
+```
 
 ## Calidad de software
 

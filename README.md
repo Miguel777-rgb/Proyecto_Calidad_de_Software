@@ -333,15 +333,29 @@ funciona. Medición de referencia: 125,701 filas en unos 12 segundos.
 
 ### 6. Copias de seguridad
 
-Dokploy incluye respaldos programados para bases de datos. En el servicio `db`, sección
-**Backups**, configura un destino S3 y una expresión de cron (por ejemplo `0 3 * * *` para un
-respaldo diario a las 3 de la madrugada).
+El servicio `backup` de `compose.prod.yml` respalda la base con `pg_dump` cada 24 horas, guarda
+14 días en el volumen `respaldos` y **prueba restaurar cada respaldo** en una base temporal: si el
+archivo está dañado o a alguna tabla le faltan filas, lo deja como error en su log.
 
-> Esta parte no pudo verificarse: depende de la instalación de Dokploy y de un destino de
-> almacenamiento. Conviene comprobar que el primer respaldo se generó y **probar una
-> restauración** antes de confiar en ella.
+```bash
+docker compose -f compose.prod.yml logs backup    # "Respaldo verificado" tras cada vuelta
+```
 
-Respaldo y restauración manuales, como respaldo de lo anterior:
+| Variable | Por defecto |
+|---|---|
+| `RESPALDO_CADA_HORAS` | 24 |
+| `RESPALDO_RETENCION_DIAS` | 14 |
+
+Estos respaldos viven en el mismo VPS: protegen de un borrado, una migración fallida o una
+importación equivocada, no de perder el servidor. Para eso hace falta una copia fuera del VPS.
+Dokploy incluye respaldos programados hacia S3: en el servicio `db`, sección **Backups**,
+configura un destino y una expresión de cron (por ejemplo `0 3 * * *`).
+
+> La copia a S3 no pudo verificarse: depende de la instalación de Dokploy y de un destino de
+> almacenamiento. Conviene comprobar que el primer respaldo llegó y restaurarlo con el
+> procedimiento manual de abajo antes de confiar en ella.
+
+Respaldo y restauración manuales:
 
 ```bash
 docker compose -f compose.prod.yml exec db \

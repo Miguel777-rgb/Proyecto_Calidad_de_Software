@@ -111,5 +111,26 @@ services:
     depends_on:
       - api
 
+  # Respaldo diario de la base, con 14 dias de retencion, y prueba de
+  # restauracion de cada respaldo en una base temporal. Los respaldos quedan en
+  # el volumen respaldos del VPS: protegen de un borrado o una migracion
+  # fallida, no de perder el VPS. Para eso, ver README (copia fuera del VPS).
+  backup:
+    build: ./tools/respaldo
+    restart: always
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      RESPALDO_CADA_HORAS: ${RESPALDO_CADA_HORAS:-24}
+      RESPALDO_RETENCION_DIAS: ${RESPALDO_RETENCION_DIAS:-14}
+    volumes:
+      - respaldos:/respaldos
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  respaldos:

@@ -177,6 +177,27 @@ services:
       - uptime-kuma
     entrypoint: ["sh", "-c", "pip install -q --root-user-action=ignore -r requirements.txt && exec python \"$$@\"", "--"]
 
+  # Respaldo con prueba de restauracion, igual que en produccion. Para probar
+  # los scripts sin esperar 24 h:
+  #   docker compose --profile respaldo run --rm backup sh /respaldo/respaldar.sh
+  #   docker compose --profile respaldo run --rm backup sh /respaldo/probar-restauracion.sh
+  backup:
+    profiles: ["respaldo"]
+    build: ./tools/respaldo
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+    volumes:
+      - ./tools/respaldo:/respaldo:ro
+      - respaldos:/respaldos
+    entrypoint: []
+    command: ["sh", "/respaldo/programar.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
   web_node_modules:
@@ -188,3 +209,4 @@ volumes:
   e2e_pnpm_store:
   uptime_kuma:
   calidad_pip:
+  respaldos:

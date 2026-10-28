@@ -1,0 +1,4 @@
+# Los scripts de shell se ejecutan dentro de contenedores Linux: siempre con
+# fin de linea LF, aunque se clone en Windows con core.autocrlf=true. Con CRLF,
+# "#!/bin/sh\r" no se encuentra y el contenedor no arranca.
+*.sh text eol=lf

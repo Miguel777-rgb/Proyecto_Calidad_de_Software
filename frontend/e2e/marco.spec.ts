@@ -99,9 +99,12 @@ test.describe('Marco global — escritorio', () => {
 
   test('lo primero al usar el teclado es saltar al contenido', async ({ page }) => {
     await page.goto('/historico')
+    const salto = page.getByRole('link', { name: 'Saltar al contenido' })
+    // React dibuja la pagina despues del evento load, que es cuando goto
+    // termina: un Tab anterior no encuentra nada que enfocar.
+    await expect(salto).toBeAttached()
     await page.keyboard.press('Tab')
 
-    const salto = page.getByRole('link', { name: 'Saltar al contenido' })
     await expect(salto).toBeFocused()
     await expect(salto).toBeVisible()
     await page.keyboard.press('Enter')

@@ -2,5 +2,10 @@
   "name": "ola",
   "private": true,
   "description": "Workspace de OLA: la web, la app móvil y el paquete que comparten. El backend (Python) no forma parte.",
-  "packageManager": "pnpm@9.15.2"
+  "packageManager": "pnpm@9.15.2",
+  "pnpm": {
+    "overrides": {
+      "source-map-js@<1.2.2": "^1.2.2"
+    }
+  }
 }

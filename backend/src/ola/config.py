@@ -10,9 +10,17 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 MIN_JWT_SECRET_BYTES = 32
 
-# Valores que vienen en .env.example y que nunca deben llegar a produccion.
+# Secreto por defecto, solo para desarrollo y pruebas. Debe medir al menos
+# MIN_JWT_SECRET_BYTES: con uno mas corto PyJWT advierte que la clave HMAC es
+# insegura en cada token, y las pruebas (que tratan las advertencias como
+# errores) fallaban en cuanto faltaba OLA_JWT_SECRET, como en la CI.
+DEV_JWT_SECRET = "inseguro-solo-para-desarrollo-local"
+
+# Valores por defecto o de plantilla que nunca deben llegar a produccion. Se
+# conserva el antiguo valor por defecto: un .env viejo puede traerlo todavia.
 INSECURE_SECRETS = frozenset(
     {
+        DEV_JWT_SECRET,
         "inseguro-solo-para-desarrollo",
         "cambia_este_secreto_por_uno_aleatorio_de_64_caracteres",
     }
@@ -36,7 +44,7 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     database_url: str = "postgresql+psycopg://ola:ola@db:5432/ola"
 
-    jwt_secret: str = "inseguro-solo-para-desarrollo"
+    jwt_secret: str = DEV_JWT_SECRET
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 60
     # Sesion que pide la app Android (RF-07, SRS 1.8): el token va cifrado en

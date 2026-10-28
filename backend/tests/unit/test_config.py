@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
 from pydantic import ValidationError
 
-from ola.config import Settings
+from ola.config import DEV_JWT_SECRET, MIN_JWT_SECRET_BYTES, Settings
+from ola.security import create_access_token
 
 
 def test_valores_por_defecto_coinciden_con_las_reglas_acordadas(settings_factory):
@@ -119,3 +122,34 @@ class TestSecretosEnProduccion:
     def test_en_desarrollo_no_estorba_con_valores_por_defecto(self, settings_factory):
         # Levantar el entorno local no debe exigir generar secretos.
         assert settings_factory(env="development").is_production is False
+
+    @pytest.mark.parametrize("secreto", [DEV_JWT_SECRET, "inseguro-solo-para-desarrollo"])
+    def test_rechaza_los_secretos_por_defecto_de_desarrollo(self, settings_factory, secreto):
+        # El actual por publico; el anterior, que un .env viejo puede traer, ademas por corto.
+        with pytest.raises(ValidationError):
+            self._produccion(settings_factory, jwt_secret=secreto)
+
+
+class TestSecretoDeDesarrollo:
+    """El secreto por defecto debe firmar tokens sin advertencias.
+
+    Con el anterior, de 29 bytes, PyJWT advertia que la clave HMAC era insegura
+    y las pruebas fallaban en la CI, que no define OLA_JWT_SECRET.
+    """
+
+    def test_mide_al_menos_el_minimo_que_exige_produccion(self, settings_factory):
+        secreto = settings_factory().jwt_secret
+        assert secreto == DEV_JWT_SECRET
+        assert len(secreto.encode("utf-8")) >= MIN_JWT_SECRET_BYTES
+
+    def test_firma_un_token_sin_advertencias(self, settings_factory):
+        ajustes = settings_factory()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            token = create_access_token(
+                "1",
+                secret=ajustes.jwt_secret,
+                algorithm=ajustes.jwt_algorithm,
+                expires_minutes=5,
+            )
+        assert token.count(".") == 2

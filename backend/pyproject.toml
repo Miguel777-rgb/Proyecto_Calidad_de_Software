@@ -25,6 +25,7 @@ dev = [
     "httpx>=0.28",
     "ruff>=0.8",
     "mypy>=1.14",
+    "mutmut>=3",
 ]
 
 [build-system]
@@ -51,6 +52,21 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+[tool.mutmut]
+# Pruebas de mutacion del dominio puro: mutmut altera el codigo (un < por un
+# <=, un + por un -) y comprueba que alguna prueba unitaria lo detecte. Una
+# mutacion que sobrevive senala una regla sin prueba que la fije.
+#   docker compose exec api mutmut run && docker compose exec api mutmut results
+paths_to_mutate = [
+    "src/ola/domain/classification.py",
+    "src/ola/domain/streaks.py",
+    "src/ola/domain/freshness.py",
+    "src/ola/domain/projection.py",
+]
+tests_dir = ["tests/unit/"]
+# El conftest de las pruebas importa el resto del paquete: se copia sin mutar.
+also_copy = ["src/ola/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

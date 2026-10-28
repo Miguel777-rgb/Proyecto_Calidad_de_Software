@@ -451,6 +451,26 @@ Branches → Add rule**): exige pull request y que pasen los trabajos de CI ante
 `deploy` se despliega solo con cada push, así que conviene actualizarla únicamente desde
 `main` ya verificada.
 
+### Pruebas de carga, mutación y seguridad
+
+[`calidad.yml`](.github/workflows/calidad.yml) corre cada lunes y a mano (Actions → Calidad →
+Run workflow). Resultados al 27 de octubre de 2026, en el equipo de desarrollo:
+
+| Prueba | Herramienta | Resultado |
+|---|---|---|
+| Carga: 50 usuarios durante un minuto sobre la pantalla de inicio | k6 | p95 de 43 a 49 ms y 0 % de errores (umbral: p95 < 1 s y < 1 % de errores) |
+| Mutación del dominio: clasificación, rachas, frescura y proyección | mutmut | 220 de 252 mutantes detectados (87 %). De los 32 que sobreviven, 29 están en la proyección; los 3 de rachas y clasificación son equivalentes |
+| Escaneo pasivo del sitio desplegado | OWASP ZAP (baseline) | Informe en los artefactos de cada ejecución |
+
+```bash
+docker compose --profile carga run --rm carga    # carga con k6 contra el sistema local
+docker compose exec api mutmut run               # mutación del dominio
+docker compose exec api mutmut results           # mutantes que sobreviven
+```
+
+La API de desarrollo corre con un solo proceso y recarga en caliente; producción usa dos, así
+que la prueba de carga local es una cota conservadora.
+
 Otras prácticas aplicadas:
 
 - validación del formato y del contenido del dataset, con importación parcial y reporte de

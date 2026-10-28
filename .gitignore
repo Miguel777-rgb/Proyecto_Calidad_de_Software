@@ -61,6 +61,9 @@ frontend/capturas/
 Thumbs.db
 Desktop.ini
 
+# Copia de trabajo de las pruebas de mutacion (mutmut)
+mutants/
+
 # Logs y archivos temporales
 *.log
 *.tmp

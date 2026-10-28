@@ -1,0 +1,86 @@
+# Pruebas de calidad que tardan mas que la CI: carga, mutacion y seguridad.
+# Corren cada lunes y a mano (Actions -> Calidad -> Run workflow). Informan en
+# el resumen de cada ejecucion; la de carga falla si no se cumplen sus umbrales.
+name: Calidad
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  carga:
+    name: Carga con 50 usuarios (k6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: .env con secretos desechables
+        run: |
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/" .env
+          sed -i "s/^OLA_JWT_SECRET=.*/OLA_JWT_SECRET=$(openssl rand -hex 32)/" .env
+          sed -i "s/^OLA_ADMIN_PASSWORD=.*/OLA_ADMIN_PASSWORD=$(openssl rand -hex 12)/" .env
+      - run: docker compose up -d --build --wait db api
+      - run: docker compose exec -T api alembic upgrade head
+      - name: Cargar el dataset real
+        # Sin datos, el estado de las zonas sale vacio y la prueba no mide nada.
+        run: |
+          docker compose exec -T api python -c "
+          from ola.config import get_settings
+          from ola.db.session import SessionLocal
+          from ola.services import import_service, refresh_service, settings_service
+          with SessionLocal() as s, open('/dataset/IMARPE_Anomalia_TSM.csv', 'rb') as f:
+              run = import_service.run_import(s, filename='IMARPE_Anomalia_TSM.csv', stream=f, uploaded_by_id=None)
+              refresh_service.refresh_alerts(s, settings_service.get_effective(s, get_settings()))
+              print(run.status, run.rows_inserted, 'filas')
+          "
+      - name: 50 usuarios durante un minuto (p95 < 1 s, errores < 1 %)
+        run: docker compose --profile carga run --rm carga
+
+  mutacion:
+    name: Mutacion del dominio (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.5.31"
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --frozen --all-groups
+      - run: uv run mutmut run --max-children 4
+      - name: Resumen
+        run: |
+          uv run mutmut export-cicd-stats
+          jq -r '"### Pruebas de mutacion\n\nMutantes: \(.total). Detectados por las pruebas: \(.killed). Sobreviven: \(.survived). Puntaje: \((100 * .killed / .total) | floor) %."' \
+            mutants/mutmut-cicd-stats.json >> "$GITHUB_STEP_SUMMARY"
+          { echo; echo '```'; uv run mutmut results | grep survived; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  zap:
+    name: Escaneo pasivo de seguridad (OWASP ZAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Solo el escaneo pasivo (baseline): recorre el sitio y analiza las
+      # respuestas, sin atacarlo. Se cambia con la variable OLA_WEB_URL.
+      URL: ${{ vars.OLA_WEB_URL || 'https://olachilindrina.wayrasimi.tech' }}
+    steps:
+      - name: ZAP baseline
+        run: |
+          mkdir -p zap && chmod 777 zap
+          docker run --rm -v "$PWD/zap:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "$URL" -r informe.html -J informe.json -I
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap
+          path: zap/
+          retention-days: 30

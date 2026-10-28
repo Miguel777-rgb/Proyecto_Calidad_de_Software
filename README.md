@@ -439,12 +439,17 @@ request. Una ejecución en rojo significa que el cambio no cumple el plan SQA:
 | Backend | ruff, formato, mypy estricto y pytest con PostgreSQL 17; cobertura mínima del 80 % |
 | Web y paquete compartido | tsc, ESLint, Vitest con cobertura mínima del 70 % y del 80 %, build de producción |
 | App Android | tsc, ESLint y Jest con cobertura mínima del 70 % |
-| Dependencias | `pip-audit` y `pnpm audit`: falla con avisos altos o críticos en el backend o la web |
+| Dependencias | `pip-audit` y `pnpm audit`: falla con avisos altos o críticos en el backend, la web o la app que no estén aceptados |
 | Extremo a extremo | levanta el sistema con Docker Compose y corre Playwright |
 
-Los avisos de las dependencias de la app (Expo) se listan en el resumen de la ejecución sin
-detenerla: se corrigen actualizando el SDK de Expo. Los mínimos de cobertura también se
-aplican en local con `pnpm test:cobertura`.
+Las vulnerabilidades con versión corregida en la misma versión mayor se fuerzan con
+`pnpm.overrides` en el `package.json` de la raíz. Las que no tienen arreglo compatible quedan
+en [`tools/auditoria/aceptados.json`](tools/auditoria/aceptados.json), cada una con su motivo:
+hoy son cinco, cuatro de la CLI de Expo (no entran en el APK) y `decode-uri-component`, que sí
+llega a la app a través de expo-router y cuya versión corregida rompería la lectura de los
+enlaces `ola://`. Se revisan al actualizar el SDK de Expo; si un aviso desaparece, la CI pide
+quitarlo de la lista. Los mínimos de cobertura también se aplican en local con
+`pnpm test:cobertura`.
 
 Para que la CI sea una puerta y no solo un aviso, protege `main` en GitHub (**Settings →
 Branches → Add rule**): exige pull request y que pasen los trabajos de CI antes de fusionar.

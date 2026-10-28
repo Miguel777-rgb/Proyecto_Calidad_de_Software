@@ -1,0 +1,41 @@
+{
+  "descripcion": "Avisos de pnpm audit que el equipo acepta por ahora, con su motivo. La CI falla con cualquier aviso alto o critico que no este en esta lista. Cada entrada se revisa al actualizar el SDK de Expo; si el aviso desaparece de la auditoria, la CI pide quitarla.",
+  "revisado": "2026-10-28",
+  "avisos": [
+    {
+      "ghsa": "GHSA-86w9-cpqp-85rv",
+      "paquete": "node-forge",
+      "gravedad": "high",
+      "entra_por": "expo > @expo/cli",
+      "motivo": "No existe version corregida. Solo lo usa la CLI de Expo en el equipo que compila, para certificados y firma de actualizaciones; no entra en el APK y la app no usa actualizaciones firmadas (expo-updates)."
+    },
+    {
+      "ghsa": "GHSA-mrhx-c7xc-m3w5",
+      "paquete": "zod",
+      "gravedad": "high",
+      "entra_por": "expo > @expo/cli",
+      "motivo": "La correccion esta solo en zod 4, que cambia la API de la que depende la CLI de Expo (zod 3). La CLI valida archivos del propio proyecto, no datos de terceros, y no entra en el APK."
+    },
+    {
+      "ghsa": "GHSA-w5hq-g745-h8pq",
+      "paquete": "uuid",
+      "gravedad": "moderate",
+      "entra_por": "expo > @expo/config, @expo/metro-config, @expo/cli",
+      "motivo": "La correccion esta en uuid 11, cuatro versiones mayores despues de la 7 que usan las herramientas de compilacion de Expo. Afecta a v3, v5 y v6 con un buffer propio; no entra en el APK."
+    },
+    {
+      "ghsa": "GHSA-vcc3-ghjq-m6fr",
+      "paquete": "decode-uri-component",
+      "gravedad": "moderate",
+      "entra_por": "expo-router > query-string 7",
+      "motivo": "Si entra en la app: expo-router decodifica con el los parametros de los enlaces ola://. La version corregida (0.5) es solo ESM y rompe el require() de query-string 7. El riesgo es que un enlace manipulado, abierto por el usuario, congele la app; no da acceso a datos."
+    },
+    {
+      "ghsa": "GHSA-gcqx-w48m-w2h4",
+      "paquete": "deepmerge",
+      "gravedad": "low",
+      "entra_por": "expo > @expo/cli",
+      "motivo": "No existe version corregida. Solo la CLI de Expo combina con el su configuracion; no entra en el APK."
+    }
+  ]
+}

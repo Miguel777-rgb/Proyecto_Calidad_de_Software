@@ -126,8 +126,8 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile --filter "ola-frontend..."
       - name: Web y app (pnpm audit)
-        # Falla solo si un aviso alto o critico afecta a la web; los de la app
-        # (Expo) se informan en el resumen sin detener la integracion.
+        # Falla con cualquier aviso alto o critico, de la web o de la app, que
+        # no este aceptado con su motivo en tools/auditoria/aceptados.json.
         run: |
           pnpm audit --prod --json > "$RUNNER_TEMP/auditoria.json" || true
           pnpm list --filter "ola-frontend..." --prod --depth Infinity --json \

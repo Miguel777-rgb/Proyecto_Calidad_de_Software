@@ -148,9 +148,19 @@ jobs:
           sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/" .env
           sed -i "s/^OLA_JWT_SECRET=.*/OLA_JWT_SECRET=$(openssl rand -hex 32)/" .env
           sed -i "s/^OLA_ADMIN_PASSWORD=.*/OLA_ADMIN_PASSWORD=$(openssl rand -hex 12)/" .env
+      - run: docker compose build api web
+      - name: Base de datos con las migraciones aplicadas
+        # Antes de arrancar la API, como en produccion: la API crea el
+        # administrador al arrancar y, sin las tablas, no lo crearia.
+        run: |
+          docker compose up -d --wait db
+          docker compose run --rm --no-deps api alembic upgrade head
       - name: Levantar el sistema
-        run: docker compose up -d --build --wait db api web mailpit
-      - run: docker compose exec -T api alembic upgrade head
+        run: docker compose up -d --wait api web mailpit
+      - name: Cargar el dataset real
+        # Los graficos, la proyeccion y los avisos se prueban con los datos
+        # reales, como en la base de desarrollo del equipo.
+        run: docker compose exec -T api python -m ola.jobs import-file /dataset/IMARPE_Anomalia_TSM.csv
       - name: Pruebas de extremo a extremo
         run: docker compose --profile e2e run --rm e2e
       - name: Registros del sistema

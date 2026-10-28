@@ -28,16 +28,7 @@ jobs:
       - run: docker compose exec -T api alembic upgrade head
       - name: Cargar el dataset real
         # Sin datos, el estado de las zonas sale vacio y la prueba no mide nada.
-        run: |
-          docker compose exec -T api python -c "
-          from ola.config import get_settings
-          from ola.db.session import SessionLocal
-          from ola.services import import_service, refresh_service, settings_service
-          with SessionLocal() as s, open('/dataset/IMARPE_Anomalia_TSM.csv', 'rb') as f:
-              run = import_service.run_import(s, filename='IMARPE_Anomalia_TSM.csv', stream=f, uploaded_by_id=None)
-              refresh_service.refresh_alerts(s, settings_service.get_effective(s, get_settings()))
-              print(run.status, run.rows_inserted, 'filas')
-          "
+        run: docker compose exec -T api python -m ola.jobs import-file /dataset/IMARPE_Anomalia_TSM.csv
       - name: 50 usuarios durante un minuto (p95 < 1 s, errores < 1 %)
         run: docker compose --profile carga run --rm carga
 

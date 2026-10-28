@@ -162,8 +162,16 @@ docker compose --profile calidad run --rm calidad configurar.py   # 4. prepara e
 | Bandeja de correo (Mailpit) | http://localhost:8025 |
 | Disponibilidad (Uptime Kuma) | http://localhost:3001 |
 
-La base de datos arranca **vacía**. Para cargar datos, inicia sesión con el administrador
-definido en `.env` e importa `dataset/IMARPE_Anomalia_TSM.csv` desde la aplicación (RF-08).
+La base de datos arranca **vacía**. La API crea el administrador definido en `.env` al arrancar,
+si las tablas ya existen: la primera vez, después de aplicar las migraciones, reiníciala con
+`docker compose restart api`. Para cargar datos, inicia sesión con ese administrador e importa
+`dataset/IMARPE_Anomalia_TSM.csv` desde la aplicación (RF-08), o hazlo sin pasar por la web:
+
+```bash
+docker compose exec api python -m ola.jobs import-file /dataset/IMARPE_Anomalia_TSM.csv
+```
+
+Las pruebas de extremo a extremo usan esos datos reales; la CI los carga con el mismo comando.
 
 El envío automático de avisos va en el perfil `tareas`, para no mandar correos sin querer:
 `docker compose --profile tareas up -d scheduler` (los correos llegan a Mailpit).

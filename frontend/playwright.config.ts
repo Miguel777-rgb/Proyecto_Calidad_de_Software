@@ -30,7 +30,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  reporter: [['list']],
+  // El informe HTML queda en playwright-report: la CI lo sube cuando falla.
+  reporter: [['list'], ['html', { open: 'never' }]],
   expect: {
     // Tolerancia absoluta y minima: las referencias se generan en el mismo
     // contenedor donde se comparan, asi que el dibujo es determinista. Una

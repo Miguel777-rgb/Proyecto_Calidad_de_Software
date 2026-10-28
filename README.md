@@ -284,8 +284,8 @@ Traefik las separa por ruta:
 
 ### 2. Crear el servicio en Dokploy
 
-Crea un proyecto de tipo **Compose**, apunta al repositorio y a `compose.prod.yml`, y define
-las variables en su interfaz. **No subas un archivo `.env` al servidor:** los secretos se
+Crea un proyecto de tipo **Compose**, apunta al repositorio, a la rama `main` y a
+`compose.prod.yml`, y define las variables en su interfaz. **No subas un archivo `.env` al servidor:** los secretos se
 cargan desde Dokploy. Las variables necesarias están listadas en
 [`.env.example`](.env.example), sección de producción.
 
@@ -439,7 +439,7 @@ docker compose --profile e2e run --rm e2e    # extremo a extremo
 
 ### Integración continua
 
-[`ci.yml`](.github/workflows/ci.yml) corre en cada push a `main` o `deploy` y en cada pull
+[`ci.yml`](.github/workflows/ci.yml) corre en cada push a `main` y en cada pull
 request. Una ejecución en rojo significa que el cambio no cumple el plan SQA:
 
 | Trabajo | Qué comprueba |
@@ -461,8 +461,8 @@ quitarlo de la lista. Los mínimos de cobertura también se aplican en local con
 
 Para que la CI sea una puerta y no solo un aviso, protege `main` en GitHub (**Settings →
 Branches → Add rule**): exige pull request y que pasen los trabajos de CI antes de fusionar.
-`deploy` se despliega solo con cada push, así que conviene actualizarla únicamente desde
-`main` ya verificada.
+Dokploy despliega `main` con cada push sin esperar a la CI: con esa regla, a producción solo
+llega código que ya pasó las pruebas.
 
 ### Pruebas de carga, mutación y seguridad
 

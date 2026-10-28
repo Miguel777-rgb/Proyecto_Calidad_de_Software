@@ -1,4 +1,4 @@
-# Integracion continua: cada push a main o deploy y cada pull request pasan por
+# Integracion continua: cada push a main y cada pull request pasan por
 # las puertas de calidad del plan SQA: pruebas en verde en todas las capas,
 # analisis estatico sin errores, cobertura sobre el minimo del plan y ninguna
 # dependencia de la web o del backend con vulnerabilidades altas conocidas.
@@ -9,7 +9,7 @@ name: CI
 
 on:
   push:
-    branches: [main, deploy]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 

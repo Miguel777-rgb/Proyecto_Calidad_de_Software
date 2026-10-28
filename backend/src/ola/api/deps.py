@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from ola.config import Settings, get_settings
 from ola.db.models import User
 from ola.db.session import get_session
 from ola.mail import Mailer, SmtpMailer
+from ola.ratelimit import AuthLimiters
 from ola.repositories import users_repo
 from ola.security import decode_access_token
 from ola.services import auth_service, settings_service
@@ -85,6 +86,27 @@ def get_mailer(settings: SettingsDep) -> Mailer:
 
 
 MailerDep = Annotated[Mailer, Depends(get_mailer)]
+
+
+def get_auth_limiters(request: Request) -> AuthLimiters:
+    limiters: AuthLimiters = request.app.state.auth_limiters
+    return limiters
+
+
+AuthLimitersDep = Annotated[AuthLimiters, Depends(get_auth_limiters)]
+
+
+def client_ip(request: Request) -> str:
+    """Direccion del cliente para los limites de intentos.
+
+    Detras de Traefik, uvicorn la toma de X-Forwarded-For porque confia en el
+    proxy (FORWARDED_ALLOW_IPS en compose.prod.yml); si no, todos los clientes
+    compartirian la IP del proxy y uno solo bloquearia a los demas.
+    """
+    return request.client.host if request.client is not None else "desconocida"
+
+
+ClientIpDep = Annotated[str, Depends(client_ip)]
 
 
 def get_channels(mailer: MailerDep) -> ChannelRegistry:

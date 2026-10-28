@@ -409,6 +409,9 @@ Otras prácticas aplicadas:
 - contraseñas con bcrypt y negativa a arrancar en producción con secretos débiles;
 - recuperación de contraseña con un código de un solo uso que se guarda como HMAC, vence a los
   15 minutos y no revela qué correos tienen cuenta;
+- límite de intentos contra la fuerza bruta: 5 fallos de inicio de sesión por cuenta y 20 por
+  IP en 15 minutos, y topes por IP para pedir códigos y probarlos; al superarlo, la API
+  responde 429 con `Retry-After`. Los contadores viven en memoria de cada worker;
 - código versionado con commits descriptivos;
 - documentación actualizada junto con cada avance.
 

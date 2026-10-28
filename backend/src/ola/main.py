@@ -24,6 +24,7 @@ from ola.api.routers import (
 from ola.api.routers import settings as settings_router
 from ola.config import Settings, get_settings
 from ola.db.session import SessionLocal
+from ola.ratelimit import AuthLimiters
 from ola.services import auth_service
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
+
+    # Contadores de intentos de esta aplicacion: cada instancia, y cada prueba,
+    # empieza con los suyos.
+    app.state.auth_limiters = AuthLimiters.from_settings(settings)
 
     app.add_middleware(
         CORSMiddleware,

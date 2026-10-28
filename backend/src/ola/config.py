@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     password_reset_attempts: int = Field(default=5, ge=1)
     password_reset_interval_seconds: int = Field(default=60, ge=0)
 
+    # Limite de intentos contra la fuerza bruta (ratelimit.py), en una ventana
+    # comun. Se cuentan los inicios de sesion fallidos, las solicitudes de
+    # codigo y los codigos equivocados; superar el limite responde 429.
+    rate_limit_window_minutes: int = Field(default=15, ge=1)
+    login_failures_per_account: int = Field(default=5, ge=1)
+    login_failures_per_ip: int = Field(default=20, ge=1)
+    password_reset_requests_per_ip: int = Field(default=10, ge=1)
+    password_reset_failures_per_ip: int = Field(default=20, ge=1)
+
     admin_email: str = "admin@ola.pe"
     admin_password: str = "cambiar"
 

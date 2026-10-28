@@ -68,7 +68,13 @@ services:
       context: ./backend
       target: production
     restart: always
-    environment: *entorno-api
+    environment:
+      <<: *entorno-api
+      # uvicorn toma la IP del cliente de X-Forwarded-For solo si confia en el
+      # proxy. Sin esto todos tendrian la IP de Traefik y el limite de
+      # intentos por IP bloquearia a todos a la vez. La API no publica puertos:
+      # solo Traefik puede enviarle esas cabeceras.
+      FORWARDED_ALLOW_IPS: "*"
     depends_on:
       db:
         condition: service_healthy

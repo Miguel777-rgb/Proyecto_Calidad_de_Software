@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import math
+
 from fastapi import APIRouter, HTTPException, status
 
-from ola.api.deps import CurrentUser, MailerDep, SessionDep, SettingsDep
+from ola.api.deps import (
+    AuthLimitersDep,
+    ClientIpDep,
+    CurrentUser,
+    MailerDep,
+    SessionDep,
+    SettingsDep,
+)
 from ola.api.schemas.auth import (
     MensajeOut,
     PasswordResetConfirm,
@@ -17,6 +26,20 @@ from ola.api.schemas.auth import (
 from ola.services import auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["autenticacion"])
+
+
+def _frenar(*esperas: int | None) -> None:
+    """Responde 429 si alguna clave (cuenta o IP) agoto sus intentos."""
+    segundos = max((espera for espera in esperas if espera is not None), default=None)
+    if segundos is None:
+        return
+    minutos = math.ceil(segundos / 60)
+    unidad = "minuto" if minutos == 1 else "minutos"
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"Demasiados intentos. Vuelve a intentarlo en {minutos} {unidad}.",
+        headers={"Retry-After": str(segundos)},
+    )
 
 
 @router.post(
@@ -48,10 +71,23 @@ def register(datos: UserRegister, session: SessionDep, settings: SettingsDep) ->
 
 
 @router.post("/login", response_model=TokenOut, summary="Inicia sesion")
-def login(datos: UserLogin, session: SessionDep, settings: SettingsDep) -> TokenOut:
+def login(
+    datos: UserLogin,
+    session: SessionDep,
+    settings: SettingsDep,
+    limites: AuthLimitersDep,
+    ip: ClientIpDep,
+) -> TokenOut:
+    # Se cuentan los fallos por cuenta (fuerza bruta contra una persona) y por
+    # IP (un atacante que prueba muchos correos). Acertar solo limpia la cuenta:
+    # si limpiara la IP, bastaria entrar a una cuenta propia entre intentos.
+    cuenta = datos.email.strip().lower()
+    _frenar(limites.login_per_account.retry_after(cuenta), limites.login_per_ip.retry_after(ip))
     try:
         user = auth_service.authenticate(session, email=datos.email, password=datos.password)
     except auth_service.InvalidCredentialsError:
+        limites.login_per_account.record(cuenta)
+        limites.login_per_ip.record(ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos.",
@@ -61,6 +97,7 @@ def login(datos: UserLogin, session: SessionDep, settings: SettingsDep) -> Token
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La cuenta está desactivada.",
         ) from None
+    limites.login_per_account.reset(cuenta)
     emitido = auth_service.issue_token(user, settings, larga=datos.mantener_sesion)
     return TokenOut(
         access_token=emitido.access_token,
@@ -86,8 +123,17 @@ DEMASIADOS_INTENTOS = "Superaste los intentos. Pide un código nuevo."
     summary="Envia un codigo para cambiar la contrasena",
 )
 def request_password_reset(
-    datos: PasswordResetRequest, session: SessionDep, settings: SettingsDep, mailer: MailerDep
+    datos: PasswordResetRequest,
+    session: SessionDep,
+    settings: SettingsDep,
+    mailer: MailerDep,
+    limites: AuthLimitersDep,
+    ip: ClientIpDep,
 ) -> MensajeOut:
+    # Cada cuenta ya espera un minuto entre codigos; esto frena a quien pide
+    # codigos para muchos correos desde una misma IP.
+    _frenar(limites.reset_requests_per_ip.retry_after(ip))
+    limites.reset_requests_per_ip.record(ip)
     # La respuesta no dice si el correo tiene cuenta (SRS 3.5).
     auth_service.request_password_reset(
         session, email=datos.email, mailer=mailer, settings=settings
@@ -101,8 +147,15 @@ def request_password_reset(
     summary="Cambia la contrasena con el codigo y abre una sesion",
 )
 def confirm_password_reset(
-    datos: PasswordResetConfirm, session: SessionDep, settings: SettingsDep
+    datos: PasswordResetConfirm,
+    session: SessionDep,
+    settings: SettingsDep,
+    limites: AuthLimitersDep,
+    ip: ClientIpDep,
 ) -> TokenOut:
+    # Cada codigo admite pocos intentos; esto frena a quien prueba codigos
+    # contra muchas cuentas desde una misma IP.
+    _frenar(limites.reset_failures_per_ip.retry_after(ip))
     try:
         user = auth_service.confirm_password_reset(
             session,
@@ -113,11 +166,13 @@ def confirm_password_reset(
         )
     except auth_service.InvalidResetCodeError:
         # El intento fallido cuenta: se guarda antes de responder.
+        limites.reset_failures_per_ip.record(ip)
         session.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=CODIGO_INVALIDO
         ) from None
     except auth_service.TooManyResetAttemptsError:
+        limites.reset_failures_per_ip.record(ip)
         session.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=DEMASIADOS_INTENTOS

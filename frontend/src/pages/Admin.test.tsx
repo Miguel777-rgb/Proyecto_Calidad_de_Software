@@ -87,6 +87,36 @@ describe('Admin', () => {
     expect(screen.getByTestId('filas-rechazadas')).toHaveTextContent('0')
   })
 
+  it('avisa que las alertas se recalcularon con las mediciones nuevas', async () => {
+    const evaluacion = {
+      reference_date: '2026-07-31',
+      laboratories_evaluated: 10,
+      events_total: 4164,
+      events_open: 8,
+      events_removed: 0,
+      notifications_created: 3,
+    }
+    vi.stubGlobal(
+      'fetch',
+      simularApi(() => respuesta({ ...IMPORTACION, evaluation: evaluacion }, 201)),
+    )
+
+    renderConProveedores(<Admin />)
+    await subirArchivo()
+
+    const aviso = await screen.findByTestId('evaluacion-importacion')
+    expect(aviso).toHaveTextContent(textos.admin.alertasReevaluadas(evaluacion))
+    expect(aviso).toHaveTextContent('Quedan 3 avisos nuevos por enviar.')
+  })
+
+  it('no habla de alertas si la importacion no cambio mediciones', async () => {
+    renderConProveedores(<Admin />)
+    await subirArchivo()
+
+    await screen.findByTestId('resultado-importacion')
+    expect(screen.queryByTestId('evaluacion-importacion')).not.toBeInTheDocument()
+  })
+
   it('envia el archivo como formulario multipart', async () => {
     const fetchMock = simularApi(() => respuesta(IMPORTACION, 201))
     vi.stubGlobal('fetch', fetchMock)

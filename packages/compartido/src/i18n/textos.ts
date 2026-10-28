@@ -1,5 +1,20 @@
 // Todos los literales visibles viven aqui: la interfaz es en espanol,
 // el codigo en ingles. Centralizarlos facilita revisarlos con la docente.
+
+interface ResumenDeEvaluacion {
+  events_total: number
+  events_open: number
+  notifications_created?: number
+}
+
+function resumirEvaluacion(r: ResumenDeEvaluacion): string {
+  const base = `Se registraron ${r.events_total.toLocaleString('es-PE')} episodios, de los cuales ${r.events_open} siguen vigentes.`
+  const avisos = r.notifications_created ?? 0
+  if (avisos === 0) return base
+  const pendientes = avisos === 1 ? 'Queda 1 aviso nuevo' : `Quedan ${avisos} avisos nuevos`
+  return `${base} ${pendientes} por enviar.`
+}
+
 export const textos = {
   app: {
     nombre: 'OLA',
@@ -83,6 +98,8 @@ export const textos = {
     historial: 'Importaciones anteriores',
     sinImportaciones: 'Todavía no se ha importado ningún archivo.',
     resultado: 'Resultado de la importación',
+    alertasReevaluadas: (r: ResumenDeEvaluacion) =>
+      `Las alertas se recalcularon con las mediciones nuevas. ${resumirEvaluacion(r)}`,
     columnas: {
       archivo: 'Archivo',
       fecha: 'Fecha',
@@ -298,7 +315,7 @@ export const textos = {
   configuracion: {
     titulo: 'Parámetros de detección',
     ayuda:
-      'Estos valores definen cuándo una zona se considera en alerta. Cambiarlos no recalcula las alertas ya detectadas: para eso usa el botón de reevaluar.',
+      'Estos valores definen cuándo una zona se considera en alerta. Al guardarlos, las alertas se recalculan con los valores nuevos.',
     threshold_c: 'Umbral de anomalía (°C)',
     min_streak_records: 'Registros seguidos para alertar',
     max_gap_days: 'Días faltantes tolerados',
@@ -307,10 +324,11 @@ export const textos = {
     guardar: 'Guardar parámetros',
     guardando: 'Guardando…',
     guardado: 'Parámetros guardados.',
+    guardadoYReevaluado: (r: ResumenDeEvaluacion) =>
+      `Parámetros guardados y alertas recalculadas. ${resumirEvaluacion(r)}`,
     reevaluar: 'Reevaluar alertas',
     reevaluando: 'Reevaluando…',
-    resultadoEvaluacion: (r: { events_total: number; events_open: number }) =>
-      `Se registraron ${r.events_total.toLocaleString('es-PE')} episodios, de los cuales ${r.events_open} siguen vigentes.`,
+    resultadoEvaluacion: resumirEvaluacion,
   },
   atribucion:
     'Fuente: Anomalía de la Temperatura Superficial del Mar (ATSM) de los laboratorios costeros del IMARPE — IMARPE / PRODUCE.',

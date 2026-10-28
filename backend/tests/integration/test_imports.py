@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
-from ola.db.models import AnomalyReading, Laboratory
+from ola.db.models import AnomalyReading, Laboratory, Notification
 
 CABECERA = "FECHA_MEDICION,LABORATORIO_COSTERO,ANOMALIA_TEMPERATURA"
 DATASET_REAL = Path("/dataset/IMARPE_Anomalia_TSM.csv")
@@ -231,6 +231,56 @@ class TestDatasetDeMuestra:
         # Las 10 zonas deben quedar representadas para poder probar el mapa.
         zonas = db_session.scalar(select(func.count(func.distinct(AnomalyReading.laboratory_id))))
         assert zonas == 10
+
+
+class TestReevaluacionAlImportar:
+    """Importar mediciones nuevas reevalua las alertas sin pasos manuales.
+
+    Antes habia que pulsar «Reevaluar alertas» despues de cada importacion; si
+    se olvidaba, una zona seguia sin alerta con su racha ya cumplida.
+    """
+
+    RACHA_CALIDA = (
+        "2026-07-27,CALLAO,1.5",
+        "2026-07-28,CALLAO,1.6",
+        "2026-07-29,CALLAO,1.7",
+        "2026-07-30,CALLAO,1.8",
+        "2026-07-31,CALLAO,1.9",
+    )
+
+    def test_la_racha_importada_queda_en_alerta_sin_reevaluar_a_mano(self, client, admin_headers):
+        cuerpo = subir(client, admin_headers, csv_de(*self.RACHA_CALIDA)).json()
+
+        assert cuerpo["evaluation"]["events_open"] == 1
+        abiertas = client.get("/api/alerts", params={"only_open": True}).json()
+        assert [e["laboratory_code"] for e in abiertas] == ["CALLAO"]
+
+    def test_registra_los_avisos_de_quien_sigue_la_zona(
+        self, client, admin_headers, user_headers, db_session
+    ):
+        client.post("/api/subscriptions", headers=user_headers, json={"laboratory_code": "CALLAO"})
+
+        cuerpo = subir(client, admin_headers, csv_de(*self.RACHA_CALIDA)).json()
+
+        # Uno por canal, pendientes: el envio sigue siendo un paso aparte.
+        assert cuerpo["evaluation"]["notifications_created"] == 2
+        assert db_session.scalar(select(func.count()).select_from(Notification)) == 2
+
+    def test_reimportar_el_mismo_archivo_no_reevalua(self, client, admin_headers):
+        subir(client, admin_headers, csv_de(*self.RACHA_CALIDA))
+        segunda = subir(client, admin_headers, csv_de(*self.RACHA_CALIDA)).json()
+
+        assert segunda["rows_unchanged"] == 5
+        assert segunda["evaluation"] is None
+
+    def test_un_archivo_sin_filas_validas_no_reevalua(self, client, admin_headers):
+        cuerpo = subir(client, admin_headers, csv_de("no-es-fecha,CALLAO,1.5")).json()
+        assert cuerpo["evaluation"] is None
+
+    def test_el_historial_no_repite_la_evaluacion(self, client, admin_headers):
+        subir(client, admin_headers, csv_de(*self.RACHA_CALIDA))
+        historial = client.get("/api/imports", headers=admin_headers).json()
+        assert historial[0]["evaluation"] is None
 
 
 @pytest.mark.slow

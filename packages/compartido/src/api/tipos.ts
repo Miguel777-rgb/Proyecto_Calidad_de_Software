@@ -62,6 +62,9 @@ export interface Importacion {
   started_at: string
   finished_at: string | null
   uploaded_by_email: string | null
+  /** Solo en la respuesta de importar: la reevaluacion que se dispara sola
+   *  cuando cambian mediciones. Es null si nada cambio y no viene en el historial. */
+  evaluation?: ResumenEvaluacion | null
 }
 
 export type EstadoTermico = 'warm' | 'neutral' | 'cold' | 'no_data'
@@ -106,6 +109,13 @@ export interface ResumenEvaluacion {
   events_total: number
   events_open: number
   events_removed: number
+  /** Avisos que dejaron registrados los episodios que se abrieron o cerraron. */
+  notifications_created: number
+}
+
+/** Respuesta de guardar parametros: guardarlos reevalua las alertas. */
+export interface ConfiguracionGuardada extends Configuracion {
+  evaluation: ResumenEvaluacion | null
 }
 
 export interface Episodio {

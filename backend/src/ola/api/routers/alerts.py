@@ -11,7 +11,7 @@ from ola.api.schemas.alerts import AlertEventOut, EvaluationSummaryOut, StreakOu
 from ola.api.schemas.notifications import SendSummaryOut
 from ola.domain.streaks import detect_streaks
 from ola.repositories import alerts_repo, labs_repo, notifications_repo, readings_repo
-from ola.services import alert_service, notification_service
+from ola.services import notification_service, refresh_service
 
 router = APIRouter(tags=["alertas"])
 
@@ -47,24 +47,9 @@ def list_alerts(
 def evaluate_alerts(
     session: SessionDep, config: EffectiveSettingsDep, admin: AdminUser
 ) -> EvaluationSummaryOut:
-    resumen = alert_service.evaluate(session, config)
-
-    # Los avisos se REGISTRAN aqui pero no se envian: un servidor de correo
-    # lento o caido no debe bloquear ni hacer fallar la evaluacion.
-    avisos = notification_service.create_for_events(
-        session,
-        opened_ids=resumen.opened_event_ids,
-        closed_ids=resumen.closed_event_ids,
-    )
-
-    return EvaluationSummaryOut(
-        reference_date=resumen.reference_date,
-        laboratories_evaluated=resumen.laboratories_evaluated,
-        events_total=resumen.events_total,
-        events_open=resumen.events_open,
-        events_removed=resumen.events_removed,
-        notifications_created=avisos,
-    )
+    # Importar y guardar parametros ya reevaluan solos; el boton queda para
+    # forzarlo, por ejemplo tras corregir un dato a mano en la base.
+    return EvaluationSummaryOut.from_refresh(refresh_service.refresh_alerts(session, config))
 
 
 @router.get(

@@ -83,6 +83,11 @@ export default function Admin() {
         <div data-testid="resultado-importacion">
           <h3>{textos.admin.resultado}</h3>
           <ResumenImportacion importacion={ultima} detallado />
+          {ultima.evaluation != null && (
+            <p className="aviso" role="status" data-testid="evaluacion-importacion">
+              {textos.admin.alertasReevaluadas(ultima.evaluation)}
+            </p>
+          )}
         </div>
       )}
 

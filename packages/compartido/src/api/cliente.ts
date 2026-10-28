@@ -1,5 +1,6 @@
 import type {
   Configuracion,
+  ConfiguracionGuardada,
   Episodio,
   EstadoSistema,
   HealthResponse,
@@ -178,7 +179,10 @@ export function crearCliente({ baseUrl, almacenToken, alNoAutorizado }: Opciones
     obtenerConfiguracion: () => apiFetch<Configuracion>('/settings'),
 
     guardarConfiguracion: (cambios: Partial<Record<string, string | number>>) =>
-      apiFetch<Configuracion>('/settings', { method: 'PUT', body: JSON.stringify(cambios) }),
+      apiFetch<ConfiguracionGuardada>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify(cambios),
+      }),
 
     evaluarAlertas: () => apiFetch<ResumenEvaluacion>('/alerts/evaluate', { method: 'POST' }),
 

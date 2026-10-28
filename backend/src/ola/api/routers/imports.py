@@ -10,10 +10,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from ola.api.deps import AdminUser, SessionDep
+from ola.api.deps import AdminUser, EffectiveSettingsDep, SessionDep
+from ola.api.schemas.alerts import EvaluationSummaryOut
 from ola.api.schemas.imports import ImportRunOut
 from ola.repositories import imports_repo
-from ola.services import import_service
+from ola.services import import_service, refresh_service
 
 router = APIRouter(prefix="/api/imports", tags=["importacion"])
 
@@ -31,6 +32,7 @@ EXTENSIONES = (".csv", ".txt")
 def import_csv(
     session: SessionDep,
     admin: AdminUser,
+    config: EffectiveSettingsDep,
     file: Annotated[UploadFile, File(description="CSV de ATSM publicado por IMARPE")],
 ) -> ImportRunOut:
     nombre = file.filename or "sin-nombre.csv"
@@ -49,7 +51,16 @@ def import_csv(
     run = import_service.run_import(
         session, filename=nombre, stream=file.file, uploaded_by_id=admin.id
     )
-    return ImportRunOut.from_run(run)
+
+    # Sin este paso, las mediciones nuevas no llegaban a las alertas hasta que
+    # alguien pulsara «Reevaluar alertas», y una zona podia seguir sin alerta
+    # con su racha ya cumplida.
+    evaluacion = None
+    if refresh_service.import_changed_readings(run):
+        evaluacion = EvaluationSummaryOut.from_refresh(
+            refresh_service.refresh_alerts(session, config)
+        )
+    return ImportRunOut.from_run(run, evaluation=evaluacion)
 
 
 @router.get("", response_model=list[ImportRunOut], summary="Historial de importaciones")

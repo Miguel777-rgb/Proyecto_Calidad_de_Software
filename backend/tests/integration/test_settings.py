@@ -100,3 +100,28 @@ class TestEfectoEnLaDeteccion:
 
         client.put("/api/settings", headers=admin_headers, json={"freshness_days": 15})
         assert paita()["is_stale"] is False
+
+    def test_guardar_los_parametros_reevalua_las_alertas(
+        self, client, admin_headers, datos_de_muestra
+    ):
+        # Sin pulsar «Reevaluar alertas»: guardar basta para que el mapa
+        # deje de mostrar episodios que ya no cumplen el umbral nuevo.
+        def abiertas() -> set[str]:
+            eventos = client.get("/api/alerts", params={"only_open": True}).json()
+            return {e["laboratory_code"] for e in eventos}
+
+        client.put("/api/settings", headers=admin_headers, json={"threshold_c": 0.5})
+        assert "CALLAO" in abiertas()
+
+        client.put("/api/settings", headers=admin_headers, json={"threshold_c": 2.0})
+        assert "CALLAO" not in abiertas()
+
+    def test_la_respuesta_trae_el_resumen_de_la_reevaluacion(
+        self, client, admin_headers, datos_de_muestra
+    ):
+        cuerpo = client.put(
+            "/api/settings", headers=admin_headers, json={"threshold_c": 0.6}
+        ).json()
+
+        assert cuerpo["threshold_c"] == "0.6"
+        assert cuerpo["evaluation"]["laboratories_evaluated"] == 10

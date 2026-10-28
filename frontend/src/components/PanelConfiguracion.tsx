@@ -49,12 +49,18 @@ export function PanelConfiguracion() {
     setAviso(null)
     setGuardando(true)
     try {
-      const guardado = await guardarConfiguracion({
+      const { evaluation, ...guardado } = await guardarConfiguracion({
         threshold_c: config.threshold_c,
         ...Object.fromEntries(ENTEROS.map((c) => [c, Number(config[c])])),
       })
       setConfig(guardado)
-      setAviso(textos.configuracion.guardado)
+      // Guardar reevalua las alertas en el servidor; se resume para que el
+      // administrador sepa que el mapa ya refleja los parametros nuevos.
+      setAviso(
+        evaluation == null
+          ? textos.configuracion.guardado
+          : textos.configuracion.guardadoYReevaluado(evaluation),
+      )
     } catch (e) {
       setError(e instanceof ApiError ? e.message : textos.errores.inesperado)
     } finally {

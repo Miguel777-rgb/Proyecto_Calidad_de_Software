@@ -80,6 +80,29 @@ describe('PanelConfiguracion', () => {
     )
   })
 
+  it('al guardar avisa que las alertas ya se recalcularon', async () => {
+    const evaluacion = {
+      reference_date: '2026-07-31',
+      laboratories_evaluated: 10,
+      events_total: 120,
+      events_open: 2,
+      events_removed: 4044,
+      notifications_created: 0,
+    }
+    simularApi(() => respuesta({ ...CONFIG, threshold_c: '2.0', evaluation: evaluacion }))
+    const user = userEvent.setup()
+    renderConProveedores(<PanelConfiguracion />)
+
+    await screen.findByLabelText(textos.configuracion.threshold_c)
+    await user.click(screen.getByRole('button', { name: textos.configuracion.guardar }))
+
+    expect(await screen.findByTestId('aviso-configuracion')).toHaveTextContent(
+      textos.configuracion.guardadoYReevaluado(evaluacion),
+    )
+    // El resumen no se cuela en el formulario: solo quedan los parametros.
+    expect(screen.getByLabelText(textos.configuracion.threshold_c)).toHaveValue(2)
+  })
+
   it('muestra el mensaje del servidor si un valor es invalido', async () => {
     simularApi(() => respuesta({ detail: 'El umbral debe estar entre 0.1 y 5.0 grados.' }, 422))
     const user = userEvent.setup()

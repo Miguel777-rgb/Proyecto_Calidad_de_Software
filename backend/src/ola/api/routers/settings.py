@@ -7,7 +7,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from ola.api.deps import AdminUser, EffectiveSettingsDep, SessionDep, SettingsDep
-from ola.services import settings_service
+from ola.api.schemas.alerts import EvaluationSummaryOut
+from ola.services import refresh_service, settings_service
 
 router = APIRouter(prefix="/api/settings", tags=["configuracion"])
 
@@ -31,4 +32,9 @@ def update_settings(
         # cambio de nombre y quedo obsoleta.
         raise HTTPException(status_code=422, detail=str(exc)) from None
     session.commit()
-    return settings_service.get_effective(session, settings).as_dict()
+
+    # Los episodios guardados se detectaron con los parametros anteriores:
+    # sin reevaluar, el mapa seguiria mostrando alertas que ya no cumplen.
+    config = settings_service.get_effective(session, settings)
+    evaluacion = EvaluationSummaryOut.from_refresh(refresh_service.refresh_alerts(session, config))
+    return {**config.as_dict(), "evaluation": evaluacion.model_dump(mode="json")}

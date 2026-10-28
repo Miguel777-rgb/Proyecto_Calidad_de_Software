@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
 from ola.db.models import AlertEvent, AlertState
+
+if TYPE_CHECKING:
+    from ola.services.refresh_service import RefreshSummary
 
 
 class AlertEventOut(BaseModel):
@@ -61,3 +65,15 @@ class EvaluationSummaryOut(BaseModel):
     events_open: int
     events_removed: int
     notifications_created: int = 0
+
+    @classmethod
+    def from_refresh(cls, refresh: RefreshSummary) -> EvaluationSummaryOut:
+        resumen = refresh.evaluation
+        return cls(
+            reference_date=resumen.reference_date,
+            laboratories_evaluated=resumen.laboratories_evaluated,
+            events_total=resumen.events_total,
+            events_open=resumen.events_open,
+            events_removed=resumen.events_removed,
+            notifications_created=refresh.notifications_created,
+        )

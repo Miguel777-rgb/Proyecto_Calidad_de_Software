@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
+from ola.api.schemas.alerts import EvaluationSummaryOut
 from ola.db.models import ImportStatus
 
 if TYPE_CHECKING:
@@ -38,9 +39,15 @@ class ImportRunOut(BaseModel):
     started_at: datetime
     finished_at: datetime | None = None
     uploaded_by_email: str | None = None
+    # Solo al importar: resultado de la reevaluacion que la importacion dispara
+    # cuando cambian mediciones. En el historial y si nada cambio, es None.
+    evaluation: EvaluationSummaryOut | None = None
 
     @classmethod
-    def from_run(cls, run: ImportRun) -> ImportRunOut:
+    def from_run(
+        cls, run: ImportRun, evaluation: EvaluationSummaryOut | None = None
+    ) -> ImportRunOut:
         modelo = cls.model_validate(run)
         modelo.uploaded_by_email = run.uploaded_by.email if run.uploaded_by else None
+        modelo.evaluation = evaluation
         return modelo

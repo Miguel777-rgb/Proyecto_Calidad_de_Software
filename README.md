@@ -321,8 +321,9 @@ curl https://ola.tudominio.pe/api/laboratories    # las 10 zonas
 
 La base arranca **vacía**, con el catálogo de zonas pero sin mediciones. Inicia sesión en
 `https://ola.tudominio.pe` con la cuenta de administrador e importa
-`dataset/IMARPE_Anomalia_TSM.csv` desde la pantalla de administración. Después pulsa
-**Reevaluar alertas**.
+`dataset/IMARPE_Anomalia_TSM.csv` desde la pantalla de administración. Al terminar, las
+alertas se recalculan solas con las mediciones nuevas y quedan registrados los avisos de los
+usuarios suscritos; guardar los parámetros de detección también las recalcula.
 
 Esa importación sirve además de verificación del despliegue: si funciona, el sistema entero
 funciona. Medición de referencia: 125,701 filas en unos 12 segundos.

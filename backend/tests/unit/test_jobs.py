@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from ola.jobs import IMPORT_LOCK_ID, SEND_LOCK_ID, Scheduler, Task, build_tasks, download
+from ola.jobs import IMPORT_LOCK_ID, SEND_LOCK_ID, Scheduler, Task, build_tasks, download, main
 from ola.mail import RecordingMailer
 from ola.services.channels import default_channels
 
@@ -168,3 +168,14 @@ class TestDescarga:
     def test_solo_acepta_http_y_https(self, url):
         with pytest.raises(ValueError, match="http o https"):
             download(url)
+
+
+class TestLineaDeComandos:
+    def test_import_file_exige_un_archivo_que_exista(self, tmp_path, capsys):
+        # Se comprueba antes de abrir la base: un error de ruta no espera a
+        # que la conexion falle.
+        with pytest.raises(SystemExit) as salida:
+            main(["import-file", str(tmp_path / "no-existe.csv")])
+
+        assert salida.value.code == 2
+        assert "no existe el archivo" in capsys.readouterr().err

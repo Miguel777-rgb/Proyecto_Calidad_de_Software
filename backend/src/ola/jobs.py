@@ -10,6 +10,7 @@ Uso::
     python -m ola.jobs scheduler      # bucle: ejecuta cada tarea cuando le toca
     python -m ola.jobs send-notices   # una vez: envia los avisos pendientes
     python -m ola.jobs import-url     # una vez: importa el CSV de OLA_IMPORT_URL
+    python -m ola.jobs import-file /dataset/IMARPE_Anomalia_TSM.csv   # una vez: un CSV del disco
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
@@ -74,23 +76,26 @@ def download(url: str) -> bytes:
     return datos
 
 
-def import_from_url(
-    session: Session, settings: Settings, url: str, fetch: Fetch = download
-) -> ImportRun | None:
-    """Importa el CSV publicado en ``url`` y reevalua si cambio alguna medicion.
+def import_csv(session: Session, settings: Settings, datos: bytes, nombre: str) -> ImportRun | None:
+    """Importa el CSV y reevalua las alertas si cambio alguna medicion.
 
     Devuelve None si el archivo es identico al de la ultima importacion
     completada: asi el historial no se llena con una importacion igual por dia.
     """
-    datos = fetch(url)
     huella = hashlib.sha256(datos).hexdigest()
     recientes = imports_repo.list_recent(session, limit=1)
     ultima = recientes[0] if recientes else None
-    if ultima is not None and ultima.sha256 == huella and ultima.status == ImportStatus.COMPLETED:
-        logger.info("La fuente no cambio desde la ultima importacion (%s).", huella[:12])
+    # Solo se salta un archivo que ya cargo filas: repetir uno que no aporto
+    # ninguna debe volver a fallar, no pasar por «sin cambios».
+    if (
+        ultima is not None
+        and ultima.sha256 == huella
+        and ultima.status == ImportStatus.COMPLETED
+        and ultima.rows_inserted + ultima.rows_updated + ultima.rows_unchanged > 0
+    ):
+        logger.info("El archivo no cambio desde la ultima importacion (%s).", huella[:12])
         return None
 
-    nombre = urlparse(url).path.rsplit("/", 1)[-1] or "importacion-automatica.csv"
     run = import_service.run_import(
         session, filename=nombre, stream=io.BytesIO(datos), uploaded_by_id=None
     )
@@ -98,6 +103,47 @@ def import_from_url(
         config = settings_service.get_effective(session, settings)
         refresh_service.refresh_alerts(session, config)
     return run
+
+
+def import_from_url(
+    session: Session, settings: Settings, url: str, fetch: Fetch = download
+) -> ImportRun | None:
+    """Importa el CSV publicado en ``url``, como import_csv."""
+    nombre = urlparse(url).path.rsplit("/", 1)[-1] or "importacion-automatica.csv"
+    return import_csv(session, settings, fetch(url), nombre)
+
+
+def import_file(session: Session, settings: Settings, ruta: Path) -> ImportRun | None:
+    """Importa un CSV del disco, como import_csv.
+
+    Carga el dataset sin pasar por la web, por ejemplo en la CI antes de las
+    pruebas de extremo a extremo.
+    """
+    return import_csv(session, settings, ruta.read_bytes(), ruta.name)
+
+
+def describe_import(run: ImportRun | None) -> str:
+    """Resumen de una linea para la consola."""
+    if run is None:
+        return "Sin cambios desde la ultima importacion."
+    if run.status != ImportStatus.COMPLETED:
+        return f"La importacion de {run.filename} fallo: {run.error_message}"
+    return (
+        f"{run.filename}: {run.rows_inserted} filas nuevas, {run.rows_updated} actualizadas, "
+        f"{run.rows_unchanged} sin cambios y {run.rows_rejected} rechazadas."
+    )
+
+
+def import_exit_code(run: ImportRun | None) -> int:
+    """1 si el archivo no aporto ninguna fila valida: asi detiene la CI que lo carga.
+
+    Un archivo identico al ultimo importado (None) no es un error: sus datos ya
+    estan en la base.
+    """
+    if run is None:
+        return 0
+    aceptadas = run.rows_inserted + run.rows_updated + run.rows_unchanged
+    return 1 if run.status != ImportStatus.COMPLETED or aceptadas == 0 else 0
 
 
 # --- Programador -------------------------------------------------------------
@@ -208,7 +254,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     comandos.add_parser("send-notices", help="Envia una vez los avisos pendientes.")
     importar = comandos.add_parser("import-url", help="Importa una vez el CSV de la URL.")
     importar.add_argument("--url", help="URL del CSV; por defecto, OLA_IMPORT_URL.")
+    archivo = comandos.add_parser("import-file", help="Importa una vez un CSV del disco.")
+    archivo.add_argument("ruta", type=Path, help="Ruta del CSV, p. ej. /dataset/atsm.csv")
     args = parser.parse_args(argv)
+    if args.command == "import-file" and not args.ruta.is_file():
+        parser.error(f"no existe el archivo {args.ruta}")
 
     settings = get_settings()
     configure_logging(settings)
@@ -229,8 +279,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("falta la URL: usa --url o define OLA_IMPORT_URL")
         with SessionLocal() as session:
             run = import_from_url(session, settings, url)
-        print("Sin cambios desde la ultima importacion." if run is None else run)
-        return 0
+            print(describe_import(run))
+            return import_exit_code(run)
+
+    if args.command == "import-file":
+        with SessionLocal() as session:
+            run = import_file(session, settings, args.ruta)
+            print(describe_import(run))
+            return import_exit_code(run)
 
     tareas = build_tasks(settings)
     if not tareas:

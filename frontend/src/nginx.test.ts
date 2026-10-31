@@ -58,6 +58,10 @@ describe('cabeceras de seguridad de nginx', () => {
     expect(DOCKERFILE).toContain(`COPY frontend/seguridad.conf ${RUTA_SNIPPET}`)
   })
 
+  it('no publica la version de nginx', () => {
+    expect(NGINX).toMatch(/^\s*server_tokens off;$/m)
+  })
+
   it.each([
     'X-Content-Type-Options',
     'X-Frame-Options',

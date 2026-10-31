@@ -38,7 +38,9 @@ se actualiza una, hay que actualizar la otra: de lo contrario el navegador no se
 ## Llamadas a la API
 
 El cliente usa la ruta relativa `/api`. En desarrollo la resuelve el proxy de Vite y en
-producción la resuelve Nginx, así que el navegador siempre habla con su mismo origen.
+producción Traefik la manda directo al contenedor de la API, sin pasar por Nginx, así que el
+navegador siempre habla con su mismo origen. Por eso las cabeceras de seguridad de la API las
+pone la propia API (`backend/src/ola/security_headers.py`), no `seguridad.conf`.
 
 ## Mapa interactivo (RF-04)
 

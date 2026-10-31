@@ -26,6 +26,7 @@ from ola.config import Settings, get_settings
 from ola.db.session import SessionLocal
 from ola.observability import configure_logging, init_error_tracking
 from ola.ratelimit import AuthLimiters
+from ola.security_headers import SecurityHeadersMiddleware
 from ola.services import auth_service
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Despues de CORS para envolverlo: asi tambien llevan las cabeceras las
+    # respuestas a las consultas previas (OPTIONS) que CORS contesta solo.
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(health.router)
     app.include_router(auth.router)

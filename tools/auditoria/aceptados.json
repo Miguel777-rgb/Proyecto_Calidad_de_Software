@@ -1,14 +1,7 @@
 {
   "descripcion": "Avisos de pnpm audit que el equipo acepta por ahora, con su motivo. La CI falla con cualquier aviso alto o critico que no este en esta lista. Cada entrada se revisa al actualizar el SDK de Expo; si el aviso desaparece de la auditoria, la CI pide quitarla.",
-  "revisado": "2026-10-28",
+  "revisado": "2026-11-01",
   "avisos": [
-    {
-      "ghsa": "GHSA-86w9-cpqp-85rv",
-      "paquete": "node-forge",
-      "gravedad": "high",
-      "entra_por": "expo > @expo/cli",
-      "motivo": "No existe version corregida. Solo lo usa la CLI de Expo en el equipo que compila, para certificados y firma de actualizaciones; no entra en el APK y la app no usa actualizaciones firmadas (expo-updates)."
-    },
     {
       "ghsa": "GHSA-mrhx-c7xc-m3w5",
       "paquete": "zod",
@@ -28,7 +21,14 @@
       "paquete": "decode-uri-component",
       "gravedad": "moderate",
       "entra_por": "expo-router > query-string 7",
-      "motivo": "Si entra en la app: expo-router decodifica con el los parametros de los enlaces ola://. La version corregida (0.5) es solo ESM y rompe el require() de query-string 7. El riesgo es que un enlace manipulado, abierto por el usuario, congele la app; no da acceso a datos."
+      "motivo": "Entra en el APK, pero hoy ningun dato de afuera llega a el: expo-router 57 lee los parametros de los enlaces ola:// con URL y decodeURIComponent nativos, y de query-string 7 solo usa stringify, que no decodifica. La version corregida (0.5) es solo ESM: con Metro, el require() de query-string 7 recibiria un objeto en vez de la funcion. Dejaria de valer si la app usara query-string.parse con datos externos. Se quita al pasar a Expo SDK 58 (expo-router 58.0.13 o posterior), que ya no usa query-string."
+    },
+    {
+      "ghsa": "GHSA-qr28-fpjm-wq7f",
+      "paquete": "decode-uri-component",
+      "gravedad": "high",
+      "entra_por": "expo-router > query-string 7",
+      "motivo": "El mismo caso que GHSA-vcc3-ghjq-m6fr: la correccion (0.5.1) tambien es solo ESM, y hoy ningun dato de afuera llega a la funcion afectada. Dejaria de valer si la app usara query-string.parse con datos externos. Se quita al pasar a Expo SDK 58."
     },
     {
       "ghsa": "GHSA-gcqx-w48m-w2h4",
